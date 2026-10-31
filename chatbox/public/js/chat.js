@@ -337,7 +337,7 @@ class ChatWidget {
     if (!messages || messages.length === 0) {
       this.appendMessage({
         sender_type: 'assistant',
-        content: 'Xin chào! Em là Trợ lý AI của Salon Lumière. Em có thể tư vấn các gói dịch vụ làm tóc và hỗ trợ anh/chị đặt lịch hẹn nhanh chóng. Anh/chị cần em hỗ trợ gì hôm nay ạ?',
+        content: 'Xin chào quý khách! Em là AI tư vấn của salon. Em có thể hỗ trợ mình tìm hiểu dịch vụ, tham khảo giá và thời gian thực hiện hoặc hướng dẫn đặt lịch trực tuyến. Mình cần tư vấn nội dung nào ạ?',
         created_at: new Date().toISOString()
       });
       return;
@@ -557,4 +557,3 @@ class ChatWidget {
 window.addEventListener('DOMContentLoaded', () => {
   window.chatWidget = new ChatWidget();
 });
-

@@ -16730,5 +16730,49 @@
     "is_read": true,
     "read_at": "2026-10-31T09:18:09.725Z",
     "created_at": "2026-10-31T09:18:09.725Z"
+  },
+  {
+    "id": "054cc888-b83f-4d25-ac3d-e3d7d053ecd8",
+    "conversation_id": "80375ee5-1d0a-4fb2-b3e8-2e04c4aa01e1",
+    "sender_type": "assistant",
+    "sender_id": null,
+    "content": "Dạ em thấy mình đang bận, phiên chat sẽ tự động kết thúc sau 5 phút nữa nếu không có tương tác ạ. Nếu cần hỗ trợ thêm, anh/chị cứ nhắn em nhé!",
+    "metadata": null,
+    "is_read": false,
+    "read_at": null,
+    "created_at": "2026-10-31T10:42:22.064Z"
+  },
+  {
+    "id": "cbebc9d0-645c-4dee-bfbb-ad42f18f0059",
+    "conversation_id": "80375ee5-1d0a-4fb2-b3e8-2e04c4aa01e1",
+    "sender_type": "system",
+    "sender_id": null,
+    "content": "Phiên tư vấn tự động tạm đóng do hết thời gian chờ phản hồi. Salon sẽ liên hệ lại nếu có thông tin.",
+    "metadata": null,
+    "is_read": true,
+    "read_at": "2026-10-31T10:47:31.736Z",
+    "created_at": "2026-10-31T10:47:31.736Z"
+  },
+  {
+    "id": "d8508021-9617-409f-82b9-026024864274",
+    "conversation_id": "9c1a0bb3-ddf4-4de4-bc3d-924b4cdb0439",
+    "sender_type": "assistant",
+    "sender_id": null,
+    "content": "Dạ em thấy mình đang bận, phiên chat sẽ tự động kết thúc sau 5 phút nữa nếu không có tương tác ạ. Nếu cần hỗ trợ thêm, anh/chị cứ nhắn em nhé!",
+    "metadata": null,
+    "is_read": false,
+    "read_at": null,
+    "created_at": "2026-10-31T10:54:16.905Z"
+  },
+  {
+    "id": "5a34936d-db31-46f5-a0c4-2341821d65e8",
+    "conversation_id": "9c1a0bb3-ddf4-4de4-bc3d-924b4cdb0439",
+    "sender_type": "system",
+    "sender_id": null,
+    "content": "Phiên tư vấn tự động tạm đóng do hết thời gian chờ phản hồi. Salon sẽ liên hệ lại nếu có thông tin.",
+    "metadata": null,
+    "is_read": true,
+    "read_at": "2026-10-31T10:59:17.013Z",
+    "created_at": "2026-10-31T10:59:17.013Z"
   }
 ]

@@ -1,0 +1,36 @@
+{
+  "name": "chatbox-consulting-platform",
+  "version": "1.0.0",
+  "description": "Website tư vấn sản phẩm, chat AI đặt lịch và chuyển giao tiếp trực tiếp với nhân viên Admin",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js",
+    "migrate": "node database/migrate.js",
+    "seed": "node database/seed.js",
+    "seed:admin": "node database/seedAdmin.js",
+    "test": "node --test --test-concurrency=1 tests/**/*.test.js",
+    "test:ai": "node scripts/test-ai.js",
+    "backup:db": "powershell -File scripts/backup-db.ps1",
+    "restore:db": "powershell -File scripts/restore-db.ps1"
+  },
+  "keywords": ["chatbox", "ai", "customer-support", "appointments", "socketio", "express"],
+  "author": "Antigravity Engineering",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1",
+    "socket.io": "^4.8.1",
+    "uuid": "^11.0.5"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
+  }
+}

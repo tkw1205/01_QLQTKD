@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Salon Lumière – Theo dõi chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/chat.css">
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <style>
+    /* Fixed Viewport & Chat Frame */
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden; /* Cố định trang, ngăn thanh cuộn toàn bộ trang */
+    }
+
+    .admin-layout {
+      height: 100vh;
+      max-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .admin-sidebar {
+      flex-shrink: 0;
+    }
+
+    .admin-main {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .admin-header {
+      flex-shrink: 0;
+      padding: 12px 24px 6px;
+    }
+
+    .admin-header .sub {
+      margin-bottom: 0;
+    }
+
+    .admin-content {
+      flex: 1;
+      min-height: 0;
+      padding: 6px 24px 16px;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .chat-panel {
+      flex: 1;
+      min-height: 0;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    /* Left Column: Conversation List */
+    .conv-list {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .conv-list-tabs {
+      flex-shrink: 0;
+      margin-bottom: 0;
+    }
+    .conv-search-wrap {
+      flex-shrink: 0;
+      padding: .625rem .75rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .conv-search-input {
+      width: 100%;
+      padding: .45rem .75rem;
+      font-size: .85rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .conv-search-input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    .conv-list-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: thin;
+    }
+    .conv-tab {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .35rem;
+      padding: .75rem .65rem;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all .15s;
+      user-select: none;
+      flex-shrink: 0;
+      color: var(--text-muted);
+    }
+    .conv-tab.active {
+      color: var(--primary);
+      border-color: var(--primary);
+      background: rgba(37,99,235,0.03);
+    }
+    .tab-badge {
+      display: inline-block;
+      padding: .1rem .45rem;
+      border-radius: 999px;
+      font-size: .7rem;
+      background: #e2e8f0;
+      color: #475569;
+    }
+    .conv-tab.active .tab-badge.badge-warning {
+      background: #fef08a;
+      color: #854d0e;
+    }
+    .tab-badge.badge-primary {
+      background: #e0e7ff;
+      color: #4338ca;
+    }
+    .tab-badge.badge-info {
+      background: #ede9fe;
+      color: #6d28d9;
+    }
+
+    .conv-list-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    .conv-item {
+      padding: .85rem 1rem;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background .15s, border-left .15s;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      text-align: left;
+      gap: .35rem;
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--surface);
+    }
+    .conv-item:hover {
+      background: var(--bg);
+    }
+    .conv-item.active {
+      background: var(--primary-light, #f0fdf4);
+      border-left: 3.5px solid var(--primary, #0f766e);
+    }
+
+    /* Dòng 1: Họ tên đầy đủ + Số tin chưa đọc + Thời gian */
+    .conv-line-1 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .5rem;
+      width: 100%;
+      text-align: left;
+    }
+    .conv-user-info {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      flex: 1;
+      min-width: 0;
+      text-align: left;
+    }
+    .conv-user-info .full-name {
+      font-size: .92rem;
+      font-weight: 600;
+      color: var(--text, #1e293b);
+      line-height: 1.35;
+      word-break: break-word;
+      white-space: normal;
+      text-align: left;
+    }
+
+    /* Số lượng tin nhắn chưa đọc - gọn gàng, rõ ràng, tối giản */
+    .conv-unread-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 9999px;
+      background: #dc2626;
+      color: #ffffff;
+      font-size: .68rem;
+      font-weight: 700;
+      line-height: 1;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+
+    .conv-time {
+      font-size: .72rem;
+      color: var(--text-muted, #64748b);
+      white-space: nowrap;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    /* Dòng 2: Thông tin liên hệ dạng text thuần túy */
+    .conv-line-2 {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-start;
+      gap: .25rem .6rem;
+      font-size: .75rem;
+      color: var(--text-muted, #64748b);
+      text-align: left;
+      width: 100%;
+    }
+    .contact-text {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      word-break: break-word;
+      line-height: 1.35;
+      text-align: left;
+    }
+    .contact-label {
+      font-weight: 600;
+      color: #475569;
+    }
+    .contact-text.product-context {
+      color: #0369a1;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Dòng 3: Tin nhắn gần nhất */
+    .conv-line-3 {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      text-align: left;
+      margin-top: .1rem;
+    }
+    .conv-last-msg {
+      font-size: .78rem;
+      color: var(--text, #334155);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+      background: rgba(0, 0, 0, 0.025);
+      padding: 3px 6px;
+      border-radius: 4px;
+      text-align: left;
+      line-height: 1.4;
+    }
+    .conv-last-msg .sender-tag {
+      font-weight: 600;
+      color: var(--text-muted, #64748b);
+      margin-right: 3px;
+    }
+
+    /* Dòng 4: Trạng thái hội thoại và tổng số tin */
+    .conv-line-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .5rem;
+      width: 100%;
+      text-align: left;
+      margin-top: .15rem;
+    }
+
+    /* Status pills - tinh giản màu sắc, không icon rực rỡ */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: .68rem;
+      font-weight: 600;
+      white-space: nowrap;
+      text-align: left;
+    }
+    .status-pill.status-ai {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+    }
+    .status-pill.status-human {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #bbf7d0;
+    }
+    .status-pill.status-waiting {
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+    .status-pill.status-closed {
+      background: #f8fafc;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+    }
+
+    .conv-msg-count {
+      font-size: .7rem;
+      color: var(--text-muted, #94a3b8);
+      white-space: nowrap;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    /* Right Column: Chat Detail Area */
+    .chat-area {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--bg);
+      position: relative;
+    }
+
+    .no-conv-selected {
+      flex: 1;
+      height: 100%;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      color: var(--mut);
+      text-align: center;
+      gap: .75rem;
+    }
+    .no-conv-selected .icon {
+      font-size: 2.8rem;
+      opacity: .8;
+    }
+
+    #active-chat-wrapper {
+      height: 100%;
+      min-height: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-area-header {
+      padding: .875rem 1.25rem;
+      background: var(--card);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      z-index: 2;
+    }
+
+    .chat-area-messages {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+      background: var(--bg);
+      scroll-behavior: smooth;
+    }
+
+    /* Custom subtle scrollbars */
+    .conv-list-body::-webkit-scrollbar,
+    .chat-area-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+    .conv-list-body::-webkit-scrollbar-track,
+    .chat-area-messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .conv-list-body::-webkit-scrollbar-thumb,
+    .chat-area-messages::-webkit-scrollbar-thumb {
+      background: var(--line);
+      border-radius: 99px;
+    }
+    .conv-list-body::-webkit-scrollbar-thumb:hover,
+    .chat-area-messages::-webkit-scrollbar-thumb:hover {
+      background: var(--mut);
+    }
+
+    /* Message Styling in Admin View */
+    .admin-msg-row {
+      display: flex;
+      gap: .65rem;
+      align-items: flex-end;
+      max-width: 82%;
+    }
+    .admin-msg-row.from-agent {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+    .admin-msg-row.from-user {
+      align-self: flex-start;
+    }
+    .admin-msg-row.from-ai {
+      align-self: flex-start;
+    }
+    .admin-msg-row.from-system {
+      align-self: center;
+      max-width: 90%;
+    }
+
+    .admin-msg-bubble {
+      padding: .65rem .95rem;
+      border-radius: 14px;
+      font-size: .88rem;
+      line-height: 1.5;
+      word-break: break-word;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .admin-msg-bubble.from-agent {
+      background: var(--pri);
+      color: var(--priink);
+      border-bottom-right-radius: 3px;
+    }
+    .admin-msg-bubble.from-user {
+      background: var(--card);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-bottom-left-radius: 3px;
+    }
+    .admin-msg-bubble.from-ai {
+      background: var(--soft);
+      color: var(--ink);
+      border: 1px dashed var(--pri);
+      border-bottom-left-radius: 3px;
+    }
+    .admin-msg-bubble.from-system {
+      background: var(--line);
+      color: var(--mut);
+      font-size: .78rem;
+      border-radius: 999px;
+      padding: .3rem .85rem;
+      text-align: center;
+    }
+
+    .admin-msg-meta {
+      font-size: .68rem;
+      margin-top: .25rem;
+      opacity: .75;
+    }
+    .from-agent .admin-msg-meta {
+      color: rgba(255,255,255,0.85);
+      text-align: right;
+    }
+    .from-user .admin-msg-meta, .from-ai .admin-msg-meta {
+      color: var(--text-muted);
+    }
+
+    .chat-area-input-wrap {
+      padding: .875rem 1.25rem;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+      z-index: 2;
+    }
+    .chat-claim-banner {
+      background: #fde9c4;
+      border: 1px solid #dce6c8;
+      padding: 1rem 1.25rem;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .chat-closed-banner {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      padding: .85rem 1.25rem;
+      border-radius: var(--radius);
+      text-align: center;
+      color: var(--mut);
+      font-size: .88rem;
+    }
+    .typing-bar {
+      font-size: .75rem;
+      color: var(--text-muted);
+      padding: 0 .25rem .35rem;
+      font-style: italic;
+      min-height: 18px;
+    }
+
+    @media (max-width: 1024px) {
+      .chat-panel {
+        height: 100% !important;
+        grid-template-columns: 280px 1fr !important;
+      }
+      .conv-list {
+        max-height: none !important;
+      }
+    }
+    @media (max-width: 768px) {
+      .chat-panel {
+        grid-template-columns: 1fr !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-layout">
+    <!-- Topbar Navigation -->
+    <header class="admin-sidebar" id="admin-sidebar"></header>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-header">
+        <div>
+          <h2>Theo dõi chat</h2>
+          <p class="sub">Chatbot AI tự động trả lời khách; nhân viên tiếp nhận khi khách yêu cầu</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: .75rem;">
+          <button type="button" class="btn ghost sm" id="btn-refresh-convs">
+            <span>🔄</span> <span>Tải lại</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="admin-content">
+        <div class="chat-panel">
+          <!-- CỘT TRÁI: DANH SÁCH CUỘC HỘI THOẠI -->
+          <div class="conv-list">
+            <!-- Tabs -->
+            <div class="conv-list-tabs">
+              <div class="conv-tab active" data-tab="active" id="tab-active">
+                <span>Đang hoạt động</span>
+                <span class="tab-badge badge-primary" id="badge-active-count">0</span>
+              </div>
+              <div class="conv-tab" data-tab="waiting" id="tab-waiting">
+                <span>Chờ tiếp nhận</span>
+                <span class="tab-badge badge-warning" id="badge-waiting-count">0</span>
+              </div>
+              <div class="conv-tab" data-tab="ai" id="tab-ai">
+                <span>Chat AI</span>
+                <span class="tab-badge badge-info" id="badge-ai-count">0</span>
+              </div>
+              <div class="conv-tab" data-tab="closed" id="tab-closed">
+                <span>Đã đóng</span>
+              </div>
+            </div>
+
+            <!-- Tìm kiếm -->
+            <div class="conv-search-wrap">
+              <input
+                type="text"
+                id="conv-search-input"
+                class="conv-search-input"
+                placeholder="🔍 Tìm theo tên, SĐT hoặc Email..."
+              >
+            </div>
+
+            <!-- Body danh sách -->
+            <div class="conv-list-body" id="conv-list-body">
+              <div style="padding: 2.5rem 1rem; text-align: center; color: var(--text-muted);">
+                <div class="spinner" style="margin-bottom: .5rem;"></div>
+                <div>Đang tải hội thoại...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CỘT PHẢI: KHUNG CHAT CHI TIẾT -->
+          <div class="chat-area" id="chat-area">
+            <!-- Trạng thái khi chưa chọn hội thoại -->
+            <div class="no-conv-selected" id="no-conv-selected">
+              <div class="icon">💬</div>
+              <div style="font-size: 1.1rem; font-weight: 600; color: var(--text);">Chưa chọn cuộc hội thoại</div>
+              <div style="font-size: .85rem; max-width: 320px; text-align: center;">
+                Hãy chọn một cuộc hội thoại từ danh sách bên trái để xem lịch sử trao đổi hoặc tiếp nhận tư vấn khách hàng.
+              </div>
+            </div>
+
+            <!-- Khung chat đang mở -->
+            <div id="active-chat-wrapper" style="display: none;">
+              <!-- Header -->
+              <div class="chat-area-header">
+                <div class="customer-info" style="display: flex; align-items: center; gap: .75rem;">
+                  <div style="width: 40px; height: 40px; border-radius: 50%; background: #e0e7ff; color: #3730a3; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.05rem;" id="chat-cust-avatar">
+                    K
+                  </div>
+                  <div>
+                    <div style="display: flex; align-items: center; gap: .5rem;">
+                      <span class="name" id="chat-cust-name">Khách hàng</span>
+                      <span id="chat-cust-badge" class="badge badge-warning">Đang chờ</span>
+                    </div>
+                    <div class="detail" id="chat-cust-detail">
+                      📞 <span id="chat-cust-phone">Chưa có SĐT</span> • ✉️ <span id="chat-cust-email">—</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: .75rem;">
+                  <div id="chat-product-box" style="display: none; align-items: center; gap: .35rem; font-size: .8rem; background: var(--soft); padding: .35rem .65rem; border-radius: var(--radius); border: 1px solid var(--line); color: var(--ink);">
+                    <span style="color: var(--mut);">Quan tâm:</span>
+                    <strong id="chat-product-name" style="color: var(--pri);">—</strong>
+                  </div>
+
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-claim-conv" style="display: none;">
+                    <span>⚡</span> <span>Tiếp nhận tư vấn</span>
+                  </button>
+
+                  <button type="button" class="btn btn-outline btn-sm text-danger" id="btn-close-conv" style="display: none;">
+                    <span>🛑</span> <span>Kết thúc tư vấn</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Messages List -->
+              <div class="chat-area-messages" id="chat-messages-container"></div>
+
+              <!-- Input Area -->
+              <div class="chat-area-input-wrap" id="chat-input-wrapper">
+                <!-- Claim Banner if waiting -->
+                <div class="chat-claim-banner" id="banner-claim" style="display: none;">
+                  <div>
+                    <div style="font-weight: 600; color: #854d0e;">Khách hàng đang yêu cầu nhân viên hỗ trợ</div>
+                    <div style="font-size: .8rem; color: #a16207;">Bấm "Tiếp nhận ngay" để trò chuyện trực tiếp với khách hàng này.</div>
+                  </div>
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-claim-conv-banner">
+                    ⚡ Tiếp nhận ngay
+                  </button>
+                </div>
+
+                <!-- Closed Banner if closed -->
+                <div class="chat-closed-banner" id="banner-closed" style="display: none;">
+                  🔒 Cuộc hội thoại này đã kết thúc. Bạn không thể gửi thêm tin nhắn.
+                </div>
+
+                <!-- Active Input Form -->
+                <div id="active-input-box" style="display: none;">
+                  <div class="typing-bar" id="chat-typing-indicator"></div>
+                  <form id="form-send-message" style="display: flex; gap: .65rem; align-items: flex-end;">
+                    <textarea
+                      id="chat-message-input"
+                      placeholder="Nhập câu trả lời cho khách hàng (Enter để gửi, Shift+Enter xuống dòng)..."
+                      rows="2"
+                      style="flex: 1; padding: .625rem .875rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: .88rem; font-family: inherit; resize: none; min-height: 48px; max-height: 120px;"
+                    ></textarea>
+                    <button type="submit" class="btn btn-primary" id="btn-send-message" style="padding: .75rem 1.25rem;">
+                      <span>Gửi</span> <span>➤</span>
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Auth check
+      const currentUser = await Admin.checkAuth();
+      if (!currentUser) return;
+
+      // 2. Initialize Layout
+      Admin.initLayout('chat');
+
+      // 3. Chat State
+      let currentTab = 'active'; // 'active', 'waiting', 'ai', 'closed'
+      let conversations = [];
+      let selectedConversationId = null;
+      let activeConversation = null;
+      let typingTimeout = null;
+
+      const listBody = document.getElementById('conv-list-body');
+      const searchInput = document.getElementById('conv-search-input');
+      const tabActive = document.getElementById('tab-active');
+      const tabWaiting = document.getElementById('tab-waiting');
+      const tabAi = document.getElementById('tab-ai');
+      const tabClosed = document.getElementById('tab-closed');
+      const badgeActive = document.getElementById('badge-active-count');
+      const badgeWaiting = document.getElementById('badge-waiting-count');
+      const badgeAi = document.getElementById('badge-ai-count');
+
+      const noConvSelected = document.getElementById('no-conv-selected');
+      const activeChatWrapper = document.getElementById('active-chat-wrapper');
+      const messagesContainer = document.getElementById('chat-messages-container');
+      const custName = document.getElementById('chat-cust-name');
+      const custPhone = document.getElementById('chat-cust-phone');
+      const custEmail = document.getElementById('chat-cust-email');
+      const custAvatar = document.getElementById('chat-cust-avatar');
+      const custBadge = document.getElementById('chat-cust-badge');
+      const productBox = document.getElementById('chat-product-box');
+      const productName = document.getElementById('chat-product-name');
+      const btnClaim = document.getElementById('btn-claim-conv');
+      const btnClaimBanner = document.getElementById('btn-claim-conv-banner');
+      const btnCloseConv = document.getElementById('btn-close-conv');
+      const bannerClaim = document.getElementById('banner-claim');
+      const bannerClosed = document.getElementById('banner-closed');
+      const activeInputBox = document.getElementById('active-input-box');
+      const msgInput = document.getElementById('chat-message-input');
+      const formSend = document.getElementById('form-send-message');
+      const typingIndicator = document.getElementById('chat-typing-indicator');
+
+      // 4. Tab Switching
+      function switchTab(tab) {
+        currentTab = tab;
+        [tabActive, tabWaiting, tabAi, tabClosed].forEach(t => t && t.classList.remove('active'));
+        if (tab === 'active' && tabActive) tabActive.classList.add('active');
+        else if (tab === 'waiting' && tabWaiting) tabWaiting.classList.add('active');
+        else if (tab === 'ai' && tabAi) tabAi.classList.add('active');
+        else if (tabClosed) tabClosed.classList.add('active');
+
+        loadConversations();
+      }
+
+      if (tabActive) tabActive.addEventListener('click', () => switchTab('active'));
+      if (tabWaiting) tabWaiting.addEventListener('click', () => switchTab('waiting'));
+      if (tabAi) tabAi.addEventListener('click', () => switchTab('ai'));
+      if (tabClosed) tabClosed.addEventListener('click', () => switchTab('closed'));
+
+      // 5. Load conversations according to active tab
+      async function loadConversations() {
+        try {
+          let url = '/api/conversations/agent/active';
+          if (currentTab === 'waiting') url = '/api/conversations/agent/waiting';
+          else if (currentTab === 'ai') url = '/api/conversations/agent/ai';
+          else if (currentTab === 'closed') url = '/api/conversations/agent/closed?limit=50';
+
+          const res = await Admin.api(url);
+          if (!res.success) throw new Error('Không thể tải danh sách');
+
+          conversations = res.data || [];
+
+          // Also fetch counts to keep tab badges updated
+          fetchTabCounts();
+
+          renderConversationList();
+        } catch (err) {
+          listBody.innerHTML = `
+            <div style="padding: 2rem; text-align: center; color: var(--danger); font-size: .85rem;">
+              ✕ Lỗi: ${escapeHtml(err.message)}
+            </div>
+          `;
+        }
+      }
+
+      async function fetchTabCounts() {
+        try {
+          const res = await Admin.api('/api/conversations/agent/counts');
+          if (res.success && res.data) {
+            const counts = res.data;
+            if (badgeActive) badgeActive.textContent = counts.active || 0;
+            if (badgeWaiting) {
+              badgeWaiting.textContent = counts.waiting_for_agent || 0;
+              Admin.setWaitingBadge(counts.waiting_for_agent || 0);
+            }
+            if (badgeAi) badgeAi.textContent = counts.ai || 0;
+          }
+        } catch (e) {}
+      }
+
+      // 6. Render conversation items
+      function renderConversationList() {
+        const query = searchInput.value.trim().toLowerCase();
+        const filtered = conversations.filter(c => {
+          if (!query) return true;
+          const name = (c.customer_name || '').toLowerCase();
+          const phone = (c.customer_phone || '').toLowerCase();
+          const email = (c.customer_email || '').toLowerCase();
+          const prod = (c.product_name || '').toLowerCase();
+          const lastMsg = (c.last_message || '').toLowerCase();
+          return name.includes(query) || phone.includes(query) || email.includes(query) || prod.includes(query) || lastMsg.includes(query);
+        });
+
+        if (filtered.length === 0) {
+          listBody.innerHTML = `
+            <div style="padding: 2.5rem 1rem; text-align: left; color: var(--text-muted); font-size: .85rem;">
+              <div style="font-size: .95rem; font-weight: 600; color: var(--text); margin-bottom: .25rem;">Không có cuộc hội thoại</div>
+              <div>Chưa có hội thoại nào ${currentTab === 'waiting' ? 'đang chờ tiếp nhận' : currentTab === 'ai' ? 'đang chat AI' : currentTab === 'active' ? 'đang hoạt động' : 'đã đóng'}.</div>
+            </div>
+          `;
+          return;
+        }
+
+        listBody.innerHTML = filtered.map(item => {
+          const isSelected = item.id === selectedConversationId;
+          const name = item.customer_name || 'Khách vãng lai';
+          const time = Admin.timeAgo(item.last_message_at || item.updated_at || item.created_at);
+          const unreadCount = parseInt(item.unread_count, 10) || 0;
+
+          // Status Badge - Tinh giản, chỉ dùng text và màu sắc tối thiểu
+          let statusBadge = '';
+          if (item.mode === 'ai') {
+            statusBadge = '<span class="status-pill status-ai">Chat AI</span>';
+          } else if (item.mode === 'human') {
+            statusBadge = `<span class="status-pill status-human">${escapeHtml(item.agent_name ? 'NV: ' + item.agent_name : 'Đang hỗ trợ')}</span>`;
+          } else if (item.mode === 'waiting_for_agent') {
+            statusBadge = '<span class="status-pill status-waiting">Chờ tiếp nhận</span>';
+          } else if (item.mode === 'closed') {
+            statusBadge = '<span class="status-pill status-closed">Đã đóng</span>';
+          }
+
+          // Tiền tố người gửi tin nhắn gần nhất - Text thuần túy, không icon
+          let lastSender = '';
+          if (item.last_message_sender === 'user') lastSender = 'Khách';
+          else if (item.last_message_sender === 'assistant') lastSender = 'AI';
+          else if (item.last_message_sender === 'agent') lastSender = 'NV';
+          else if (item.last_message_sender === 'system') lastSender = 'Hệ thống';
+
+          // Danh sách thông tin liên hệ - Text rõ ràng, căn trái, không icon emoji
+          const contactParts = [];
+          if (item.customer_phone) {
+            contactParts.push(`<span class="contact-text"><span class="contact-label">SĐT:</span> ${escapeHtml(item.customer_phone)}</span>`);
+          }
+          if (item.customer_email) {
+            contactParts.push(`<span class="contact-text"><span class="contact-label">Email:</span> ${escapeHtml(item.customer_email)}</span>`);
+          }
+          if (!item.customer_phone && !item.customer_email) {
+            const rawCode = typeof item.guest_session_id === 'object' && item.guest_session_id !== null
+              ? (item.guest_session_id.guestSessionId || item.id)
+              : (item.guest_session_id || item.id || '');
+            const code = String(rawCode).slice(0, 8);
+            contactParts.push(`<span class="contact-text"><span class="contact-label">Mã:</span> #${escapeHtml(code)}</span>`);
+          }
+          if (item.product_name) {
+            contactParts.push(`<span class="contact-text product-context" title="${escapeHtml(item.product_name)}"><span class="contact-label">SP:</span> ${escapeHtml(item.product_name)}</span>`);
+          }
+
+          return `
+            <div class="conv-item ${isSelected ? 'active' : ''}" data-id="${item.id}">
+              <!-- Dòng 1: Họ tên đầy đủ người dùng ở đầu + Số lượng tin chưa đọc + Thời gian -->
+              <div class="conv-line-1">
+                <div class="conv-user-info">
+                  <span class="full-name">${escapeHtml(name)}</span>
+                  ${unreadCount > 0 ? `<span class="conv-unread-badge" title="${unreadCount} tin nhắn chưa đọc">${unreadCount > 99 ? '99+' : unreadCount}</span>` : ''}
+                </div>
+                <span class="conv-time">${time}</span>
+              </div>
+
+              <!-- Dòng 2: Thông tin liên hệ (SĐT, Email, SP) căn trái, tự xuống dòng khi cần -->
+              <div class="conv-line-2">
+                ${contactParts.join(' ')}
+              </div>
+
+              <!-- Dòng 3: Tin nhắn gần nhất -->
+              <div class="conv-line-3">
+                <div class="conv-last-msg" title="${escapeHtml(item.last_message || '')}">
+                  ${lastSender ? `<span class="sender-tag">${lastSender}:</span> ` : ''}${escapeHtml(item.last_message || 'Bắt đầu cuộc trò chuyện')}
+                </div>
+              </div>
+
+              <!-- Dòng 4: Trạng thái hội thoại và tổng số tin nhắn -->
+              <div class="conv-line-status">
+                ${statusBadge}
+                <span class="conv-msg-count">${item.message_count || 0} tin</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        // Attach click handlers
+        listBody.querySelectorAll('.conv-item').forEach(el => {
+          el.addEventListener('click', () => {
+            const id = el.getAttribute('data-id');
+            selectConversation(id);
+          });
+        });
+      }
+
+      // Filter input
+      searchInput.addEventListener('input', renderConversationList);
+
+      // 7. Select a conversation
+      async function selectConversation(id) {
+        selectedConversationId = id;
+
+        // Xóa ngay lập tức số đếm chưa đọc trên giao diện phía client
+        const targetConv = conversations.find(c => c.id === id);
+        if (targetConv) {
+          targetConv.unread_count = 0;
+        }
+        renderConversationList();
+
+        try {
+          // Báo cho server đánh dấu đã đọc
+          if (Admin.socket && Admin.socket.connected) {
+            Admin.socket.emit('mark_read', { conversationId: id });
+          }
+
+          // Fetch full conversation details & messages (backend cũng đánh dấu đã đọc)
+          const res = await Admin.api(`/api/conversations/agent/${id}`);
+          if (!res.success || !res.data) throw new Error('Không thể tải hội thoại');
+
+          activeConversation = res.data.conversation;
+          activeConversation.unread_count = 0;
+          if (targetConv) {
+            targetConv.unread_count = 0;
+          }
+          const messages = res.data.messages || [];
+
+          // Switch view
+          noConvSelected.style.display = 'none';
+          activeChatWrapper.style.display = 'flex';
+
+          // Join socket room
+          if (Admin.socket && Admin.socket.connected) {
+            Admin.socket.emit('join_conversation', { conversationId: id });
+          }
+
+          // Populate Header
+          renderChatHeader(activeConversation);
+
+          // Populate Messages
+          renderMessages(messages);
+
+          // Update Input & Actions Area
+          updateChatInputState(activeConversation);
+
+        } catch (err) {
+          Admin.toast(err.message || 'Lỗi khi tải chi tiết hội thoại', 'error');
+        }
+      }
+
+      function renderChatHeader(conv) {
+        const name = conv.customer_name || 'Khách vãng lai';
+        custName.textContent = name;
+        custAvatar.textContent = name.charAt(0).toUpperCase();
+
+        let contacts = [];
+        if (conv.customer_phone) contacts.push(`SĐT: ${conv.customer_phone}`);
+        if (conv.customer_email) contacts.push(`Email: ${conv.customer_email}`);
+        if (!conv.customer_phone && !conv.customer_email) {
+          const rawCode = typeof conv.guest_session_id === 'object' && conv.guest_session_id !== null
+            ? (conv.guest_session_id.guestSessionId || conv.id)
+            : (conv.guest_session_id || conv.id || '');
+          const code = String(rawCode).slice(0, 8);
+          contacts.push(`Mã: #${code}`);
+        }
+        custPhone.innerHTML = contacts.join(' &nbsp;•&nbsp; ');
+        custEmail.style.display = 'none';
+
+        if (conv.product_name) {
+          productName.textContent = conv.product_name;
+          productBox.style.display = 'flex';
+        } else {
+          productBox.style.display = 'none';
+        }
+
+        // Status badge - Text thuần túy, tối giản
+        if (conv.mode === 'waiting_for_agent') {
+          custBadge.className = 'status-pill status-waiting';
+          custBadge.textContent = 'Chờ tiếp nhận';
+        } else if (conv.mode === 'human') {
+          custBadge.className = 'status-pill status-human';
+          custBadge.textContent = conv.assigned_to === currentUser.id ? 'Bạn đang xử lý' : `Bởi: ${conv.agent_name || 'Nhân viên khác'}`;
+        } else if (conv.mode === 'closed') {
+          custBadge.className = 'status-pill status-closed';
+          custBadge.textContent = 'Đã kết thúc';
+        } else if (conv.mode === 'ai') {
+          custBadge.className = 'status-pill status-ai';
+          custBadge.textContent = 'Chat AI';
+        }
+      }
+
+      function updateChatInputState(conv) {
+        btnClaim.style.display = 'none';
+        btnClaimBanner.style.display = 'none';
+        btnCloseConv.style.display = 'none';
+        bannerClaim.style.display = 'none';
+        bannerClosed.style.display = 'none';
+        activeInputBox.style.display = 'none';
+
+        if (conv.mode === 'waiting_for_agent') {
+          btnClaim.style.display = 'inline-flex';
+          btnClaim.textContent = '🙋 Tiếp nhận';
+          bannerClaim.style.display = 'flex';
+          bannerClaim.style.background = '#fef3c7';
+          bannerClaim.style.borderColor = '#fde68a';
+          bannerClaim.querySelector('div').innerHTML = `
+            <div style="font-weight: 600; color: #854d0e;">Khách hàng đang yêu cầu hỗ trợ từ nhân viên tư vấn.</div>
+            <div style="font-size: .8rem; color: #a16207;">Bấm tiếp nhận để trực tiếp trò chuyện với khách hàng.</div>
+          `;
+          btnClaimBanner.style.display = 'inline-flex';
+          btnClaimBanner.textContent = '🙋 Tiếp nhận cuộc hội thoại';
+          btnClaimBanner.className = 'btn btn-primary btn-sm';
+        } else if (conv.mode === 'closed') {
+          bannerClosed.style.display = 'block';
+        } else if (conv.mode === 'ai') {
+          bannerClaim.style.display = 'flex';
+          bannerClaim.style.background = '#f5f3ff';
+          bannerClaim.style.borderColor = '#ddd6fe';
+          bannerClaim.querySelector('div').innerHTML = `
+            <div style="font-weight: 600; color: #6d28d9;">🤖 Khách hàng đang trò chuyện với Trợ lý AI</div>
+            <div style="font-size: .8rem; color: #7c3aed;">Bạn có thể tiếp nhận bất kỳ lúc nào để chuyển sang chat trực tiếp.</div>
+          `;
+          btnClaimBanner.style.display = 'inline-flex';
+          btnClaimBanner.textContent = '🙋 Tiếp nhận trò chuyện với khách';
+          btnClaimBanner.className = 'btn btn-primary btn-sm';
+          btnClaim.style.display = 'inline-flex';
+          btnClaim.textContent = '🙋 Tiếp nhận';
+          btnCloseConv.style.display = 'inline-flex';
+          activeInputBox.style.display = 'block';
+          msgInput.placeholder = 'Nhập tin nhắn để tiếp nhận và phản hồi khách hàng...';
+        } else if (conv.mode === 'human') {
+          // If assigned to current agent or admin
+          if (conv.assigned_to === currentUser.id || currentUser.role === 'admin') {
+            btnCloseConv.style.display = 'inline-flex';
+            activeInputBox.style.display = 'block';
+            msgInput.placeholder = 'Nhập tin nhắn tư vấn...';
+            msgInput.focus();
+          } else {
+            bannerClaim.style.display = 'flex';
+            bannerClaim.style.background = '#fef3c7';
+            bannerClaim.style.borderColor = '#fde68a';
+            bannerClaim.querySelector('div').innerHTML = `
+              <div style="font-weight: 600; color: #854d0e;">Đang được phụ trách bởi: ${escapeHtml(conv.agent_name || 'nhân viên khác')}</div>
+              <div style="font-size: .8rem; color: #a16207;">Bạn có thể tiếp quản lại cuộc hội thoại nếu cần.</div>
+            `;
+            btnClaimBanner.style.display = 'inline-flex';
+            btnClaimBanner.textContent = '⚡ Tiếp quản cuộc hội thoại';
+            btnClaimBanner.className = 'btn btn-primary btn-sm';
+          }
+        }
+      }
+
+      function renderMessages(messages) {
+        messagesContainer.innerHTML = '';
+
+        if (!messages || messages.length === 0) {
+          messagesContainer.innerHTML = `
+            <div style="text-align: center; color: var(--text-muted); font-size: .85rem; padding: 2rem;">
+              Chưa có tin nhắn nào trong cuộc trò chuyện này.
+            </div>
+          `;
+          return;
+        }
+
+        messages.forEach(msg => appendMessage(msg, false));
+        scrollToBottom();
+      }
+
+      function appendMessage(msg, scroll = true) {
+        if (!msg) return;
+        if (msg.id && messagesContainer.querySelector(`[data-msg-id="${msg.id}"]`)) return;
+
+        const row = document.createElement('div');
+        if (msg.id) row.setAttribute('data-msg-id', msg.id);
+        const isFromAgent = msg.sender_type === 'agent';
+        const isFromUser = msg.sender_type === 'user';
+        const isFromAI = msg.sender_type === 'assistant';
+        const isSystem = msg.sender_type === 'system';
+
+        let rowType = isFromAgent ? 'from-agent' : isFromUser ? 'from-user' : isFromAI ? 'from-ai' : 'from-system';
+        row.className = `admin-msg-row ${rowType}`;
+
+        const timeStr = Admin.formatTime(msg.created_at ? msg.created_at.slice(11, 16) : '') || '';
+
+        if (isSystem) {
+          row.innerHTML = `
+            <div class="admin-msg-bubble from-system">
+              🔔 ${escapeHtml(msg.content)}
+            </div>
+          `;
+        } else {
+          let senderLabel = '';
+          if (isFromAgent) senderLabel = msg.agent_name || (msg.sender_id === currentUser.id ? 'Bạn' : 'Nhân viên');
+          else if (isFromAI) senderLabel = '🤖 Trợ lý AI';
+          else senderLabel = activeConversation?.customer_name || 'Khách hàng';
+
+          row.innerHTML = `
+            <div class="admin-msg-bubble ${rowType}">
+              <div style="font-size: .72rem; font-weight: 700; margin-bottom: .2rem; opacity: .85;">
+                ${escapeHtml(senderLabel)}
+              </div>
+              <div style="white-space: pre-wrap;">${escapeHtml(msg.content)}</div>
+              <div class="admin-msg-meta">${timeStr}</div>
+            </div>
+          `;
+        }
+
+        messagesContainer.appendChild(row);
+        if (scroll) scrollToBottom();
+      }
+
+      function scrollToBottom() {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+      // 8. Claim Conversation
+      async function claimActiveConversation() {
+        if (!selectedConversationId) return;
+
+        try {
+          const res = await Admin.api(`/api/conversations/agent/${selectedConversationId}/claim`, {
+            method: 'POST'
+          });
+
+          if (!res.success) throw new Error('Không thể tiếp nhận');
+
+          Admin.toast('Bạn đã tiếp nhận cuộc hội thoại thành công!', 'success');
+          // Reload conversation
+          await selectConversation(selectedConversationId);
+          // Reload list
+          loadConversations();
+        } catch (err) {
+          Admin.toast(err.message || 'Lỗi khi tiếp nhận', 'error');
+        }
+      }
+
+      btnClaim.addEventListener('click', claimActiveConversation);
+      btnClaimBanner.addEventListener('click', claimActiveConversation);
+
+      // 9. Close Conversation
+      btnCloseConv.addEventListener('click', () => {
+        if (!selectedConversationId) return;
+
+        Admin.confirmModal({
+          title: 'Kết thúc tư vấn',
+          message: 'Bạn có chắc chắn muốn kết thúc buổi tư vấn này? Hệ thống sẽ gửi thông báo cảm ơn đến khách hàng.',
+          confirmText: 'Kết thúc',
+          confirmType: 'danger',
+          onConfirm: async () => {
+            try {
+              const res = await Admin.api(`/api/conversations/agent/${selectedConversationId}/close`, {
+                method: 'POST'
+              });
+              if (!res.success) throw new Error('Không thể kết thúc');
+
+              Admin.toast('Đã kết thúc cuộc hội thoại.', 'info');
+              await selectConversation(selectedConversationId);
+              loadConversations();
+            } catch (err) {
+              Admin.toast(err.message || 'Lỗi khi kết thúc', 'error');
+            }
+          }
+        });
+      });
+
+      // 10. Send Message
+      async function sendMessage() {
+        if (!selectedConversationId) return;
+        const text = msgInput.value.trim();
+        if (!text) return;
+
+        msgInput.value = '';
+        msgInput.style.height = 'auto';
+
+        // Emit typing stop
+        if (Admin.socket && Admin.socket.connected) {
+          Admin.socket.emit('typing', { conversationId: selectedConversationId, isTyping: false });
+        }
+
+        try {
+          if (Admin.socket && Admin.socket.connected) {
+            Admin.socket.emit('agent_message', {
+              conversationId: selectedConversationId,
+              content: text
+            });
+          } else {
+            // Fallback to HTTP POST
+            const res = await Admin.api(`/api/conversations/agent/${selectedConversationId}/message`, {
+              method: 'POST',
+              body: { message: text }
+            });
+            if (res.success && res.data) {
+              appendMessage({
+                ...res.data,
+                agent_name: currentUser.name
+              });
+            }
+          }
+        } catch (err) {
+          Admin.toast(err.message || 'Không thể gửi tin nhắn', 'error');
+        }
+      }
+
+      formSend.addEventListener('submit', (e) => {
+        e.preventDefault();
+        sendMessage();
+      });
+
+      // Keyboard shortcuts: Enter to send, Shift+Enter for newline
+      msgInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        } else {
+          // Emit typing event
+          if (Admin.socket && Admin.socket.connected && selectedConversationId) {
+            Admin.socket.emit('typing', { conversationId: selectedConversationId, isTyping: true });
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+              Admin.socket.emit('typing', { conversationId: selectedConversationId, isTyping: false });
+            }, 2500);
+          }
+        }
+      });
+
+      // Auto resize textarea
+      msgInput.addEventListener('input', () => {
+        msgInput.style.height = 'auto';
+        msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px';
+      });
+
+      // 11. Socket Realtime Listeners
+      window.addEventListener('admin:new_waiting', (e) => {
+        // Refresh conversation list if on waiting tab
+        if (currentTab === 'waiting') {
+          loadConversations();
+        } else {
+          Admin.fetchWaitingBadgeCount();
+        }
+      });
+
+      window.addEventListener('admin:claimed', (e) => {
+        loadConversations();
+        if (selectedConversationId === e.detail.conversationId) {
+          selectConversation(selectedConversationId);
+        }
+      });
+
+      window.addEventListener('admin:closed', (e) => {
+        loadConversations();
+        if (selectedConversationId === e.detail.conversationId) {
+          selectConversation(selectedConversationId);
+        }
+      });
+
+      window.addEventListener('admin:mode_changed', (e) => {
+        loadConversations();
+        if (selectedConversationId && e.detail && selectedConversationId === e.detail.conversationId) {
+          selectConversation(selectedConversationId);
+        }
+      });
+
+      window.addEventListener('admin:new_message', (e) => {
+        const msg = e.detail;
+        if (selectedConversationId && msg.conversation_id === selectedConversationId) {
+          appendMessage(msg, true);
+          // Cuộc trò chuyện đang mở trực tiếp trước mặt Admin -> tự động đánh dấu đã đọc
+          if (Admin.socket && Admin.socket.connected) {
+            Admin.socket.emit('mark_read', { conversationId: selectedConversationId });
+          }
+        }
+        // Cập nhật lại danh sách hội thoại và số lượng tin chưa đọc
+        loadConversations();
+      });
+
+      window.addEventListener('admin:conversation_read', (e) => {
+        const data = e.detail;
+        if (data && data.conversationId) {
+          const conv = conversations.find(c => c.id === data.conversationId);
+          if (conv) {
+            conv.unread_count = 0;
+            renderConversationList();
+          }
+        }
+      });
+
+      // Typing event from socket
+      if (Admin.socket) {
+        Admin.socket.on('typing', ({ isTyping, name }) => {
+          if (isTyping) {
+            typingIndicator.textContent = `✎ ${name || 'Khách hàng'} đang soạn tin nhắn...`;
+          } else {
+            typingIndicator.textContent = '';
+          }
+        });
+      }
+
+      // Refresh Button
+      document.getElementById('btn-refresh-convs').addEventListener('click', loadConversations);
+
+      // Initial Load
+      await loadConversations();
+
+      // 12. Auto-select conversation by ID (from URL parameter or notification click event)
+      async function trySelectConversationById(targetId) {
+        if (!targetId) return;
+        try {
+          const res = await Admin.api(`/api/conversations/agent/${targetId}`);
+          if (res.success && res.data?.conversation) {
+            const conv = res.data.conversation;
+            let neededTab = 'waiting';
+            if (conv.mode === 'human') neededTab = 'active';
+            else if (conv.mode === 'closed') neededTab = 'closed';
+
+            if (currentTab !== neededTab) {
+              currentTab = neededTab;
+              [tabWaiting, tabActive, tabClosed].forEach(t => t.classList.remove('active'));
+              if (neededTab === 'waiting') tabWaiting.classList.add('active');
+              else if (neededTab === 'active') tabActive.classList.add('active');
+              else tabClosed.classList.add('active');
+              await loadConversations();
+            }
+            await selectConversation(targetId);
+
+            // On mobile view, hide list and show active chat panel
+            const convList = document.querySelector('.conv-list');
+            if (convList && window.innerWidth <= 1024) {
+              convList.classList.remove('show');
+            }
+          }
+        } catch (err) {
+          console.warn('Could not auto-select conversation:', err);
+        }
+      }
+
+      // Check query parameter ?conversationId=
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialConvId = urlParams.get('conversationId');
+      if (initialConvId) {
+        await trySelectConversationById(initialConvId);
+      }
+
+      // Listen for event from notification dropdown when already on chat page
+      window.addEventListener('admin:select_conversation', async (e) => {
+        if (e.detail?.conversationId) {
+          await trySelectConversationById(e.detail.conversationId);
+        }
+      });
+    });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

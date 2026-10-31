@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Salon Lumière – Bảng điều khiển</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="admin-layout">
+    <!-- Topbar Navigation -->
+    <header class="admin-sidebar" id="admin-sidebar"></header>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-header">
+        <div>
+          <h2>Bảng điều khiển tổng quan</h2>
+          <p class="sub">Thống kê hoạt động tiệm, lịch hẹn và tư vấn khách hàng</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: .75rem;">
+          <button type="button" class="btn ghost sm" id="btn-refresh-dashboard">
+            <span>🔄</span> <span>Làm mới</span>
+          </button>
+          <a href="/admin/chat.html" class="btn sm">
+            <span>💬</span> <span>Theo dõi chat</span>
+          </a>
+        </div>
+      </header>
+
+      <div class="admin-content">
+        <!-- Section 1: Thống kê hội thoại -->
+        <div style="margin-bottom: 2rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: .85rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 600;">Hội thoại tư vấn trực tuyến</h3>
+            <span style="font-size: .8rem; color: var(--text-muted);">Cập nhật tức thời</span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card warning">
+              <div class="stat-icon">⏳</div>
+              <div class="stat-label">Chờ nhân viên</div>
+              <div class="stat-value" id="stat-conv-waiting">—</div>
+              <div style="font-size: .75rem; color: var(--text-muted); margin-top: .4rem;">Cần phản hồi ngay</div>
+            </div>
+            <div class="stat-card success">
+              <div class="stat-icon">👤</div>
+              <div class="stat-label">Đang tư vấn (Người)</div>
+              <div class="stat-value" id="stat-conv-human">—</div>
+              <div style="font-size: .75rem; color: var(--text-muted); margin-top: .4rem;">Nhân viên đang chat</div>
+            </div>
+            <div class="stat-card primary">
+              <div class="stat-icon">🤖</div>
+              <div class="stat-label">Trợ lý AI đang tiếp</div>
+              <div class="stat-value" id="stat-conv-ai">—</div>
+              <div style="font-size: .75rem; color: var(--text-muted); margin-top: .4rem;">Khách tự động hóa</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">✅</div>
+              <div class="stat-label">Đã kết thúc</div>
+              <div class="stat-value" id="stat-conv-closed">—</div>
+              <div style="font-size: .75rem; color: var(--text-muted); margin-top: .4rem;">Tổng phiên đã đóng</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Thống kê Lịch hẹn & Sản phẩm -->
+        <div style="margin-bottom: 2rem;">
+          <div class="grid-2">
+            <!-- Thống kê Lịch hẹn -->
+            <div class="card">
+              <div class="card-header">
+                <h3 style="font-size: 1rem; margin: 0;">📅 Thống kê Lịch hẹn tư vấn</h3>
+                <a href="/admin/appointments.html" class="btn btn-outline btn-sm">Xem tất cả</a>
+              </div>
+              <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                  <div style="padding: .75rem; background: var(--bg); border-radius: var(--radius);">
+                    <div style="font-size: .8rem; color: var(--warning); font-weight: 600;">CHỜ XÁC NHẬN</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; margin-top: .2rem;" id="stat-appt-pending">—</div>
+                  </div>
+                  <div style="padding: .75rem; background: var(--bg); border-radius: var(--radius);">
+                    <div style="font-size: .8rem; color: var(--primary); font-weight: 600;">ĐÃ XÁC NHẬN</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; margin-top: .2rem;" id="stat-appt-confirmed">—</div>
+                  </div>
+                  <div style="padding: .75rem; background: var(--bg); border-radius: var(--radius);">
+                    <div style="font-size: .8rem; color: var(--success); font-weight: 600;">HOÀN THÀNH</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; margin-top: .2rem;" id="stat-appt-completed">—</div>
+                  </div>
+                  <div style="padding: .75rem; background: var(--bg); border-radius: var(--radius);">
+                    <div style="font-size: .8rem; color: var(--danger); font-weight: 600;">ĐÃ HỦY</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; margin-top: .2rem;" id="stat-appt-cancelled">—</div>
+                  </div>
+                </div>
+                <div style="margin-top: 1rem; font-size: .85rem; color: var(--text-muted); text-align: right;">
+                  Tổng số lịch hẹn: <strong id="stat-appt-total" style="color: var(--text);">—</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Thống kê Sản phẩm -->
+            <div class="card">
+              <div class="card-header">
+                <h3 style="font-size: 1rem; margin: 0;">📦 Thống kê Mặt hàng</h3>
+                <a href="/admin/products.html" class="btn btn-outline btn-sm">Xem tất cả</a>
+              </div>
+              <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                  <div style="padding: .75rem; background: var(--bg); border-radius: var(--radius);">
+                    <div style="font-size: .75rem; color: var(--success); font-weight: 600;">ĐANG BÁN</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; margin-top: .2rem;" id="stat-prod-active">—</div>
+                  </div>
+                  <div style="padding: .75rem; background: var(--bg); border-radius: var(--radius);">
+                    <div style="font-size: .75rem; color: var(--secondary); font-weight: 600;">TẠM ẨN</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; margin-top: .2rem;" id="stat-prod-inactive">—</div>
+                  </div>
+                  <div style="padding: .75rem; background: var(--bg); border-radius: var(--radius);">
+                    <div style="font-size: .75rem; color: var(--danger); font-weight: 600;">NGỪNG KINH DOANH</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; margin-top: .2rem;" id="stat-prod-discontinued">—</div>
+                  </div>
+                </div>
+                <div style="margin-top: 1rem; font-size: .85rem; color: var(--text-muted); text-align: right;">
+                  Tổng số sản phẩm: <strong id="stat-prod-total" style="color: var(--text);">—</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Bảng lịch hẹn sắp diễn ra trong 3 ngày tới -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 style="font-size: 1rem; margin-bottom: .2rem;">⏰ Lịch hẹn sắp diễn ra (3 ngày tới)</h3>
+              <p style="font-size: .8rem; margin: 0;">Danh sách khách hàng đã đặt lịch tư vấn cần tiếp đón</p>
+            </div>
+            <a href="/admin/appointments.html" class="btn btn-outline btn-sm">Quản lý lịch hẹn →</a>
+          </div>
+          <div class="table-wrap">
+            <table id="table-upcoming-appts">
+              <thead>
+                <tr>
+                  <th>Khách hàng</th>
+                  <th>Số điện thoại</th>
+                  <th>Sản phẩm tư vấn</th>
+                  <th>Thời gian</th>
+                  <th>Trạng thái</th>
+                  <th>Ghi chú</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="upcoming-appts-tbody">
+                <tr>
+                  <td colspan="7" class="text-center" style="padding: 2.5rem; color: var(--text-muted);">
+                    <div class="spinner" style="margin-bottom: .5rem;"></div>
+                    <div>Đang tải danh sách lịch hẹn...</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Auth check
+      const user = await Admin.checkAuth();
+      if (!user) return;
+
+      // 2. Initialize Layout
+      Admin.initLayout('dashboard');
+
+      // 3. Load Dashboard Data
+      async function loadDashboard() {
+        const btnRefresh = document.getElementById('btn-refresh-dashboard');
+        if (btnRefresh) btnRefresh.disabled = true;
+
+        try {
+          const res = await Admin.api('/api/admin/dashboard');
+          if (!res.success || !res.data) throw new Error('Không thể tải dữ liệu thống kê');
+
+          const { products, appointments, conversations, upcomingAppointments } = res.data;
+
+          // Render Conversations
+          document.getElementById('stat-conv-waiting').textContent = conversations?.waiting_for_agent || 0;
+          document.getElementById('stat-conv-human').textContent = conversations?.human || 0;
+          document.getElementById('stat-conv-ai').textContent = conversations?.ai || 0;
+          document.getElementById('stat-conv-closed').textContent = conversations?.closed || 0;
+
+          // Update sidebar badge
+          Admin.setWaitingBadge(conversations?.waiting_for_agent || 0);
+
+          // Render Appointments
+          document.getElementById('stat-appt-pending').textContent = appointments?.pending || 0;
+          document.getElementById('stat-appt-confirmed').textContent = appointments?.confirmed || 0;
+          document.getElementById('stat-appt-completed').textContent = appointments?.completed || 0;
+          document.getElementById('stat-appt-cancelled').textContent = appointments?.cancelled || 0;
+          document.getElementById('stat-appt-total').textContent = appointments?.total || 0;
+
+          // Render Products
+          document.getElementById('stat-prod-active').textContent = products?.active || 0;
+          document.getElementById('stat-prod-inactive').textContent = products?.inactive || 0;
+          document.getElementById('stat-prod-discontinued').textContent = products?.discontinued || 0;
+          document.getElementById('stat-prod-total').textContent = products?.total || 0;
+
+          // Render Upcoming Appointments Table
+          renderUpcomingTable(upcomingAppointments || []);
+        } catch (err) {
+          Admin.toast(err.message || 'Lỗi tải dữ liệu dashboard', 'error');
+        } finally {
+          if (btnRefresh) btnRefresh.disabled = false;
+        }
+      }
+
+      function renderUpcomingTable(list) {
+        const tbody = document.getElementById('upcoming-appts-tbody');
+        if (!list || list.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7" class="text-center" style="padding: 2.5rem; color: var(--text-muted);">
+                <div style="font-size: 2rem; margin-bottom: .5rem;">📅</div>
+                <div>Không có lịch hẹn nào sắp diễn ra trong 3 ngày tới.</div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = list.map(item => {
+          let statusBadge = '<span class="badge badge-secondary">Chưa xác định</span>';
+          if (item.status === 'pending') {
+            statusBadge = '<span class="badge badge-warning">Chờ xác nhận</span>';
+          } else if (item.status === 'confirmed') {
+            statusBadge = '<span class="badge badge-success">Đã xác nhận</span>';
+          } else if (item.status === 'completed') {
+            statusBadge = '<span class="badge badge-info">Đã hoàn thành</span>';
+          } else if (item.status === 'cancelled') {
+            statusBadge = '<span class="badge badge-danger">Đã hủy</span>';
+          }
+
+          const dateDisplay = Admin.formatDate(item.appointment_date);
+          const timeDisplay = Admin.formatTime(item.appointment_time);
+
+          return `
+            <tr>
+              <td>
+                <div style="font-weight: 600;">${escapeHtml(item.customer_name || 'Khách hàng')}</div>
+                ${item.customer_email ? `<div style="font-size: .75rem; color: var(--text-muted);">${escapeHtml(item.customer_email)}</div>` : ''}
+              </td>
+              <td>
+                <a href="tel:${escapeHtml(item.customer_phone)}" style="font-weight: 500; color: var(--text);">
+                  ${escapeHtml(item.customer_phone || '—')}
+                </a>
+              </td>
+              <td>
+                ${item.product_name ? `<strong>${escapeHtml(item.product_name)}</strong>` : '<span style="color: var(--text-muted);">Tư vấn chung</span>'}
+              </td>
+              <td>
+                <div style="font-weight: 600; color: var(--primary);">${timeDisplay}</div>
+                <div style="font-size: .78rem; color: var(--text-muted);">${dateDisplay}</div>
+              </td>
+              <td>${statusBadge}</td>
+              <td style="max-width: 200px; font-size: .8rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${escapeHtml(item.notes || '—')}
+              </td>
+              <td class="actions-cell">
+                <a href="/admin/appointments.html?search=${encodeURIComponent(item.customer_phone || '')}" class="btn btn-outline btn-sm" title="Chi tiết">
+                  Xem chi tiết
+                </a>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      // Initial load
+      await loadDashboard();
+
+      // Refresh button
+      document.getElementById('btn-refresh-dashboard').addEventListener('click', loadDashboard);
+
+      // Listen for socket events to auto refresh
+      window.addEventListener('admin:new_waiting', loadDashboard);
+      window.addEventListener('admin:claimed', loadDashboard);
+    });
+  </script>
+</body>
+</html>

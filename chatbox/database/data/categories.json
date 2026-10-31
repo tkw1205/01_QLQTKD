@@ -1,0 +1,42 @@
+[
+  {
+    "id": "11111111-1111-1111-1111-111111111001",
+    "name": "Cắt & tạo kiểu",
+    "slug": "cat-tao-kieu",
+    "description": "Thiết kế phom dáng tóc layer, bob, pixie chuẩn Hàn Quốc tôn đường nét khuôn mặt.",
+    "is_active": true,
+    "created_at": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "11111111-1111-1111-1111-111111111002",
+    "name": "Gội & chăm sóc",
+    "slug": "goi-cham-soc",
+    "description": "Gội đầu thảo dược dưỡng sinh, massage bấm huyệt giải tỏa căng thẳng và thanh lọc nang tóc nano.",
+    "is_active": true,
+    "created_at": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "11111111-1111-1111-1111-111111111003",
+    "name": "Nhuộm tóc",
+    "slug": "nhuom-toc",
+    "description": "Nhuộm phủ bóng công nghệ Nano, màu thời trang tôn da, Balayage nghệ thuật và phủ bạc thảo dược.",
+    "is_active": true,
+    "created_at": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "11111111-1111-1111-1111-111111111004",
+    "name": "Uốn & duỗi",
+    "slug": "uon-duoi",
+    "description": "Uốn sóng lơi bồng bềnh chuẩn Hàn, uốn phồng chân tóc không nhiệt và duỗi hơi nước mềm mượt.",
+    "is_active": true,
+    "created_at": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "11111111-1111-1111-1111-111111111005",
+    "name": "Phục hồi",
+    "slug": "phuc-hoi",
+    "description": "Liệu trình phục hồi Keratin, Collagen chuyên sâu và tế bào gốc hồi sinh sợi tóc hư tổn.",
+    "is_active": true,
+    "created_at": "2024-01-01T00:00:00.000Z"
+  }
+]

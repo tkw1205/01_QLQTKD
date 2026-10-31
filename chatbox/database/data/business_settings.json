@@ -1,0 +1,54 @@
+[
+  {
+    "key": "working_hours",
+    "value": {
+      "monday": {
+        "open": "08:30",
+        "close": "20:30",
+        "enabled": true
+      },
+      "tuesday": {
+        "open": "08:30",
+        "close": "20:30",
+        "enabled": true
+      },
+      "wednesday": {
+        "open": "08:30",
+        "close": "20:30",
+        "enabled": true
+      },
+      "thursday": {
+        "open": "08:30",
+        "close": "20:30",
+        "enabled": true
+      },
+      "friday": {
+        "open": "08:30",
+        "close": "20:30",
+        "enabled": true
+      },
+      "saturday": {
+        "open": "08:30",
+        "close": "20:30",
+        "enabled": true
+      },
+      "sunday": {
+        "open": "08:30",
+        "close": "20:30",
+        "enabled": true
+      }
+    },
+    "updated_at": "2026-10-28T14:35:00.000Z"
+  },
+  {
+    "key": "contact_info",
+    "value": {
+      "phone": "0905 123 456",
+      "email": "contact@mayhairstudio.vn",
+      "address": "128 Lê Duẩn, P. Thạch Thang, Q. Hải Châu, TP. Đà Nẵng",
+      "facebook": "https://facebook.com/mayhairstudio",
+      "zalo": "0905123456"
+    },
+    "updated_at": "2026-10-28T14:35:00.000Z"
+  }
+]

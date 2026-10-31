@@ -1,0 +1,669 @@
+{
+  "metadata": {
+    "title": "QUY TRÌNH ĐẶT LỊCH LÀM TÓC (SALON1)",
+    "source_file": "docs/quy_trinh_dat_lich_SALON1_1sheet.xlsx",
+    "sheet_name": "Quy trình SALON1",
+    "total_excel_rows": 104,
+    "total_excel_cols": 7,
+    "extracted_at": "2026-10-28T22:20:27.510501",
+    "generator": "scripts/prepare_booking_process.py"
+  },
+  "overview": {
+    "section_title": "1. QUY TRÌNH ĐẶT LỊCH LÀM TÓC (SALON1)",
+    "description": "Mô hình có 2 pool tương tác với nhau qua các message flow. Chi tiết từng pool/lane ở các sheet tiếp theo.",
+    "pools_and_lanes": [
+      {
+        "row_index": 6,
+        "pool": "Khách hàng",
+        "lane": "—",
+        "role_description": "Người có nhu cầu làm tóc, chọn đặt qua website hoặc đến trực tiếp"
+      },
+      {
+        "row_index": 7,
+        "pool": "Salon",
+        "lane": "AI tư vấn (chatbot)",
+        "role_description": "Chào khách, tư vấn tự động, giữ chỗ và xác nhận lịch, nhắc khi khách im lặng"
+      },
+      {
+        "row_index": 8,
+        "pool": "Salon",
+        "lane": "Hệ thống đặt lịch",
+        "role_description": "Giữ chỗ tạm, xác thực, ghi lịch vào Sổ lịch hẹn, nhả giữ chỗ"
+      },
+      {
+        "row_index": 9,
+        "pool": "Salon",
+        "lane": "Chuyên viên tư vấn",
+        "role_description": "Tư vấn trực tiếp hoặc qua chat, báo giá, chốt lịch"
+      }
+    ],
+    "shared_data_stores": [
+      {
+        "row_index": 13,
+        "data_store": "Bảng dịch vụ & FAQ",
+        "users": "Chatbot, Chuyên viên",
+        "description": "Tra cứu thông tin dịch vụ và câu hỏi thường gặp"
+      },
+      {
+        "row_index": 14,
+        "data_store": "Sổ lịch hẹn",
+        "users": "Hệ thống đặt lịch",
+        "description": "Hệ thống đọc/ghi lịch hẹn"
+      }
+    ],
+    "bpmn_legend": [
+      {
+        "row_index": 18,
+        "element": "Bắt đầu",
+        "description": "Sự kiện bắt đầu"
+      },
+      {
+        "row_index": 19,
+        "element": "Cổng",
+        "description": "Cổng rẽ nhánh"
+      },
+      {
+        "row_index": 20,
+        "element": "Cổng chờ",
+        "description": "Cổng chờ sự kiện nào đến trước"
+      },
+      {
+        "row_index": 21,
+        "element": "Sự kiện",
+        "description": "Sự kiện (hết thời gian chờ, ngắt)"
+      },
+      {
+        "row_index": 22,
+        "element": "Kết thúc",
+        "description": "Sự kiện kết thúc"
+      }
+    ]
+  },
+  "customer_pool": {
+    "section_title": "2. POOL KHÁCH HÀNG",
+    "description": "Các bước của khách từ lúc có nhu cầu đến khi đặt lịch thành công hoặc kết thúc.",
+    "headers": [
+      "Bước",
+      "Loại",
+      "Hoạt động / Cổng",
+      "Điều kiện / Sự kiện",
+      "Hành động kết quả",
+      "Bước tiếp theo",
+      "Message flow / Ghi chú"
+    ],
+    "steps": [
+      {
+        "row_index": 28,
+        "step": "—",
+        "type": "Bắt đầu",
+        "activity_or_gateway": "Khách có nhu cầu làm tóc",
+        "condition_or_event": null,
+        "resulting_action": null,
+        "next_step": "1",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 29,
+        "step": "1",
+        "type": "Cổng",
+        "activity_or_gateway": "Hình thức đặt lịch?",
+        "condition_or_event": "Đặt qua website",
+        "resulting_action": "Khách “Truy cập website”",
+        "next_step": "2",
+        "notes_or_message_flow": "Kích hoạt chatbot (Bắt đầu: Khách truy cập website)"
+      },
+      {
+        "row_index": 30,
+        "step": "1",
+        "type": "Cổng",
+        "activity_or_gateway": "Hình thức đặt lịch?",
+        "condition_or_event": "Đặt trực tiếp",
+        "resulting_action": "Khách “Liên hệ trực tiếp tại salon”",
+        "next_step": "Kết thúc: Chuyển cho nhân viên",
+        "notes_or_message_flow": "Kích hoạt luồng A của Chuyên viên"
+      },
+      {
+        "row_index": 31,
+        "step": "2",
+        "type": "Hoạt động",
+        "activity_or_gateway": "Nhận “Lời chào tự động”",
+        "condition_or_event": null,
+        "resulting_action": "Nhận lời chào từ chatbot",
+        "next_step": "3",
+        "notes_or_message_flow": "Message flow từ chatbot: Gửi lời chào tự động"
+      },
+      {
+        "row_index": 32,
+        "step": "3",
+        "type": "Cổng",
+        "activity_or_gateway": "Muốn liên hệ trực tiếp nhân viên?",
+        "condition_or_event": "Có",
+        "resulting_action": "“Yêu cầu gặp nhân viên”",
+        "next_step": "Kết thúc: Chuyển cho nhân viên",
+        "notes_or_message_flow": "Chuyển sang Chuyên viên"
+      },
+      {
+        "row_index": 33,
+        "step": "3",
+        "type": "Cổng",
+        "activity_or_gateway": "Muốn liên hệ trực tiếp nhân viên?",
+        "condition_or_event": "Không",
+        "resulting_action": "Khách “Đưa ra nhu cầu”",
+        "next_step": "4",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 34,
+        "step": "4",
+        "type": "Hoạt động",
+        "activity_or_gateway": "Xem tư vấn & phản hồi",
+        "condition_or_event": null,
+        "resulting_action": "Khách xem tư vấn từ chatbot và phản hồi",
+        "next_step": "5",
+        "notes_or_message_flow": "Message flow từ chatbot: Gửi tư vấn"
+      },
+      {
+        "row_index": 35,
+        "step": "5",
+        "type": "Cổng",
+        "activity_or_gateway": "Muốn gì?",
+        "condition_or_event": "Đồng ý đặt lịch",
+        "resulting_action": null,
+        "next_step": "6",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 36,
+        "step": "5",
+        "type": "Cổng",
+        "activity_or_gateway": "Muốn gì?",
+        "condition_or_event": "Hỏi thêm",
+        "resulting_action": "Khách gửi câu hỏi",
+        "next_step": "4",
+        "notes_or_message_flow": "Quay lại bước 4"
+      },
+      {
+        "row_index": 37,
+        "step": "5",
+        "type": "Cổng",
+        "activity_or_gateway": "Muốn gì?",
+        "condition_or_event": "Không đặt lịch",
+        "resulting_action": null,
+        "next_step": "Kết thúc: Không đặt lịch",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 38,
+        "step": "6",
+        "type": "Cổng chờ",
+        "activity_or_gateway": "Chờ phản hồi sau khi đồng ý",
+        "condition_or_event": "Nhận “Xác nhận giữ chỗ”",
+        "resulting_action": "Khách “Cung cấp thông tin & xác nhận chốt”",
+        "next_step": "7",
+        "notes_or_message_flow": "Chờ sự kiện nào đến trước"
+      },
+      {
+        "row_index": 39,
+        "step": "6",
+        "type": "Cổng chờ",
+        "activity_or_gateway": "Chờ phản hồi sau khi đồng ý",
+        "condition_or_event": "Nhận “Đề xuất khung giờ còn trống”",
+        "resulting_action": "Khách “Chọn khung giờ X”",
+        "next_step": "6",
+        "notes_or_message_flow": "Quay lại bước 6"
+      },
+      {
+        "row_index": 40,
+        "step": "7",
+        "type": "Cổng chờ",
+        "activity_or_gateway": "Chờ phản hồi sau khi chốt",
+        "condition_or_event": "Nhận “Xác nhận lịch hẹn”",
+        "resulting_action": null,
+        "next_step": "Kết thúc: Đặt lịch thành công",
+        "notes_or_message_flow": "Chờ sự kiện nào đến trước"
+      },
+      {
+        "row_index": 41,
+        "step": "7",
+        "type": "Cổng chờ",
+        "activity_or_gateway": "Chờ phản hồi sau khi chốt",
+        "condition_or_event": "Nhận “Đề xuất khung giờ còn trống”",
+        "resulting_action": "Khách “Chọn khung giờ X”",
+        "next_step": "6",
+        "notes_or_message_flow": "Quay lại bước 6"
+      }
+    ]
+  },
+  "salon_ai_and_system_lane": {
+    "section_title": "3. POOL SALON – LANE AI TƯ VẤN (CHATBOT) & HỆ THỐNG ĐẶT LỊCH",
+    "description": "Bước 6 và 9 do lane Hệ thống đặt lịch thực hiện. “Quy tắc nhắc nhỡ” xem sheet riêng.",
+    "headers": [
+      "Bước",
+      "Loại",
+      "Hoạt động / Cổng",
+      "Điều kiện / Sự kiện",
+      "Hành động kết quả",
+      "Bước tiếp theo",
+      "Message flow / Ghi chú"
+    ],
+    "steps": [
+      {
+        "row_index": 47,
+        "step": "—",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Bắt đầu",
+        "activity_or_gateway": "Khách truy cập website",
+        "condition_or_event": null,
+        "resulting_action": null,
+        "next_step": "1",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 48,
+        "step": "1",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Hoạt động",
+        "activity_or_gateway": "Gửi lời chào tự động",
+        "condition_or_event": null,
+        "resulting_action": "Chatbot gửi lời chào",
+        "next_step": "2",
+        "notes_or_message_flow": "Message flow tới Khách: Lời chào tự động"
+      },
+      {
+        "row_index": 49,
+        "step": "2",
+        "executor_lane": "Hệ thống đặt lịch",
+        "type": "Cổng chờ",
+        "activity_or_gateway": "Chờ phản hồi đầu tiên",
+        "condition_or_event": "Khách yêu cầu gặp nhân viên",
+        "resulting_action": "Hệ thống “Thông báo cho nhân viên”",
+        "next_step": "Chuyên viên – Luồng B",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 50,
+        "step": "2",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Cổng chờ",
+        "activity_or_gateway": "Chờ phản hồi đầu tiên",
+        "condition_or_event": "Khách nêu nhu cầu",
+        "resulting_action": null,
+        "next_step": "3",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 51,
+        "step": "2",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Sự kiện",
+        "activity_or_gateway": "Chờ phản hồi đầu tiên",
+        "condition_or_event": "5 phút không phản hồi",
+        "resulting_action": "Áp dụng quy tắc nhắc nhỡ",
+        "next_step": "Quy tắc nhắc nhỡ",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 52,
+        "step": "3",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Hoạt động",
+        "activity_or_gateway": "Xử lý yêu cầu của khách",
+        "condition_or_event": null,
+        "resulting_action": null,
+        "next_step": "4",
+        "notes_or_message_flow": "Tra cứu Bảng dịch vụ & FAQ"
+      },
+      {
+        "row_index": 53,
+        "step": "4",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Cổng",
+        "activity_or_gateway": "Xử lý được?",
+        "condition_or_event": "Được",
+        "resulting_action": "Chatbot “Gửi tư vấn cho khách”",
+        "next_step": "5",
+        "notes_or_message_flow": "Message flow tới Khách: Tư vấn"
+      },
+      {
+        "row_index": 54,
+        "step": "4",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Cổng",
+        "activity_or_gateway": "Xử lý được?",
+        "condition_or_event": "Không",
+        "resulting_action": "Chatbot “Tóm tắt ngữ cảnh”, rồi “Thông báo cho nhân viên”",
+        "next_step": "Chuyên viên – Luồng B",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 55,
+        "step": "5",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Cổng chờ",
+        "activity_or_gateway": "Chờ phản hồi sau tư vấn",
+        "condition_or_event": "Khách đồng ý đặt lịch",
+        "resulting_action": null,
+        "next_step": "6",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 56,
+        "step": "5",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Cổng chờ",
+        "activity_or_gateway": "Chờ phản hồi sau tư vấn",
+        "condition_or_event": "Khách hỏi thêm",
+        "resulting_action": null,
+        "next_step": "3",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 57,
+        "step": "5",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Cổng chờ",
+        "activity_or_gateway": "Chờ phản hồi sau tư vấn",
+        "condition_or_event": "Khách không đặt lịch",
+        "resulting_action": null,
+        "next_step": "Kết thúc: Không đặt lịch",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 58,
+        "step": "5",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Sự kiện",
+        "activity_or_gateway": "Chờ phản hồi sau tư vấn",
+        "condition_or_event": "5 phút không phản hồi",
+        "resulting_action": "Áp dụng quy tắc nhắc nhỡ",
+        "next_step": "Quy tắc nhắc nhỡ",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 59,
+        "step": "6",
+        "executor_lane": "Hệ thống đặt lịch",
+        "type": "Hoạt động",
+        "activity_or_gateway": "Giữ chỗ tạm khung giờ X (TTL 10 phút)",
+        "condition_or_event": null,
+        "resulting_action": "Hệ thống giữ chỗ tạm",
+        "next_step": "7",
+        "notes_or_message_flow": "Lane Hệ thống đặt lịch"
+      },
+      {
+        "row_index": 60,
+        "step": "7",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Cổng",
+        "activity_or_gateway": "Giữ chỗ được?",
+        "condition_or_event": "Được",
+        "resulting_action": "Chatbot “Xác nhận giữ chỗ, xin thông tin liên hệ”",
+        "next_step": "8",
+        "notes_or_message_flow": "Message flow tới Khách: Xác nhận giữ chỗ"
+      },
+      {
+        "row_index": 61,
+        "step": "7",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Cổng",
+        "activity_or_gateway": "Giữ chỗ được?",
+        "condition_or_event": "Không (X đang được giữ hoặc đã đặt)",
+        "resulting_action": "Chatbot “Báo X không còn, giữ nguyên thông tin đã nhập”",
+        "next_step": "10",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 62,
+        "step": "8",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Cổng chờ",
+        "activity_or_gateway": "Chờ thông tin của khách",
+        "condition_or_event": "Khách cung cấp thông tin & xác nhận chốt",
+        "resulting_action": null,
+        "next_step": "9",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 63,
+        "step": "8",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Sự kiện",
+        "activity_or_gateway": "Chờ thông tin của khách",
+        "condition_or_event": "3 phút không phản hồi",
+        "resulting_action": "Áp dụng quy tắc nhắc nhỡ",
+        "next_step": "Quy tắc nhắc nhỡ",
+        "notes_or_message_flow": "Nhánh “đã nhắc” sẽ nhả giữ chỗ trước khi đóng phiên"
+      },
+      {
+        "row_index": 64,
+        "step": "9",
+        "executor_lane": "Hệ thống đặt lịch",
+        "type": "Hoạt động",
+        "activity_or_gateway": "Xác thực lại X & chốt",
+        "condition_or_event": null,
+        "resulting_action": "Hệ thống xác thực",
+        "next_step": "Cổng “X còn hợp lệ?”",
+        "notes_or_message_flow": "Lane Hệ thống đặt lịch"
+      },
+      {
+        "row_index": 65,
+        "step": "9",
+        "executor_lane": "Hệ thống đặt lịch",
+        "type": "Cổng",
+        "activity_or_gateway": "X còn hợp lệ?",
+        "condition_or_event": "Còn",
+        "resulting_action": "Hệ thống “Ghi lịch hẹn vào Sổ lịch hẹn”; chatbot “Gửi xác nhận lịch hẹn cho khách”",
+        "next_step": "Kết thúc: Đặt lịch thành công",
+        "notes_or_message_flow": "Ghi Sổ lịch hẹn; message flow tới Khách: Xác nhận lịch hẹn"
+      },
+      {
+        "row_index": 66,
+        "step": "9",
+        "executor_lane": "Hệ thống đặt lịch",
+        "type": "Cổng",
+        "activity_or_gateway": "X còn hợp lệ?",
+        "condition_or_event": "Đã bị khách khác chốt",
+        "resulting_action": "Chatbot “Báo X không còn, giữ nguyên thông tin đã nhập”",
+        "next_step": "10",
+        "notes_or_message_flow": null
+      },
+      {
+        "row_index": 67,
+        "step": "10",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Hoạt động",
+        "activity_or_gateway": "Đề xuất khung giờ còn trống",
+        "condition_or_event": null,
+        "resulting_action": "Chatbot đề xuất khung giờ",
+        "next_step": "Cổng chờ khách chọn giờ",
+        "notes_or_message_flow": "Message flow tới Khách: Đề xuất khung giờ còn trống"
+      },
+      {
+        "row_index": 68,
+        "step": "10",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Cổng chờ",
+        "activity_or_gateway": "Chờ khách chọn giờ",
+        "condition_or_event": "Khách chọn khung giờ X",
+        "resulting_action": null,
+        "next_step": "6",
+        "notes_or_message_flow": "Quay lại bước 6"
+      },
+      {
+        "row_index": 69,
+        "step": "10",
+        "executor_lane": "AI tư vấn (chatbot)",
+        "type": "Sự kiện",
+        "activity_or_gateway": "Chờ khách chọn giờ",
+        "condition_or_event": "3 phút không phản hồi",
+        "resulting_action": "Áp dụng quy tắc nhắc nhỡ",
+        "next_step": "Quy tắc nhắc nhỡ",
+        "notes_or_message_flow": null
+      }
+    ]
+  },
+  "salon_specialist_lane": {
+    "section_title": "4. POOL SALON – LANE CHUYÊN VIÊN TƯ VẤN",
+    "description": "Lane có hai điểm vào: Luồng A (khách đến trực tiếp) và Luồng B (chatbot chuyển sang).",
+    "headers": [
+      "Luồng",
+      "Loại",
+      "Hoạt động / Cổng",
+      "Điều kiện / Sự kiện",
+      "Hành động kết quả",
+      "Bước tiếp theo",
+      "Ghi chú"
+    ],
+    "steps": [
+      {
+        "row_index": 75,
+        "flow": "A",
+        "type": "Bắt đầu",
+        "activity_or_gateway": "Khách liên hệ trực tiếp",
+        "condition_or_event": null,
+        "resulting_action": null,
+        "next_step": "Cổng song song",
+        "notes": "Kích hoạt từ Khách: Liên hệ trực tiếp tại salon"
+      },
+      {
+        "row_index": 76,
+        "flow": "A",
+        "type": "Cổng",
+        "activity_or_gateway": "Cổng song song",
+        "condition_or_event": "Thực hiện đồng thời",
+        "resulting_action": "“Tư vấn dịch vụ” và “Báo giá dịch vụ”",
+        "next_step": "Đồng ý đặt lịch?",
+        "notes": "Khi cả hai xong thì đi tiếp"
+      },
+      {
+        "row_index": 77,
+        "flow": "B",
+        "type": "Bắt đầu",
+        "activity_or_gateway": "Thông báo cho nhân viên",
+        "condition_or_event": null,
+        "resulting_action": null,
+        "next_step": "Tư vấn qua chat",
+        "notes": "Từ chatbot: khách yêu cầu gặp nhân viên hoặc chatbot không xử lý được"
+      },
+      {
+        "row_index": 78,
+        "flow": "B",
+        "type": "Hoạt động",
+        "activity_or_gateway": "Tư vấn qua chat",
+        "condition_or_event": "Tư vấn xong bình thường",
+        "resulting_action": null,
+        "next_step": "Đồng ý đặt lịch?",
+        "notes": null
+      },
+      {
+        "row_index": 79,
+        "flow": "B",
+        "type": "Sự kiện",
+        "activity_or_gateway": "Tư vấn qua chat",
+        "condition_or_event": "Khách 15 phút không phản hồi (sự kiện ngắt)",
+        "resulting_action": "Chuyên viên “Gửi tin nhắn nhắc nhỡ”",
+        "next_step": "Kết thúc: Phiên đóng (lưu lead)",
+        "notes": null
+      },
+      {
+        "row_index": 80,
+        "flow": "A + B",
+        "type": "Cổng",
+        "activity_or_gateway": "Đồng ý đặt lịch?",
+        "condition_or_event": "Có",
+        "resulting_action": "Chuyên viên “Tiến hành đặt lịch”",
+        "next_step": "Kết thúc: Đặt lịch thành công",
+        "notes": "Chung cho cả hai luồng"
+      },
+      {
+        "row_index": 81,
+        "flow": "A + B",
+        "type": "Cổng",
+        "activity_or_gateway": "Đồng ý đặt lịch?",
+        "condition_or_event": "Không",
+        "resulting_action": null,
+        "next_step": "Kết thúc: Không đặt lịch",
+        "notes": "Chung cho cả hai luồng"
+      }
+    ]
+  },
+  "reminder_rules": {
+    "section_title": "5. QUY TẮC NHẮC NHỠ (CHATBOT)",
+    "description": "Dùng chung cho các lần hết thời gian chờ.",
+    "timeout_checkpoints": [
+      {
+        "row_index": 87,
+        "checkpoint_name": "Chờ phản hồi đầu tiên",
+        "flow_position": "Bước 2",
+        "timeout_duration": "5 phút"
+      },
+      {
+        "row_index": 88,
+        "checkpoint_name": "Chờ phản hồi sau tư vấn",
+        "flow_position": "Bước 5",
+        "timeout_duration": "5 phút"
+      },
+      {
+        "row_index": 89,
+        "checkpoint_name": "Chờ thông tin của khách (đang giữ chỗ)",
+        "flow_position": "Bước 8",
+        "timeout_duration": "3 phút"
+      },
+      {
+        "row_index": 90,
+        "checkpoint_name": "Chờ khách chọn giờ",
+        "flow_position": "Bước 10",
+        "timeout_duration": "3 phút"
+      }
+    ],
+    "gateway_rules": [
+      {
+        "row_index": 94,
+        "condition": "Chưa nhắc",
+        "action": "Chatbot “Gửi tin nhắn nhắc nhỡ”",
+        "outcome": "Quay lại chờ phản hồi"
+      },
+      {
+        "row_index": 95,
+        "condition": "Đã nhắc rồi",
+        "action": "Đóng phiên",
+        "outcome": "Kết thúc: Phiên đóng: ngưng phản hồi (lưu lead)"
+      },
+      {
+        "row_index": 96,
+        "condition": "Đã nhắc rồi, đang giữ chỗ (bước 8)",
+        "action": "Hệ thống “Nhả giữ chỗ khung giờ X” rồi mới đóng phiên",
+        "outcome": "Kết thúc: Phiên đóng: ngưng phản hồi (lưu lead)"
+      }
+    ]
+  },
+  "final_outcomes": {
+    "section_title": "6. TỔNG HỢP CÁC KẾT QUẢ CUỐI",
+    "headers": [
+      "Kết quả",
+      "Xảy ra khi"
+    ],
+    "outcomes": [
+      {
+        "row_index": 101,
+        "outcome": "Đặt lịch thành công",
+        "triggered_when": "Khách chốt lịch qua chatbot, hoặc đồng ý đặt với chuyên viên"
+      },
+      {
+        "row_index": 102,
+        "outcome": "Không đặt lịch",
+        "triggered_when": "Khách từ chối với chatbot hoặc với chuyên viên"
+      },
+      {
+        "row_index": 103,
+        "outcome": "Phiên đóng (lưu lead)",
+        "triggered_when": "Khách im lặng sau khi đã nhắc nhỡ, lưu lại làm khách tiềm năng"
+      },
+      {
+        "row_index": 104,
+        "outcome": "Chuyển cho nhân viên (kết thúc ở phía khách)",
+        "triggered_when": "Khách chọn đến trực tiếp, hoặc muốn gặp nhân viên"
+      }
+    ]
+  }
+}

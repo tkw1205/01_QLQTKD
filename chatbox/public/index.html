@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mây Hair Studio — Salon Tóc & Chăm Sóc Tóc Đẹp Tại Đà Nẵng</title>
+  <meta name="description" content="Salon tóc hiện đại, thanh lịch với dịch vụ cắt, gội, nhuộm chuyên nghiệp và hệ thống tư vấn đặt lịch thông minh tại 128 Lê Duẩn, Đà Nẵng.">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/chat.css">
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+</head>
+<body>
+  <!-- Header / Navigation -->
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a href="/" class="navbar-brand">
+        <span class="brand-logo-pill">M</span>
+        <span id="site-name">Mây Hair Studio</span>
+      </a>
+      <button class="navbar-toggle" id="nav-toggle" aria-label="Menu">☰</button>
+      <ul class="navbar-nav" id="nav-menu">
+        <li><a href="#hero">Trang Chủ</a></li>
+        <li><a href="#dich-vu">Tất Cả Dịch Vụ</a></li>
+        <li><a href="#danh-gia">Đánh Giá</a></li>
+        <li><a href="#lien-he">Liên Hệ</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="hero" style="background: linear-gradient(rgba(28, 46, 39, 0.82), rgba(40, 91, 75, 0.88)), url('/images/studio/hero-salon-space.jpg') center/cover no-repeat; padding: 6rem 0;">
+    <div class="container text-center">
+      <span class="gallery-badge" style="background: rgba(229, 242, 236, 0.2); color: #fff; font-size: 0.85rem; padding: 0.3rem 1rem; border: 1px solid rgba(255,255,255,0.3); margin-bottom: 1.2rem;">✨ Phong cách làm đẹp tự nhiên, thanh lịch</span>
+      <h1 id="hero-title" style="font-size: 2.8rem; margin-top: 0.5rem; line-height: 1.2;">Mây Hair Studio Đà Nẵng</h1>
+      <p id="hero-tagline" style="font-size: 1.2rem; max-width: 680px; margin: 1rem auto 2.2rem; color: #E5F2EC; line-height: 1.7;">
+        Không gian thư thái, ánh sáng tự nhiên cùng các liệu trình chăm sóc tóc organic giúp tôn vinh nét đẹp rạng ngời và mái tóc chắc khỏe của bạn.
+      </p>
+      <div class="hero-btns">
+        <a href="/products.html" class="btn btn-lg btn-primary" style="background: var(--primary-light); color: var(--primary-dark); font-weight: 700; border: none;">Bảng giá & Dịch vụ</a>
+        <a href="/appointments.html" class="btn btn-lg btn-outline" style="border-color: #fff; color: #fff;">Đặt lịch hẹn ngay</a>
+        <button class="btn btn-lg btn-outline" onclick="window.chatWidget.openChat()" style="border-color: rgba(255,255,255,0.6); color: #fff;">💬 Trợ lý AI tư vấn</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Salon Section -->
+  <section class="section" style="background: var(--surface); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="grid-2" style="align-items: center; gap: 3rem;">
+        <div>
+          <span class="tag mb-1" style="background: var(--primary-light); color: var(--primary); font-weight: 600;">Về Mây Hair Studio</span>
+          <h2 style="font-size: 2rem; margin-top: 0.5rem; color: var(--text);">Không Gian Thư Thái & Trải Nghiệm Tận Tâm</h2>
+          <p class="mt-2" style="line-height: 1.8; color: var(--text-muted);">
+            Tọa lạc tại trung tâm Đà Nẵng, <strong>Mây Hair Studio</strong> được thiết kế theo phong cách tối giản thanh lịch với tông màu xanh ngọc pastel kết hợp trắng kem và gỗ ấm. Chúng tôi tin rằng mái tóc đẹp bắt nguồn từ một da đầu khỏe mạnh và tinh thần thoải mái.
+          </p>
+          <div class="grid-2 mt-3" style="gap: 1.25rem;">
+            <div style="padding: 1rem; background: var(--bg); border-radius: var(--radius); border-left: 3px solid var(--primary);">
+              <h4 style="color: var(--primary); font-size: 1rem;">🌿 Sản Phẩm Organic Cao Cấp</h4>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">100% tinh chất thảo mộc, thuốc nhuộm và dưỡng tóc phân tử Nano an toàn cho da đầu.</p>
+            </div>
+            <div style="padding: 1rem; background: var(--bg); border-radius: var(--radius); border-left: 3px solid var(--success);">
+              <h4 style="color: var(--primary); font-size: 1rem;">✂ Stylist Tận Tâm Tư Vấn</h4>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Thiết kế phom dáng riêng tôn vinh xương quai hàm và cấu trúc gương mặt của bạn.</p>
+            </div>
+          </div>
+          <div class="mt-3">
+            <a href="/products.html" class="btn btn-primary">Khám phá các gói dịch vụ &rarr;</a>
+          </div>
+        </div>
+        <div>
+          <div class="gallery-card" style="box-shadow: var(--shadow-lg);">
+            <img src="/images/studio/about-salon-ambience.jpg" alt="Không gian Mây Hair Studio" style="height: 380px;">
+            <div class="gallery-info" style="background: var(--bg);">
+              <p style="font-weight: 600; color: var(--text);">📍 128 Lê Duẩn, P. Thạch Thang, Q. Hải Châu, Đà Nẵng</p>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Mở cửa đón khách từ 08:00 - 20:00 hàng ngày</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Services Section -->
+  <section class="section" id="dich-vu">
+    <div class="container">
+      <div class="section-title">
+        <h2>Dịch Vụ Nổi Bật Tại Mây</h2>
+        <p>Bảng giá minh bạch, sản phẩm chính hãng cao cấp và công nghệ làm tóc hiện đại</p>
+      </div>
+
+      <div class="grid-3" id="featured-products-container">
+        <!-- Rendered dynamically -->
+        <div class="card p-3 text-center skeleton" style="height: 320px;"></div>
+        <div class="card p-3 text-center skeleton" style="height: 320px;"></div>
+        <div class="card p-3 text-center skeleton" style="height: 320px;"></div>
+      </div>
+
+      <div class="text-center mt-4">
+        <a href="/products.html" class="btn btn-outline" style="border-width: 2px;">Xem toàn bộ bảng giá dịch vụ &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hairstyles Portfolio Section -->
+  <section class="section" style="background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-title">
+        <h2>Mái Tóc Đẹp Tại Mây</h2>
+        <p>Các tác phẩm tạo mẫu và biến hóa phong cách tóc thực hiện bởi đội ngũ Stylist</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="gallery-card">
+          <img src="/images/studio/service-cut-layer.jpg" alt="Tóc Layer hiện đại" loading="lazy">
+          <div class="gallery-info">
+            <span class="gallery-badge">Cắt & Tạo Kiểu</span>
+            <h3 style="font-size: 1.05rem;">Cắt Layer Chuẩn Hàn Quốc</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Dáng tầng bay bổng, ôm trọn gương mặt thanh thoát, sấy phồng tự nhiên.</p>
+          </div>
+        </div>
+        <div class="gallery-card">
+          <img src="/images/studio/service-color-milktea.jpg" alt="Nhuộm Nâu Trà Sữa" loading="lazy">
+          <div class="gallery-info">
+            <span class="gallery-badge">Nhuộm Nano</span>
+            <h3 style="font-size: 1.05rem;">Nhuộm Nâu Trà Sữa Tôn Da</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Ánh màu óng ả, phủ bóng phân tử nhỏ giúp tóc mềm mượt và bền màu.</p>
+          </div>
+        </div>
+        <div class="gallery-card">
+          <img src="/images/studio/service-perm-wave.jpg" alt="Uốn Sóng Lơi" loading="lazy">
+          <div class="gallery-info">
+            <span class="gallery-badge">Uốn & Duỗi</span>
+            <h3 style="font-size: 1.05rem;">Uốn Sóng Lơi Bồng Bềnh</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Lọn sóng mềm mại tự nhiên, dễ chăm sóc tại nhà không lo khô xơ.</p>
+          </div>
+        </div>
+        <div class="gallery-card">
+          <img src="/images/studio/service-cut-bob.jpg" alt="Cắt Bob Cá Tính" loading="lazy">
+          <div class="gallery-info">
+            <span class="gallery-badge">Cắt & Tạo Kiểu</span>
+            <h3 style="font-size: 1.05rem;">Cắt Bob / Pixie Thời Thượng</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Đường cắt sắc nét tôn góc cạnh khuôn mặt, cá tính và trẻ trung.</p>
+          </div>
+        </div>
+        <div class="gallery-card">
+          <img src="/images/studio/service-color-balayage.jpg" alt="Nhuộm Balayage" loading="lazy">
+          <div class="gallery-info">
+            <span class="gallery-badge">Nhuộm Nghệ Thuật</span>
+            <h3 style="font-size: 1.05rem;">Nhuộm Balayage & Ombre</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Hiệu ứng loang màu thủ công tinh xảo, không lộ chân tóc khi mọc dài.</p>
+          </div>
+        </div>
+        <div class="gallery-card">
+          <img src="/images/studio/service-wash-herbal.jpg" alt="Gội Dưỡng Sinh Thảo Dược" loading="lazy">
+          <div class="gallery-info">
+            <span class="gallery-badge">Gội & Chăm Sóc</span>
+            <h3 style="font-size: 1.05rem;">Gội Đầu Dưỡng Sinh Bồ Kết</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Nấu nước bồ kết sả chanh tươi, massage cổ vai gáy giải tỏa căng thẳng.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stylists Team Section -->
+  <section class="section">
+    <div class="container">
+      <div class="section-title">
+        <h2>Đội Ngũ Stylist Tại Mây</h2>
+        <p>Những người thợ tâm huyết, dày dặn kinh nghiệm luôn đồng hành cùng bạn</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="stylist-card">
+          <img src="/images/studio/staff-minh-anh.jpg" alt="Minh Anh" class="stylist-avatar" loading="lazy">
+          <h3 style="font-size: 1.15rem; color: var(--text);">Minh Anh</h3>
+          <p style="font-size: 0.85rem; color: var(--primary); font-weight: 600; margin-top: 0.2rem;">Master Hair Stylist</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Hơn 8 năm kinh nghiệm thiết kế phom dáng layer, bob Hàn Quốc và tạo kiểu tinh tế.</p>
+        </div>
+        <div class="stylist-card">
+          <img src="/images/studio/staff-hoang-nam.jpg" alt="Hoàng Nam" class="stylist-avatar" loading="lazy">
+          <h3 style="font-size: 1.15rem; color: var(--text);">Hoàng Nam</h3>
+          <p style="font-size: 0.85rem; color: var(--primary); font-weight: 600; margin-top: 0.2rem;">Creative Stylist & Barber</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Chuyên gia uốn sóng lơi, duỗi hơi nước và tạo kiểu tóc nam hiện đại sắc nét.</p>
+        </div>
+        <div class="stylist-card">
+          <img src="/images/studio/staff-thu-ha.jpg" alt="Thu Hà" class="stylist-avatar" loading="lazy">
+          <h3 style="font-size: 1.15rem; color: var(--text);">Thu Hà</h3>
+          <p style="font-size: 0.85rem; color: var(--primary); font-weight: 600; margin-top: 0.2rem;">Color & Treatment Expert</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Bậc thầy phối màu nhuộm Nano, Balayage nghệ thuật và phục hồi tóc hư tổn chuyên sâu.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials Section -->
+  <section class="section" id="danh-gia" style="background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-title">
+        <h2>Khách Hàng Nói Về Mây</h2>
+        <p>Sự hài lòng và nụ cười của quý khách là niềm tự hào lớn nhất của chúng tôi</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="testimonial-card">
+          <div>
+            <div class="stars">★★★★★</div>
+            <p style="font-size: 0.9rem; line-height: 1.7; color: var(--text);">"Không gian salon xinh xắn, thơm mùi thảo mộc rất thư giãn. Mình cắt layer ở đây ưng ý vô cùng, tóc sấy xong vào nếp tự nhiên cực kỳ."</p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar">MP</div>
+            <div>
+              <div style="font-weight: 600; font-size: 0.9rem;">Mai Phương</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Cắt & tạo kiểu Layer hiện đại</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card">
+          <div>
+            <div class="stars">★★★★★</div>
+            <p style="font-size: 0.9rem; line-height: 1.7; color: var(--text);">"Gội đầu dưỡng sinh bồ kết phê dã man, kỹ thuật bấm huyệt cổ vai gáy của bạn kỹ thuật viên rất tốt. Chắc chắn sẽ quay lại thường xuyên."</p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar">TA</div>
+            <div>
+              <div style="font-weight: 600; font-size: 0.9rem;">Tuấn Anh</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Gội đầu thảo dược dưỡng sinh</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card">
+          <div>
+            <div class="stars">★★★★★</div>
+            <p style="font-size: 0.9rem; line-height: 1.7; color: var(--text);">"Màu nâu trà sữa lên cực chuẩn và tôn da. Tóc nhuộm xong mềm mượt chứ không hề bị khô rát. Nhân viên tư vấn màu tóc rất có gu."</p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar">TM</div>
+            <div>
+              <div style="font-weight: 600; font-size: 0.9rem;">Thảo My</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Nhuộm tone Nâu Trà Sữa Nano</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card">
+          <div>
+            <div class="stars">★★★★★</div>
+            <p style="font-size: 0.9rem; line-height: 1.7; color: var(--text);">"Lần đầu tiên uốn sóng lơi mà về nhà gội đầu xong sấy nhẹ là lọn tóc vào nếp bồng bềnh như ở salon. Cực kỳ recommend Mây Hair Studio!"</p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar">DT</div>
+            <div>
+              <div style="font-weight: 600; font-size: 0.9rem;">Diệu Thảo</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Uốn sóng lơi Hàn Quốc</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card">
+          <div>
+            <div class="stars">★★★★★</div>
+            <p style="font-size: 0.9rem; line-height: 1.7; color: var(--text);">"Tóc mình tẩy nhiều lần bị xơ xác, làm xong liệu trình phục hồi Keratin sợi tóc đanh và bóng mượt trở lại rõ rệt. Điểm hẹn làm đẹp yêu thích tại Đà Nẵng."</p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar">HL</div>
+            <div>
+              <div style="font-weight: 600; font-size: 0.9rem;">Hoàng Lan</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Phục hồi Keratin & Collagen</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card">
+          <div>
+            <div class="stars">★★★★★</div>
+            <p style="font-size: 0.9rem; line-height: 1.7; color: var(--text);">"Rất ấn tượng với quy trình đặt lịch trên web, vừa nhanh gọn vừa chuẩn giờ. Đến salon là được phục vụ ngay không phải chờ đợi."</p>
+          </div>
+          <div class="testimonial-author">
+            <div class="author-avatar">KL</div>
+            <div>
+              <div style="font-weight: 600; font-size: 0.9rem;">Khánh Linh</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Đặt lịch hẹn trực tuyến</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact & Working Hours -->
+  <section class="section" id="lien-he">
+    <div class="container">
+      <div class="grid-2">
+        <div class="card p-3">
+          <h3>Thông Tin Salon</h3>
+          <p class="mt-2" id="contact-address">📍 Địa chỉ: 128 Lê Duẩn, P. Thạch Thang, Q. Hải Châu, TP. Đà Nẵng</p>
+          <p class="mt-1" id="contact-phone">📞 Hotline / Zalo: 0905 123 456</p>
+          <p class="mt-1" id="contact-email">✉ Email: contact@mayhairstudio.vn</p>
+          <p class="mt-1">🌿 Dịch vụ: Cắt, Gội thảo dược, Nhuộm Nano, Uốn sóng lơi, Phục hồi Organic</p>
+        </div>
+        <div class="card p-3">
+          <h3>Giờ Mở Cửa Phục Vụ</h3>
+          <p class="mt-1 text-muted">Salon mở cửa đón khách liên tục tất cả các ngày trong tuần:</p>
+          <div id="working-hours-list" class="mt-2" style="font-size: 0.9rem;">
+            Đang tải lịch làm việc...
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="grid-3">
+        <div>
+          <h4 id="footer-site-name">Mây Hair Studio Đà Nẵng</h4>
+          <p>Salon tóc phong cách hiện đại, thanh lịch. Tôn vinh nét đẹp tự nhiên của bạn với liệu trình chăm sóc tóc cao cấp.</p>
+        </div>
+        <div>
+          <h4>Liên kết nhanh</h4>
+          <ul style="list-style: none; line-height: 2;">
+            <li><a href="/products.html">Dịch vụ & Bảng giá</a></li>
+            <li><a href="/appointments.html">Đặt lịch / Tra cứu lịch hẹn</a></li>
+            <li><a href="/chat.html">Tư vấn trực tiếp cùng Stylist</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Giờ hoạt động</h4>
+          <p>Mở cửa phục vụ quý khách tất cả các ngày trong tuần.</p>
+          <p class="mt-2" style="font-size: 0.9rem; color: #E5F2EC;">Thứ 2 - Chủ Nhật: 08:30 - 20:30</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Mây Hair Studio Đà Nẵng. Toàn bộ quyền được bảo lưu.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Floating Chat Window & FAB -->
+  <button id="chat-fab" aria-label="Mở cửa sổ tư vấn">💬</button>
+  <div id="chat-window">
+    <div id="chat-header">
+      <div>
+        <div class="title">Trợ Lý Tư Vấn Mây <span id="chat-mode-badge" class="badge badge-primary">Trợ lý AI</span></div>
+        <div class="subtitle">Tư vấn kiểu tóc & Đặt lịch hẹn</div>
+      </div>
+      <div id="chat-header-actions">
+        <button id="btn-close-chat" title="Đóng">✕</button>
+      </div>
+    </div>
+    <div id="chat-status-bar">
+      <span class="dot"></span>
+      <span id="chat-status-text">Đang kết nối...</span>
+    </div>
+    <div id="chat-messages"></div>
+    <div id="typing-indicator" style="padding: 0 1rem 0.5rem;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); margin-right: 6px;">Trợ lý đang phản hồi...</span>
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div id="chat-input-area">
+      <div id="chat-actions">
+        <button id="btn-switch-agent">👨‍💼 Chat với Stylist</button>
+        <button id="btn-switch-ai" style="display: none;">🤖 Quay lại Trợ lý Mây</button>
+      </div>
+      <div id="chat-input-row">
+        <textarea id="chat-input" placeholder="Nhập câu hỏi hoặc yêu cầu đặt lịch làm tóc..." rows="1"></textarea>
+        <button id="btn-send">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/chat.js"></script>
+  <script>
+    async function initHomePage() {
+      // Load public settings
+      try {
+        const settings = await API.get('/api/settings/public');
+        if (settings.success && settings.data) {
+          if (settings.data.site_name) {
+            document.title = `${settings.data.site_name} — Salon Tóc Đẹp Đà Nẵng`;
+            document.getElementById('site-name').textContent = settings.data.site_name;
+            document.getElementById('footer-site-name').textContent = settings.data.site_name;
+          }
+          if (settings.data.site_tagline) {
+            document.getElementById('hero-tagline').textContent = settings.data.site_tagline;
+          }
+        }
+      } catch (e) {
+        console.warn('Could not load public settings', e);
+      }
+
+      // Load business hours
+      try {
+        const hours = await API.get('/api/settings/business-hours');
+        if (hours.success && hours.data) {
+          const list = document.getElementById('working-hours-list');
+          const dayLabels = {
+            monday: 'Thứ Hai', tuesday: 'Thứ Ba', wednesday: 'Thứ Tư',
+            thursday: 'Thứ Năm', friday: 'Thứ Sáu', saturday: 'Thứ Bảy', sunday: 'Chủ Nhật'
+          };
+          list.innerHTML = Object.entries(hours.data).map(([day, val]) => `
+            <div class="flex-between" style="border-bottom: 1px dashed var(--border); padding: 4px 0;">
+              <span>${dayLabels[day] || day}:</span>
+              <span><strong>${val.enabled ? `${val.open} - ${val.close}` : '<span class="text-danger">Nghỉ</span>'}</strong></span>
+            </div>
+          `).join('');
+        }
+      } catch (e) {
+        console.warn('Could not load business hours', e);
+      }
+
+      // Load featured services (first 6)
+      try {
+        const res = await API.get('/api/products?limit=6');
+        const container = document.getElementById('featured-products-container');
+        if (res.success && res.data && res.data.length > 0) {
+          container.innerHTML = res.data.map(p => `
+            <div class="card product-card">
+              <div class="img-wrapper">
+                ${p.image_url 
+                  ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy">` 
+                  : `<div class="img-placeholder">✂</div>`}
+              </div>
+              <div class="card-body">
+                <div class="badge badge-info mb-1">${p.category_name || 'Dịch vụ'}</div>
+                <h3>${p.name}</h3>
+                <div class="price">${API.formatCurrency(p.price)}</div>
+                <p class="desc">${p.description || 'Chưa có mô tả chi tiết.'}</p>
+                <div class="flex gap-1 mt-2">
+                  <a href="/product-detail.html?id=${p.id}" class="btn btn-sm btn-outline" style="flex: 1; justify-content: center;">Chi tiết</a>
+                  <button class="btn btn-sm btn-primary" onclick="window.chatWidget.openChat(); window.chatWidget.setProductContext('${p.id}', '${p.name}')">Tư vấn ngay</button>
+                </div>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<div class="empty-state w-full" style="grid-column: 1 / -1;">Chưa có dịch vụ nào được hiển thị.</div>';
+        }
+      } catch (e) {
+        console.error('Failed to load featured services', e);
+      }
+
+      // Mobile Navigation Menu Toggle & Auto Close
+      const navToggle = document.getElementById('nav-toggle');
+      const navMenu = document.getElementById('nav-menu');
+      if (navToggle && navMenu) {
+        navToggle.addEventListener('click', () => {
+          navMenu.classList.toggle('open');
+        });
+        navMenu.querySelectorAll('a').forEach(link => {
+          link.addEventListener('click', () => {
+            navMenu.classList.remove('open');
+          });
+        });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', initHomePage);
+  </script>
+</body>
+</html>

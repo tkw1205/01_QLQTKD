@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phòng Tư Vấn Trực Tuyến - Salon Lumière</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/chat.css">
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <style>
+    body { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    .chat-page-container {
+      flex: 1; display: flex; flex-direction: column; max-width: 900px; width: 100%; margin: 0 auto;
+      background: var(--surface); border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+      box-shadow: var(--shadow); min-height: 0; overflow: hidden;
+    }
+    .closed-session-banner {
+      display: none;
+      background: #f8f9fa;
+      border: 1px dashed #ced4da;
+      color: #6c757d;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    .closed-session-banner.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="navbar" style="flex-shrink: 0;">
+    <div class="navbar-inner">
+      <a href="/" class="navbar-brand">
+        <span style="font-size: 1.5rem;">✂️</span>
+        <span>Salon Lumière</span>
+      </a>
+      <ul class="navbar-nav">
+        <li><a href="/">Trang chủ</a></li>
+        <li><a href="/products.html">Dịch vụ Salon</a></li>
+        <li><a href="/appointments.html">Tra cứu lịch hẹn</a></li>
+        <li><a href="/chat.html" style="color: var(--primary); font-weight: 600;">Phòng Chat</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <div class="chat-page-container">
+    <div id="chat-header" style="border-radius: 0;">
+      <div>
+        <div class="title" style="font-size: 1.1rem;">Phòng Tư Vấn Trực Tuyến - Salon Lumière <span id="chat-mode-badge" class="badge badge-primary">Trợ lý AI</span></div>
+        <div class="subtitle">Trò chuyện cùng Trợ lý AI Salon Lumière hoặc chuyên viên tạo mẫu trực tiếp</div>
+      </div>
+      <div>
+        <a href="/" class="btn btn-sm btn-outline" style="color: #fff; border-color: rgba(255,255,255,0.4);">Trang chủ</a>
+      </div>
+    </div>
+
+    <div id="chat-status-bar">
+      <span class="dot"></span>
+      <span id="chat-status-text">Đang kết nối...</span>
+    </div>
+
+    <div id="chat-messages" style="flex: 1; padding: 1.5rem;"></div>
+
+    <div id="typing-indicator" style="padding: 0 1.5rem 0.5rem;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); margin-right: 6px;">Đang soạn tin...</span>
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>
+
+    <div id="chat-input-area" style="padding: 1rem 1.5rem;">
+      <div id="closed-session-banner" class="closed-session-banner">
+        🔒 Phiên tư vấn đã kết thúc (lưu trữ chỉ đọc). Nhập tin nhắn bất kỳ bên dưới để tự động bắt đầu phiên mới cùng Trợ lý AI!
+      </div>
+      <div id="chat-actions" class="mb-2">
+        <button id="btn-switch-agent">💇 Chat với chuyên viên tư vấn</button>
+        <button id="btn-switch-ai" style="display: none;">🤖 Quay lại Trợ lý AI</button>
+      </div>
+      <div id="chat-input-row">
+        <textarea id="chat-input" placeholder="Nhập câu hỏi hoặc yêu cầu đặt lịch hẹn làm tóc..." rows="2"></textarea>
+        <button id="btn-send" style="width: 48px; height: 48px; font-size: 1.1rem;">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/chat.js"></script>
+  <script>
+    // In full-page view, automatically ensure chat widget is open
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.chatWidget) {
+        window.chatWidget.openChat();
+      }
+    });
+  </script>
+</body>
+</html>
+

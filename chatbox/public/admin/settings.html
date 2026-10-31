@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Salon Lumière – Cài đặt Hệ thống</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <style>
+    .settings-nav-tabs {
+      display: flex;
+      gap: .5rem;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 1.5rem;
+    }
+    .settings-tab-btn {
+      padding: .75rem 1.25rem;
+      font-size: .9rem;
+      font-weight: 600;
+      color: var(--mut);
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .settings-tab-btn:hover {
+      color: var(--ink);
+    }
+    .settings-tab-btn.active {
+      color: var(--pri);
+      border-color: var(--pri);
+    }
+    .settings-pane {
+      display: none;
+    }
+    .settings-pane.active {
+      display: block;
+    }
+    .day-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .85rem 1rem;
+      border-bottom: 1px solid var(--line);
+      background: var(--card);
+    }
+    .day-row:last-child {
+      border-bottom: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-layout">
+    <!-- Topbar Navigation -->
+    <header class="admin-sidebar" id="admin-sidebar"></header>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-header">
+        <div>
+          <h2>Cài đặt hệ thống Salon Lumière</h2>
+          <p class="sub">Thời gian làm việc, cấu hình Chatbot AI và quy tắc tiếp nhận</p>
+        </div>
+      </header>
+
+      <div class="admin-content" style="max-width: 900px;">
+        <!-- Tabs Navigation -->
+        <div class="settings-nav-tabs">
+          <button type="button" class="settings-tab-btn active" data-pane="pane-hours">
+            ⏰ Giờ làm việc & Lịch hẹn
+          </button>
+          <button type="button" class="settings-tab-btn" data-pane="pane-ai">
+            🤖 Cấu hình Trợ lý AI
+          </button>
+          <button type="button" class="settings-tab-btn" data-pane="pane-contact">
+            🏢 Thông tin Cửa hàng
+          </button>
+        </div>
+
+        <!-- TAB 1: Giờ làm việc & Lịch hẹn -->
+        <div class="settings-pane active" id="pane-hours">
+          <form id="form-hours-settings">
+            <div class="card" style="margin-bottom: 1.5rem;">
+              <div class="card-header">
+                <div>
+                  <h3 style="font-size: 1rem; margin: 0;">Khung giờ tiếp nhận đặt lịch tư vấn</h3>
+                  <div style="font-size: .8rem; color: var(--text-muted); margin-top: .2rem;">
+                    Hệ thống sẽ chỉ cho phép khách hàng đặt lịch vào các khung giờ bật hoạt động bên dưới.
+                  </div>
+                </div>
+              </div>
+              <div class="card-body" style="padding: 0;">
+                <div id="working-hours-container">
+                  <!-- Generated dynamically for Monday - Sunday -->
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+              <div class="card-header">
+                <h3 style="font-size: 1rem; margin: 0;">Thời lượng mỗi ca tư vấn</h3>
+              </div>
+              <div class="card-body">
+                <div class="form-group" style="max-width: 320px; margin-bottom: 0;">
+                  <label class="form-label" for="setting-appointment-duration">Thời lượng tư vấn (phút)</label>
+                  <select id="setting-appointment-duration" class="form-control">
+                    <option value="15">15 phút</option>
+                    <option value="30">30 phút (Mặc định)</option>
+                    <option value="45">45 phút</option>
+                    <option value="60">60 phút (1 giờ)</option>
+                    <option value="90">90 phút</option>
+                  </select>
+                  <div class="form-hint">Khoảng thời gian ước tính giữa mỗi ca hẹn trên lịch.</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="text-align: right;">
+              <button type="submit" class="btn btn-primary" id="btn-save-hours">
+                💾 Lưu cấu hình giờ làm việc & lịch hẹn
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- TAB 2: Cấu hình Trợ lý AI -->
+        <div class="settings-pane" id="pane-ai">
+          <form id="form-ai-settings">
+            <div class="card" style="margin-bottom: 1.5rem;">
+              <div class="card-header">
+                <div>
+                  <h3 style="font-size: 1rem; margin: 0;">Prompt chỉ dẫn cho AI (System Prompt)</h3>
+                  <div style="font-size: .8rem; color: var(--text-muted); margin-top: .2rem;">
+                    Định hình phong cách giao tiếp, kiến thức và mục tiêu phản hồi của trợ lý ảo khi chat cùng khách hàng.
+                  </div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label" for="setting-ai-prompt">Nội dung System Prompt</label>
+                  <textarea
+                    id="setting-ai-prompt"
+                    class="form-control"
+                    rows="8"
+                    placeholder="Bạn là trợ lý tư vấn sản phẩm chuyên nghiệp..."
+                    style="font-family: monospace; font-size: .88rem; line-height: 1.6;"
+                  ></textarea>
+                  <div class="form-hint">AI sẽ nhận prompt này làm hướng dẫn cốt lõi kết hợp với thông tin sản phẩm và kiến thức cửa hàng.</div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="setting-ai-welcome">Tin nhắn chào mừng mở đầu</label>
+                  <input
+                    type="text"
+                    id="setting-ai-welcome"
+                    class="form-control"
+                    placeholder="Xin chào! Tôi là trợ lý AI. Tôi có thể giúp gì cho bạn?"
+                  >
+                </div>
+
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label class="form-label" for="setting-max-turns">Số lượt hội thoại AI tối đa trước khi gợi ý nhân viên</label>
+                    <input
+                      type="number"
+                      id="setting-max-turns"
+                      class="form-control"
+                      min="3"
+                      max="50"
+                      placeholder="10"
+                    >
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="setting-allow-guest">Cho phép khách vãng lai chat tự do</label>
+                    <select id="setting-allow-guest" class="form-control">
+                      <option value="true">Có (Bật)</option>
+                      <option value="false">Không (Yêu cầu đăng nhập)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="text-align: right;">
+              <button type="submit" class="btn btn-primary" id="btn-save-ai">
+                💾 Lưu cấu hình AI
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- TAB 3: Thông tin Cửa hàng & Liên hệ -->
+        <div class="settings-pane" id="pane-contact">
+          <form id="form-contact-settings">
+            <div class="card" style="margin-bottom: 1.5rem;">
+              <div class="card-header">
+                <div>
+                  <h3 style="font-size: 1rem; margin: 0;">Thông tin thương hiệu & Kênh liên hệ</h3>
+                  <div style="font-size: .8rem; color: var(--text-muted); margin-top: .2rem;">
+                    Hiển thị trên website và được AI sử dụng để giải đáp khi khách hỏi về cửa hàng.
+                  </div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label class="form-label" for="setting-site-name">Tên cửa hàng / Website</label>
+                    <input type="text" id="setting-site-name" class="form-control" placeholder="Chatbox Store">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="setting-site-tagline">Slogan / Khẩu hiệu</label>
+                    <input type="text" id="setting-site-tagline" class="form-control" placeholder="Tư vấn sản phẩm trực tuyến">
+                  </div>
+                </div>
+
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label class="form-label" for="setting-contact-phone">Hotline / Số điện thoại</label>
+                    <input type="text" id="setting-contact-phone" class="form-control" placeholder="0901234567">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="setting-contact-email">Email liên hệ</label>
+                    <input type="email" id="setting-contact-email" class="form-control" placeholder="contact@chatbox.vn">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="setting-contact-address">Địa chỉ trụ sở / Showroom</label>
+                  <input type="text" id="setting-contact-address" class="form-control" placeholder="123 Đường ABC, Quận 1, TP. Hồ Chí Minh">
+                </div>
+
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label class="form-label" for="setting-contact-facebook">Trang Facebook</label>
+                    <input type="url" id="setting-contact-facebook" class="form-control" placeholder="https://facebook.com/chatbox">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="setting-contact-zalo">Số Zalo tư vấn</label>
+                    <input type="text" id="setting-contact-zalo" class="form-control" placeholder="0901234567">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="text-align: right;">
+              <button type="submit" class="btn btn-primary" id="btn-save-contact">
+                💾 Lưu thông tin cửa hàng
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Auth check (Admin required)
+      const currentUser = await Admin.checkAuth('admin');
+      if (!currentUser) return;
+
+      // 2. Initialize Layout
+      Admin.initLayout('settings');
+
+      // Tabs switcher
+      const tabBtns = document.querySelectorAll('.settings-tab-btn');
+      const tabPanes = document.querySelectorAll('.settings-pane');
+
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          tabBtns.forEach(b => b.classList.remove('active'));
+          tabPanes.forEach(p => p.classList.remove('active'));
+
+          btn.classList.add('active');
+          const paneId = btn.getAttribute('data-pane');
+          const targetPane = document.getElementById(paneId);
+          if (targetPane) targetPane.classList.add('active');
+        });
+      });
+
+      // Days of week config
+      const DAYS = [
+        { key: 'monday', label: 'Thứ Hai' },
+        { key: 'tuesday', label: 'Thứ Ba' },
+        { key: 'wednesday', label: 'Thứ Tư' },
+        { key: 'thursday', label: 'Thứ Năm' },
+        { key: 'friday', label: 'Thứ Sáu' },
+        { key: 'saturday', label: 'Thứ Bảy' },
+        { key: 'sunday', label: 'Chủ Nhật' },
+      ];
+
+      let workingHoursState = {};
+      let contactInfoState = {};
+      let systemSettingsState = {};
+
+      const hoursContainer = document.getElementById('working-hours-container');
+
+      function renderHoursRows() {
+        hoursContainer.innerHTML = DAYS.map(d => {
+          const config = workingHoursState[d.key] || { open: '08:00', close: '17:30', enabled: true };
+          return `
+            <div class="day-row" data-day="${d.key}">
+              <div style="display: flex; align-items: center; gap: .75rem; width: 140px;">
+                <label class="toggle">
+                  <input type="checkbox" class="day-enabled-toggle" ${config.enabled ? 'checked' : ''}>
+                  <span class="toggle-slider"></span>
+                </label>
+                <strong style="font-size: .9rem;">${d.label}</strong>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: .5rem;" class="day-times-wrap">
+                <span style="font-size: .8rem; color: var(--text-muted);">Mở cửa:</span>
+                <input type="time" class="form-control day-open-time" value="${config.open || '08:00'}" style="width: 120px;" ${!config.enabled ? 'disabled' : ''}>
+                <span style="font-size: .8rem; color: var(--text-muted); margin: 0 .25rem;">—</span>
+                <span style="font-size: .8rem; color: var(--text-muted);">Đóng cửa:</span>
+                <input type="time" class="form-control day-close-time" value="${config.close || '17:30'}" style="width: 120px;" ${!config.enabled ? 'disabled' : ''}>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        // Attach toggle disable/enable times
+        hoursContainer.querySelectorAll('.day-row').forEach(row => {
+          const toggle = row.querySelector('.day-enabled-toggle');
+          const openInput = row.querySelector('.day-open-time');
+          const closeInput = row.querySelector('.day-close-time');
+
+          toggle.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            openInput.disabled = !enabled;
+            closeInput.disabled = !enabled;
+          });
+        });
+      }
+
+      // 3. Load all settings
+      async function loadSettings() {
+        try {
+          const res = await Admin.api('/api/settings');
+          if (!res.success || !res.data) throw new Error('Không thể tải cài đặt');
+
+          const { system, business } = res.data;
+
+          // Parse System Settings
+          systemSettingsState = {};
+          if (Array.isArray(system)) {
+            system.forEach(s => {
+              systemSettingsState[s.key] = s.value;
+            });
+          }
+
+          // Parse Business Settings
+          if (Array.isArray(business)) {
+            business.forEach(b => {
+              let val = b.value;
+              if (typeof val === 'string') {
+                try { val = JSON.parse(val); } catch (e) {}
+              }
+              if (b.key === 'working_hours') workingHoursState = val || {};
+              if (b.key === 'contact_info') contactInfoState = val || {};
+            });
+          }
+
+          // Populate Form: Hours & Duration
+          renderHoursRows();
+          document.getElementById('setting-appointment-duration').value = systemSettingsState.appointment_duration || '30';
+
+          // Populate Form: AI
+          document.getElementById('setting-ai-prompt').value = systemSettingsState.ai_system_prompt || '';
+          document.getElementById('setting-ai-welcome').value = systemSettingsState.ai_welcome_message || '';
+          document.getElementById('setting-max-turns').value = systemSettingsState.max_ai_turns || '10';
+          document.getElementById('setting-allow-guest').value = systemSettingsState.allow_guest_chat === 'false' ? 'false' : 'true';
+
+          // Populate Form: Contact & Site
+          document.getElementById('setting-site-name').value = systemSettingsState.site_name || '';
+          document.getElementById('setting-site-tagline').value = systemSettingsState.site_tagline || '';
+          document.getElementById('setting-contact-phone').value = contactInfoState.phone || '';
+          document.getElementById('setting-contact-email').value = contactInfoState.email || '';
+          document.getElementById('setting-contact-address').value = contactInfoState.address || '';
+          document.getElementById('setting-contact-facebook').value = contactInfoState.facebook || '';
+          document.getElementById('setting-contact-zalo').value = contactInfoState.zalo || '';
+
+        } catch (err) {
+          Admin.toast(err.message || 'Lỗi khi tải cấu hình', 'error');
+        }
+      }
+
+      // 4. Save Hours & Appointment Duration
+      document.getElementById('form-hours-settings').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btn-save-hours');
+        btn.disabled = true;
+
+        try {
+          const newHours = {};
+          hoursContainer.querySelectorAll('.day-row').forEach(row => {
+            const dayKey = row.getAttribute('data-day');
+            const enabled = row.querySelector('.day-enabled-toggle').checked;
+            const open = row.querySelector('.day-open-time').value;
+            const close = row.querySelector('.day-close-time').value;
+            newHours[dayKey] = { open, close, enabled };
+          });
+
+          const duration = document.getElementById('setting-appointment-duration').value;
+
+          // 1. Save working hours to business settings
+          await Admin.api('/api/settings/business', {
+            method: 'PUT',
+            body: { working_hours: newHours }
+          });
+
+          // 2. Save appointment duration to system settings
+          await Admin.api('/api/settings/system', {
+            method: 'PUT',
+            body: { appointment_duration: duration }
+          });
+
+          Admin.toast('Đã lưu cấu hình giờ làm việc & lịch hẹn!', 'success');
+        } catch (err) {
+          Admin.toast(err.message || 'Lỗi khi lưu giờ làm việc', 'error');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      // 5. Save AI Settings
+      document.getElementById('form-ai-settings').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btn-save-ai');
+        btn.disabled = true;
+
+        try {
+          const prompt = document.getElementById('setting-ai-prompt').value.trim();
+          const welcome = document.getElementById('setting-ai-welcome').value.trim();
+          const maxTurns = document.getElementById('setting-max-turns').value;
+          const allowGuest = document.getElementById('setting-allow-guest').value;
+
+          await Admin.api('/api/settings/system', {
+            method: 'PUT',
+            body: {
+              ai_system_prompt: prompt,
+              ai_welcome_message: welcome,
+              max_ai_turns: maxTurns,
+              allow_guest_chat: allowGuest
+            }
+          });
+
+          Admin.toast('Đã lưu cấu hình trợ lý AI!', 'success');
+        } catch (err) {
+          Admin.toast(err.message || 'Lỗi khi lưu cấu hình AI', 'error');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      // 6. Save Store Contact & Brand Settings
+      document.getElementById('form-contact-settings').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btn-save-contact');
+        btn.disabled = true;
+
+        try {
+          const siteName = document.getElementById('setting-site-name').value.trim();
+          const siteTagline = document.getElementById('setting-site-tagline').value.trim();
+
+          const contact = {
+            phone: document.getElementById('setting-contact-phone').value.trim(),
+            email: document.getElementById('setting-contact-email').value.trim(),
+            address: document.getElementById('setting-contact-address').value.trim(),
+            facebook: document.getElementById('setting-contact-facebook').value.trim(),
+            zalo: document.getElementById('setting-contact-zalo').value.trim()
+          };
+
+          // 1. Save system settings (name, tagline)
+          await Admin.api('/api/settings/system', {
+            method: 'PUT',
+            body: {
+              site_name: siteName,
+              site_tagline: siteTagline
+            }
+          });
+
+          // 2. Save business contact info
+          await Admin.api('/api/settings/business', {
+            method: 'PUT',
+            body: { contact_info: contact }
+          });
+
+          Admin.toast('Đã lưu thông tin cửa hàng thành công!', 'success');
+        } catch (err) {
+          Admin.toast(err.message || 'Lỗi khi lưu thông tin cửa hàng', 'error');
+        } finally {
+          btn.disabled = false;
+        }
+      });
+
+      // Initial Load
+      await loadSettings();
+    });
+  </script>
+</body>
+</html>

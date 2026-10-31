@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Salon Lumière – Quản lý nhân viên &amp; Lịch làm việc</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="admin-layout">
+    <!-- Topbar Navigation -->
+    <header class="admin-sidebar" id="admin-sidebar"></header>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-header">
+        <div>
+          <h2>Quản lý nhân viên &amp; Lịch làm việc</h2>
+          <p class="sub">Theo dõi lịch phân công thợ làm tóc và thay đổi phân công bằng thao tác kéo thả</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: .75rem;">
+          <button type="button" class="btn sm" id="btn-open-create-staff" style="display: none;">
+            <span>➕</span> <span>+ Tạo nhân viên</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="admin-content">
+        <!-- Tab Navigation -->
+        <div class="schedule-tabs">
+          <button type="button" class="schedule-tab-btn active" id="tab-btn-schedule">
+            <span>📅</span> Lịch phân công (Schedule)
+          </button>
+          <button type="button" class="schedule-tab-btn" id="tab-btn-accounts">
+            <span>👥</span> Danh sách tài khoản
+          </button>
+        </div>
+
+        <!-- ==================================================================== -->
+        <!-- TAB 1: SCHEDULE (LỊCH PHÂN CÔNG & KÉO THẢ) -->
+        <!-- ==================================================================== -->
+        <div id="section-schedule">
+          <!-- Toolbar Điều hướng ngày & Bộ lọc -->
+          <div class="schedule-toolbar">
+            <div class="schedule-date-nav">
+              <button type="button" class="btn btn-outline btn-sm" id="btn-prev-day" title="Ngày hôm trước">
+                ◀ Trước
+              </button>
+              <input type="date" id="schedule-date-input">
+              <button type="button" class="btn btn-outline btn-sm" id="btn-next-day" title="Ngày tiếp theo">
+                Sau ▶
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-today">
+                Hôm nay
+              </button>
+              <span class="schedule-date-label" id="schedule-date-label">Đang tải...</span>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="text" id="schedule-search-input" class="form-control form-control-sm" placeholder="🔍 Tìm thợ, khách..." style="width: 175px; height: 32px; font-size: 0.8rem; padding: 4px 8px;">
+                <select id="schedule-status-filter" class="form-control form-control-sm" style="width: 135px; height: 32px; font-size: 0.8rem; padding: 4px 8px;">
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="confirmed">Đã xác nhận</option>
+                  <option value="in_progress">Đang phục vụ</option>
+                  <option value="completed">Hoàn thành</option>
+                  <option value="pending">Mới đặt</option>
+                </select>
+              </div>
+
+              <div class="schedule-legend">
+                <div class="schedule-legend-item">
+                  <span class="schedule-legend-dot" style="background: #17683a;"></span>
+                  <span>Đã xác nhận</span>
+                </div>
+                <div class="schedule-legend-item">
+                  <span class="schedule-legend-dot" style="background: #d97706;"></span>
+                  <span>Đang phục vụ</span>
+                </div>
+                <div class="schedule-legend-item">
+                  <span class="schedule-legend-dot" style="background: #2563eb;"></span>
+                  <span>Hoàn thành</span>
+                </div>
+                <div class="schedule-legend-item">
+                  <span class="schedule-legend-dot" style="background: #7c3aed;"></span>
+                  <span>Mới đặt</span>
+                </div>
+              </div>
+
+              <button type="button" class="btn btn-primary btn-sm" id="btn-open-create-appt" style="display: inline-flex; align-items: center; gap: 4px;">
+                <span>➕</span> <span>Thêm lịch hẹn</span>
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-refresh-schedule">
+                🔄 Tải lại
+              </button>
+            </div>
+          </div>
+
+          <!-- Unassigned Appointments Drawer -->
+          <div class="unassigned-box" id="unassigned-box" style="display: none;">
+            <div class="unassigned-title">
+              <span>⚠️ Lịch hẹn chưa phân công (<span id="unassigned-count">0</span> lịch) — <i>Kéo thẻ vào hàng của nhân viên để phân công</i></span>
+            </div>
+            <div class="unassigned-list" id="unassigned-list"></div>
+          </div>
+
+          <!-- Schedule Matrix Grid -->
+          <div class="schedule-grid-wrap">
+            <table class="schedule-table" id="schedule-matrix-table">
+              <thead id="schedule-thead">
+                <!-- Dynamically rendered -->
+              </thead>
+              <tbody id="schedule-tbody">
+                <tr>
+                  <td colspan="26" class="text-center" style="padding: 3rem; color: var(--text-muted);">
+                    <div class="spinner" style="margin-bottom: .5rem;"></div>
+                    <div>Đang tải lịch phân công nhân viên...</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ==================================================================== -->
+        <!-- TAB 2: STAFF LIST (DANH SÁCH TÀI KHOẢN NHÂN VIÊN) -->
+        <!-- ==================================================================== -->
+        <div id="section-accounts" style="display: none;">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 style="font-size: 1rem; margin: 0;">Danh sách Tài khoản</h3>
+                <div style="font-size: .8rem; color: var(--text-muted); margin-top: .2rem;" id="staff-count-label">
+                  Hiển thị 0 nhân sự
+                </div>
+              </div>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-refresh-staff">
+                🔄 Tải lại
+              </button>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Họ và tên</th>
+                    <th>Email</th>
+                    <th>Phân quyền</th>
+                    <th>Trạng thái hoạt động</th>
+                    <th>Trực tiếp nhận</th>
+                    <th>Ngày tạo</th>
+                    <th style="text-align: right;" id="th-staff-actions">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="staff-tbody">
+                  <tr>
+                    <td colspan="7" class="text-center" style="padding: 2.5rem; color: var(--text-muted);">
+                      <div class="spinner" style="margin-bottom: .5rem;"></div>
+                      <div>Đang tải danh sách nhân viên...</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL: CHI TIẾT LỊCH HẸN & LỊCH SỬ THAY ĐỔI (AUDIT TRAIL) -->
+  <!-- ==================================================================== -->
+  <div class="modal-overlay" id="appt-detail-modal">
+    <div class="modal" style="max-width: 540px;">
+      <div class="modal-header">
+        <h3 id="modal-appt-title">Chi tiết lịch hẹn</h3>
+        <button type="button" class="modal-close" id="btn-close-appt-detail">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-appt-body">
+        <!-- Rendered via JS -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" id="btn-cancel-appt-detail">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL: TẠO LỊCH HẸN TRỰC TIẾP TRÊN SCHEDULE -->
+  <!-- ==================================================================== -->
+  <div class="modal-overlay" id="create-appt-modal">
+    <div class="modal" style="max-width: 580px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 id="modal-create-appt-title">➕ Thêm Lịch Hẹn Mới</h3>
+        <button type="button" class="modal-close" id="btn-close-create-appt">&times;</button>
+      </div>
+      <form id="form-create-appt" style="overflow-y: auto; flex: 1;">
+        <div class="modal-body" style="padding: 18px 20px;">
+          <!-- 1. Customer info -->
+          <div style="font-size: .85rem; font-weight: 700; color: var(--pri); margin-bottom: 8px; border-bottom: 1px solid var(--line); padding-bottom: 4px;">
+            👤 THÔNG TIN KHÁCH HÀNG
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="create-appt-cust-name">Họ và tên khách <span class="text-danger">*</span></label>
+              <input type="text" id="create-appt-cust-name" class="form-control" placeholder="Nguyễn Văn A" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="create-appt-cust-phone">Số điện thoại <span class="text-danger">*</span></label>
+              <input type="tel" id="create-appt-cust-phone" class="form-control" placeholder="0901234567" required>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label" for="create-appt-cust-email">Địa chỉ Email (tùy chọn hoặc nhận xác nhận)</label>
+            <input type="email" id="create-appt-cust-email" class="form-control" placeholder="khach@example.com">
+          </div>
+
+          <!-- 2. Services multi-select -->
+          <div style="font-size: .85rem; font-weight: 700; color: var(--pri); margin-bottom: 8px; border-bottom: 1px solid var(--line); padding-bottom: 4px;">
+            ✂️ DỊCH VỤ SỬ DỤNG (Hỗ trợ chọn nhiều) <span class="text-danger">*</span>
+          </div>
+          <div id="create-appt-services-list" style="max-height: 160px; overflow-y: auto; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; background: var(--bg); display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;">
+            <div style="color: var(--mut); font-size: .82rem;">Đang tải danh sách dịch vụ salon...</div>
+          </div>
+          <div id="create-appt-service-summary" style="padding: 6px 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; font-size: .84rem; color: #166534; font-weight: 600; margin-bottom: 14px;">
+            Tổng thời lượng: <span id="create-appt-total-duration">0 phút</span> | Tổng chi phí: <span id="create-appt-total-price">0 đ</span>
+          </div>
+
+          <!-- 3. Scheduling & Staff assignment -->
+          <div style="font-size: .85rem; font-weight: 700; color: var(--pri); margin-bottom: 8px; border-bottom: 1px solid var(--line); padding-bottom: 4px;">
+            📅 THỜI GIAN &amp; NHÂN VIÊN PHỤ TRÁCH
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="create-appt-date">Ngày hẹn <span class="text-danger">*</span></label>
+              <input type="date" id="create-appt-date" class="form-control" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="create-appt-time">Giờ bắt đầu <span class="text-danger">*</span></label>
+              <input type="time" id="create-appt-time" class="form-control" required>
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label" for="create-appt-staff">Nhân viên phụ trách</label>
+            <select id="create-appt-staff" class="form-control">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+
+          <!-- 4. Notes -->
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="create-appt-notes">Ghi chú của khách hoặc yêu cầu riêng</label>
+            <textarea id="create-appt-notes" class="form-control" rows="2" placeholder="Yêu cầu thợ quen, da đầu nhạy cảm, v.v..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer" style="background: var(--soft); border-top: 1px solid var(--line); padding: 12px 20px;">
+          <button type="button" class="btn btn-outline" id="btn-cancel-create-appt">Hủy bỏ</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-create-appt">
+            ➕ Xác nhận Đặt lịch
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Thêm Nhân viên Mới -->
+  <div class="modal-overlay" id="create-staff-modal">
+    <div class="modal" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>Thêm Nhân viên Mới</h3>
+        <button type="button" class="modal-close" id="btn-close-create-staff">&times;</button>
+      </div>
+      <form id="form-create-staff">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="create-name">Họ và tên <span class="text-danger">*</span></label>
+            <input type="text" id="create-name" class="form-control" placeholder="VD: Hoàng Nam" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="create-email">Địa chỉ Email <span class="text-danger">*</span></label>
+            <input type="email" id="create-email" class="form-control" placeholder="staff@example.com" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="create-phone">Số điện thoại</label>
+            <input type="tel" id="create-phone" class="form-control" placeholder="0901234567">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="create-password">Mật khẩu ban đầu <span class="text-danger">*</span></label>
+            <input type="password" id="create-password" class="form-control" placeholder="Tối thiểu 8 ký tự" minlength="8" required>
+            <div class="form-hint">Mật khẩu tối thiểu 8 ký tự.</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="create-role">Phân quyền</label>
+            <select id="create-role" class="form-control">
+              <option value="staff">Nhân viên kỹ thuật / Thợ làm tóc (Staff)</option>
+              <option value="receptionist">Nhân viên lễ tân (Receptionist)</option>
+              <option value="admin">Quản trị viên (Admin)</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="create-is-available">Trực tiếp nhận lịch hẹn</label>
+            <select id="create-is-available" class="form-control">
+              <option value="true" selected>🟢 Sẵn sàng tiếp nhận lịch hẹn (Mặc định)</option>
+              <option value="false">⚪ Tạm ngưng tiếp nhận lịch</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="btn-cancel-create-staff">Hủy</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-create-staff">
+            Tạo tài khoản
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Chỉnh sửa Nhân viên -->
+  <div class="modal-overlay" id="edit-staff-modal">
+    <div class="modal" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>Chỉnh sửa Nhân viên</h3>
+        <button type="button" class="modal-close" id="btn-close-edit-staff">&times;</button>
+      </div>
+      <form id="form-edit-staff">
+        <div class="modal-body">
+          <input type="hidden" id="edit-staff-id">
+
+          <div class="form-group">
+            <label class="form-label" for="edit-name">Họ và tên <span class="text-danger">*</span></label>
+            <input type="text" id="edit-name" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-email">Email</label>
+            <input type="email" id="edit-email" class="form-control" disabled style="background: var(--bg); cursor: not-allowed;">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-role">Phân quyền</label>
+            <select id="edit-role" class="form-control">
+              <option value="staff">Nhân viên kỹ thuật / Thợ làm tóc (Staff)</option>
+              <option value="receptionist">Nhân viên lễ tân (Receptionist)</option>
+              <option value="admin">Quản trị viên (Admin)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-is-active">Trạng thái tài khoản</label>
+            <select id="edit-is-active" class="form-control">
+              <option value="true">Đang kích hoạt (Hoạt động)</option>
+              <option value="false">Khóa tài khoản (Vô hiệu hóa)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-is-available">Trực tiếp nhận lịch hẹn</label>
+            <select id="edit-is-available" class="form-control">
+              <option value="true">🟢 Sẵn sàng tiếp nhận lịch</option>
+              <option value="false">⚪ Tạm ngưng tiếp nhận lịch</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="edit-password">Đổi mật khẩu mới (Bỏ trống nếu không đổi)</label>
+            <input type="password" id="edit-password" class="form-control" placeholder="Nhập mật khẩu mới nếu muốn đổi" minlength="8">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="btn-cancel-edit-staff">Hủy</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-edit-staff">
+            Lưu thay đổi
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+      }
+
+      // 1. Auth check (Both Admin & Receptionist are allowed)
+      const currentUser = await Admin.checkAuth();
+      if (!currentUser) return;
+
+      const isAdmin = currentUser.role === 'admin';
+      const isReceptionist = currentUser.role === 'receptionist';
+
+      // 2. Initialize Layout
+      Admin.initLayout('staff', 'Lịch làm việc & Phân công');
+
+      // Socket setup for real-time schedule sync
+      if (typeof io !== 'undefined') {
+        const socket = io({
+          auth: { token: Admin.getToken() }
+        });
+
+        socket.on('appointment_reassigned', (data) => {
+          console.log('[Schedule Socket] appointment_reassigned:', data);
+          if (data && data.appointment) {
+            const currentSelectedDate = scheduleDateInput.value;
+            if (data.appointment.appointment_date === currentSelectedDate) {
+              // IN-PLACE DOM UPDATE: keeps scroll position 100% intact, no table reload
+              updateAppointmentInPlace(data.appointment);
+              if (data.changedById && data.changedById !== currentUser.id) {
+                Admin.toast(`Lịch hẹn ${data.appointment.customer_name} vừa được ${data.changedBy || 'nhân viên'} cập nhật lại`, 'info');
+              }
+            }
+          }
+        });
+
+        socket.on('appointment_created', (data) => {
+          console.log('[Schedule Socket] appointment_created:', data);
+          if (data && data.appointment) {
+            const currentSelectedDate = scheduleDateInput.value;
+            if (data.appointment.appointment_date === currentSelectedDate) {
+              // IN-PLACE DOM UPDATE: inserts new card directly, keeps scroll position
+              updateAppointmentInPlace(data.appointment);
+              if (data.createdBy && data.createdBy !== currentUser.name) {
+                Admin.toast(`Lịch hẹn mới: ${data.appointment.customer_name} (${data.appointment.appointment_time})`, 'info');
+              }
+            }
+          }
+        });
+      }
+
+      // UI Role Adjustments
+      if (isAdmin) {
+        document.getElementById('btn-open-create-staff').style.display = 'inline-flex';
+      } else {
+        document.getElementById('th-staff-actions')?.remove();
+      }
+
+      // ─── TAB TOGGLE ───
+      const tabScheduleBtn = document.getElementById('tab-btn-schedule');
+      const tabAccountsBtn = document.getElementById('tab-btn-accounts');
+      const secSchedule = document.getElementById('section-schedule');
+      const secAccounts = document.getElementById('section-accounts');
+
+      tabScheduleBtn.addEventListener('click', () => {
+        tabScheduleBtn.classList.add('active');
+        tabAccountsBtn.classList.remove('active');
+        secSchedule.style.display = 'block';
+        secAccounts.style.display = 'none';
+        loadScheduleData();
+      });
+
+      tabAccountsBtn.addEventListener('click', () => {
+        tabAccountsBtn.classList.add('active');
+        tabScheduleBtn.classList.remove('active');
+        secSchedule.style.display = 'none';
+        secAccounts.style.display = 'block';
+        loadStaffList();
+      });
+
+      // ─── SCHEDULE TIMELINE CONFIGURATION ───
+      // Trục thời gian chỉ hiển thị theo giờ tròn (08:00, 09:00, ..., 21:00)
+      // Khoảng cách đồng đều: mỗi giờ có chiều rộng chính xác HOUR_WIDTH (140px)
+      const START_HOUR = 8;   // 08:00 (480 phút)
+      const END_HOUR = 21;    // 21:00 (mốc giờ tròn cuối cùng)
+      const HOUR_WIDTH = 140; // Chiều rộng hiển thị của 1 giờ (140px)
+      const START_MINUTES = START_HOUR * 60; // 480 phút
+
+      const ROUND_HOURS = [];
+      for (let h = START_HOUR; h <= END_HOUR; h++) {
+        ROUND_HOURS.push(`${String(h).padStart(2, '0')}:00`);
+      }
+      const TOTAL_TRACK_WIDTH = ROUND_HOURS.length * HOUR_WIDTH; // 14 * 140 = 1960px
+
+      let activeStaffList = [];
+      let dailyAppointments = [];
+
+      // Date state
+      const scheduleDateInput = document.getElementById('schedule-date-input');
+      const scheduleDateLabel = document.getElementById('schedule-date-label');
+      const unassignedBox = document.getElementById('unassigned-box');
+      const unassignedList = document.getElementById('unassigned-list');
+      const unassignedCount = document.getElementById('unassigned-count');
+      const scheduleThead = document.getElementById('schedule-thead');
+      const scheduleTbody = document.getElementById('schedule-tbody');
+
+      // Initialize with today (or Vietnam date 2026-10-30)
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      scheduleDateInput.value = todayStr;
+
+      function formatDayLabel(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr + 'T00:00:00');
+        const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+        const dayName = days[d.getDay()] || '';
+        const [y, m, day] = dateStr.split('-');
+        return `${dayName}, ${day}/${m}/${y}`;
+      }
+
+      function updateDateLabel() {
+        scheduleDateLabel.textContent = formatDayLabel(scheduleDateInput.value);
+      }
+
+      // Date navigation events
+      document.getElementById('btn-prev-day').addEventListener('click', () => {
+        const cur = new Date(scheduleDateInput.value + 'T00:00:00');
+        cur.setDate(cur.getDate() - 1);
+        scheduleDateInput.value = cur.toISOString().slice(0, 10);
+        updateDateLabel();
+        loadScheduleData();
+      });
+
+      document.getElementById('btn-next-day').addEventListener('click', () => {
+        const cur = new Date(scheduleDateInput.value + 'T00:00:00');
+        cur.setDate(cur.getDate() + 1);
+        scheduleDateInput.value = cur.toISOString().slice(0, 10);
+        updateDateLabel();
+        loadScheduleData();
+      });
+
+      document.getElementById('btn-today').addEventListener('click', () => {
+        scheduleDateInput.value = todayStr;
+        updateDateLabel();
+        loadScheduleData();
+      });
+
+      scheduleDateInput.addEventListener('change', () => {
+        updateDateLabel();
+        loadScheduleData();
+      });
+
+      document.getElementById('btn-refresh-schedule').addEventListener('click', loadScheduleData);
+
+      const scheduleSearchInput = document.getElementById('schedule-search-input');
+      const scheduleStatusFilter = document.getElementById('schedule-status-filter');
+
+      // ─── SCROLL POSITION PRESERVATION UTILITIES ───
+      function getScheduleScrollState() {
+        const gridWrap = document.querySelector('.schedule-grid-wrap');
+        const adminMain = document.querySelector('.admin-main');
+        const adminContent = document.querySelector('.admin-content');
+        return {
+          windowX: window.scrollX || window.pageXOffset || 0,
+          windowY: window.scrollY || window.pageYOffset || 0,
+          gridX: gridWrap ? gridWrap.scrollLeft : 0,
+          gridY: gridWrap ? gridWrap.scrollTop : 0,
+          mainY: adminMain ? adminMain.scrollTop : 0,
+          contentY: adminContent ? adminContent.scrollTop : 0,
+          docY: document.documentElement ? document.documentElement.scrollTop : 0,
+          bodyY: document.body ? document.body.scrollTop : 0,
+        };
+      }
+
+      function restoreScheduleScrollState(state) {
+        if (!state) return;
+        const gridWrap = document.querySelector('.schedule-grid-wrap');
+        if (gridWrap && typeof state.gridX === 'number') {
+          gridWrap.scrollLeft = state.gridX;
+          gridWrap.scrollTop = state.gridY || 0;
+        }
+        const adminMain = document.querySelector('.admin-main');
+        if (adminMain && typeof state.mainY === 'number') {
+          adminMain.scrollTop = state.mainY;
+        }
+        const adminContent = document.querySelector('.admin-content');
+        if (adminContent && typeof state.contentY === 'number') {
+          adminContent.scrollTop = state.contentY;
+        }
+        const y = typeof state.windowY === 'number' ? state.windowY : (state.docY || state.bodyY || 0);
+        const x = typeof state.windowX === 'number' ? state.windowX : 0;
+        window.scrollTo({ left: x, top: y, behavior: 'instant' });
+        if (document.documentElement) document.documentElement.scrollTop = y;
+        if (document.body) document.body.scrollTop = y;
+      }
+
+      function strictRestoreScroll(state) {
+        if (!state) return;
+        restoreScheduleScrollState(state);
+        requestAnimationFrame(() => {
+          restoreScheduleScrollState(state);
+          requestAnimationFrame(() => {
+            restoreScheduleScrollState(state);
+          });
+        });
+      }
+
+      // ─── SEARCH & STATUS FILTERS ───
+      function applyScheduleFilters() {
+        const query = (scheduleSearchInput?.value || '').trim().toLowerCase();
+        const status = scheduleStatusFilter?.value || '';
+
+        const rows = scheduleTbody.querySelectorAll('.schedule-staff-row');
+        rows.forEach(row => {
+          const staffId = row.getAttribute('data-staff-id');
+          const staff = activeStaffList.find(s => s.id === staffId);
+          const staffName = (staff ? staff.name : '').toLowerCase();
+
+          const cards = row.querySelectorAll('.schedule-appt-card');
+          let hasMatchingCard = false;
+
+          cards.forEach(card => {
+            const apptId = card.getAttribute('data-appt-id');
+            const appt = dailyAppointments.find(a => a.id === apptId);
+            if (!appt) return;
+
+            const customerName = (appt.customer_name || '').toLowerCase();
+            const serviceName = (appt.product_name || '').toLowerCase();
+            const bookingCode = (appt.booking_code || '').toLowerCase();
+            const apptStatus = appt.status || '';
+
+            const matchesStatus = !status || apptStatus === status;
+            const matchesSearch = !query ||
+              staffName.includes(query) ||
+              customerName.includes(query) ||
+              serviceName.includes(query) ||
+              bookingCode.includes(query);
+
+            if (matchesStatus && matchesSearch) {
+              card.style.display = '';
+              card.style.opacity = '1';
+              hasMatchingCard = true;
+            } else {
+              card.style.display = 'none';
+            }
+          });
+
+          // Row visibility: show if staff name matches or has matching appointment
+          const staffMatchesQuery = !query || staffName.includes(query);
+          if (!staffMatchesQuery && !hasMatchingCard) {
+            row.style.display = 'none';
+          } else {
+            row.style.display = '';
+          }
+        });
+
+        // Filter unassigned cards
+        if (unassignedList) {
+          unassignedList.querySelectorAll('.schedule-appt-card').forEach(card => {
+            const apptId = card.getAttribute('data-appt-id');
+            const appt = dailyAppointments.find(a => a.id === apptId);
+            if (!appt) return;
+
+            const customerName = (appt.customer_name || '').toLowerCase();
+            const serviceName = (appt.product_name || '').toLowerCase();
+            const bookingCode = (appt.booking_code || '').toLowerCase();
+            const apptStatus = appt.status || '';
+
+            const matchesStatus = !status || apptStatus === status;
+            const matchesSearch = !query ||
+              customerName.includes(query) ||
+              serviceName.includes(query) ||
+              bookingCode.includes(query);
+
+            card.style.display = (matchesStatus && matchesSearch) ? '' : 'none';
+          });
+        }
+      }
+
+      if (scheduleSearchInput) {
+        scheduleSearchInput.addEventListener('input', applyScheduleFilters);
+      }
+      if (scheduleStatusFilter) {
+        scheduleStatusFilter.addEventListener('change', applyScheduleFilters);
+      }
+
+      // Update staff appointment count badges on the table headers
+      function updateStaffAppointmentCounts() {
+        activeStaffList.forEach(staff => {
+          const countBadge = document.getElementById(`staff-count-${staff.id}`);
+          if (countBadge) {
+            const count = dailyAppointments.filter(a => a.staff_id === staff.id && a.status !== 'cancelled').length;
+            countBadge.textContent = `${count} lịch`;
+          }
+        });
+      }
+
+      // ─── LOAD SCHEDULE DATA (Active Staff & Appointments) ───
+      async function loadScheduleData(options = {}) {
+        const { preserveScroll = true, silent = false } = options;
+        const scrollState = preserveScroll ? getScheduleScrollState() : null;
+
+        updateDateLabel();
+
+        const hasExistingRows = scheduleTbody.querySelector('.schedule-staff-row') !== null;
+
+        // ONLY show disruptive full spinner when there are NO existing rows and not silent
+        if (!hasExistingRows && !silent) {
+          scheduleTbody.innerHTML = `
+            <tr>
+              <td colspan="${ROUND_HOURS.length + 1}" class="text-center" style="padding: 3rem; color: var(--text-muted);">
+                <div class="spinner" style="margin-bottom: .5rem;"></div>
+                <div>Đang tải lịch phân công nhân viên...</div>
+              </td>
+            </tr>
+          `;
+        }
+
+        const date = scheduleDateInput.value;
+
+        try {
+          // Fetch active staff and appointments in parallel
+          const [staffRes, apptsRes] = await Promise.all([
+            Admin.api('/api/appointments/active-staff'),
+            Admin.api(`/api/appointments?date=${date}&limit=100`)
+          ]);
+
+          if (staffRes.success) {
+            activeStaffList = staffRes.data || [];
+          } else {
+            activeStaffList = [];
+          }
+
+          if (apptsRes.success) {
+            dailyAppointments = apptsRes.data || [];
+          } else {
+            dailyAppointments = [];
+          }
+
+          renderScheduleMatrix();
+          applyScheduleFilters();
+
+          if (scrollState) {
+            strictRestoreScroll(scrollState);
+          }
+        } catch (err) {
+          if (!hasExistingRows && !silent) {
+            scheduleTbody.innerHTML = `
+              <tr>
+                <td colspan="${ROUND_HOURS.length + 1}" class="text-center" style="padding: 2.5rem; color: var(--danger);">
+                  ✕ Lỗi tải lịch làm việc: ${escapeHtml(err.message)}
+                </td>
+              </tr>
+            `;
+          }
+        }
+      }
+
+      // ─── RENDER SCHEDULE MATRIX TABLE ───
+      function renderScheduleMatrix() {
+        // 1. Render Header row: Staff column + Round Hour columns (08:00, 09:00, ..., 21:00)
+        let headerHtml = '<tr><th class="schedule-staff-th">Nhân viên phụ trách</th>';
+        for (const hour of ROUND_HOURS) {
+          headerHtml += `<th class="schedule-time-th">${hour}</th>`;
+        }
+        headerHtml += '</tr>';
+        scheduleThead.innerHTML = headerHtml;
+
+        // 2. Separate unassigned appointments
+        const unassigned = dailyAppointments.filter(a => !a.staff_id && a.status !== 'cancelled');
+        if (unassigned.length > 0) {
+          unassignedBox.style.display = 'block';
+          unassignedCount.textContent = unassigned.length;
+          unassignedList.innerHTML = unassigned.map(a => renderAppointmentCard(a, true)).join('');
+        } else {
+          unassignedBox.style.display = 'none';
+          unassignedList.innerHTML = '';
+        }
+
+        // 3. If no active staff
+        if (!activeStaffList.length) {
+          scheduleTbody.innerHTML = `
+            <tr>
+              <td colspan="${ROUND_HOURS.length + 1}" class="text-center" style="padding: 3rem; color: var(--text-muted);">
+                <div style="font-size: 2.5rem; margin-bottom: .5rem;">👥</div>
+                <div>Chưa có nhân viên nào đang hoạt động để phân công lịch.</div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        // 4. Render Staff rows (Continuous 1-hour interval canvas)
+        scheduleTbody.innerHTML = activeStaffList.map(staff => {
+          const staffAppts = dailyAppointments.filter(a => a.staff_id === staff.id && a.status !== 'cancelled');
+          const countBadge = `${staffAppts.length} lịch`;
+
+          const roleName = staff.role === 'admin'
+            ? 'Quản lý salon'
+            : staff.role === 'receptionist'
+            ? 'Nhân viên lễ tân'
+            : 'Thợ làm tóc / Stylist';
+
+          const avatarChar = staff.name ? staff.name.charAt(0).toUpperCase() : 'S';
+
+          // Render all cards inside the staff's continuous timeline track
+          const cardsHtml = staffAppts.map(appt => renderAppointmentCard(appt, false)).join('');
+
+          return `
+            <tr class="schedule-staff-row" data-staff-id="${staff.id}">
+              <td class="schedule-staff-td">
+                <div class="staff-card-mini">
+                  <div class="staff-avatar-circle">${escapeHtml(avatarChar)}</div>
+                  <div>
+                    <div class="staff-meta-name">${escapeHtml(staff.name)}</div>
+                    <div class="staff-meta-role">${escapeHtml(roleName)}</div>
+                    <div class="staff-appt-count" id="staff-count-${staff.id}">${countBadge}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="schedule-track-td"
+                  colspan="${ROUND_HOURS.length}"
+                  data-staff-id="${staff.id}"
+                  style="width: ${TOTAL_TRACK_WIDTH}px; min-width: ${TOTAL_TRACK_WIDTH}px;">
+                ${cardsHtml}
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Attach events
+        attachAllCardEvents();
+        attachDropTrackHandlers();
+      }
+
+      // ─── RENDER APPOINTMENT CARD (TRUE PROPORTIONAL WIDTH & EXACT POSITION) ───
+      function renderAppointmentCard(appt, isUnassigned = false) {
+        const timeStr = appt.appointment_time || '08:30';
+        const duration = Number(appt.duration_minutes) || 30;
+
+        // Calculate end time
+        const [h, m] = timeStr.split(':').map(Number);
+        const startMinutes = h * 60 + m;
+        const endMinutes = startMinutes + duration;
+        const endH = String(Math.floor(endMinutes / 60)).padStart(2, '0');
+        const endM = String(endMinutes % 60).padStart(2, '0');
+        const timeRange = `${timeStr} - ${endH}:${endM}`;
+
+        const statusClass = `status-${appt.status || 'confirmed'}`;
+        const badgeClass = `badge-${appt.status || 'confirmed'}`;
+
+        const statusLabels = {
+          pending: 'Mới đặt',
+          holding: 'Giữ chỗ',
+          confirmed: 'Đã xác nhận',
+          in_progress: 'Đang phục vụ',
+          completed: 'Hoàn thành',
+          cancelled: 'Đã hủy',
+          no_show: 'Khách vắng'
+        };
+        const statusLabel = statusLabels[appt.status] || appt.status;
+
+        const customerName = escapeHtml(appt.customer_name || 'Khách vãng lai');
+        const serviceName = escapeHtml(appt.product_name || 'Dịch vụ Salon');
+
+        if (isUnassigned) {
+          return `
+            <div class="schedule-appt-card ${statusClass}"
+                 draggable="true"
+                 data-appt-id="${appt.id}"
+                 data-current-staff-id=""
+                 title="${timeRange} (${duration} phút) | ${customerName} | ${serviceName} | Kéo vào hàng nhân viên để phân công">
+              <div class="appt-card-time">
+                <span>⏰ ${timeRange} (${duration}p)</span>
+                <span class="appt-card-badge ${badgeClass}">${statusLabel}</span>
+              </div>
+              <div class="appt-card-customer">👤 ${customerName}</div>
+              <div class="appt-card-service">✂️ ${serviceName}</div>
+            </div>
+          `;
+        }
+
+        // Exact proportional calculation:
+        // Chiều dài card = (Tổng thời lượng dịch vụ / 60) * Chiều rộng hiển thị của 1 giờ (140px)
+        // Vị trí bắt đầu = ((startMinutes - START_MINUTES) / 60) * 140px
+        const diffMinutes = startMinutes - START_MINUTES;
+        const rawLeft = (diffMinutes / 60) * HOUR_WIDTH;
+        const rawWidth = (duration / 60) * HOUR_WIDTH;
+
+        // Inset 2px on left and right for spacing between adjacent cards
+        const leftPx = Math.round(rawLeft + 2);
+        const widthPx = Math.max(34, Math.round(rawWidth - 4));
+        const isCompact = widthPx < 105;
+
+        return `
+          <div class="schedule-appt-card ${statusClass} ${isCompact ? 'card-compact' : ''}"
+               draggable="true"
+               data-appt-id="${appt.id}"
+               data-current-staff-id="${appt.staff_id || ''}"
+               style="left: ${leftPx}px; width: ${widthPx}px;"
+               title="⏰ ${timeRange} (${duration} phút)\n👤 ${customerName}\n✂️ ${serviceName}\nTrạng thái: ${statusLabel}\n(Kéo sang nhân viên khác để đổi phân công)">
+            <div class="appt-card-time">
+              <span>⏰ ${isCompact ? timeStr : timeRange}</span>
+              ${!isCompact ? `<span class="appt-card-badge ${badgeClass}">${statusLabel}</span>` : `<span class="appt-card-badge ${badgeClass}" style="padding: 1px 3px;">●</span>`}
+            </div>
+            <div class="appt-card-customer">👤 ${customerName}</div>
+            <div class="appt-card-service">✂️ ${serviceName}</div>
+          </div>
+        `;
+      }
+
+      // ─── DRAG AND DROP HANDLERS (HTML5 NATIVE WITH TIME SNAPPING & GHOST PREVIEW) ───
+      let draggedApptId = null;
+      let draggedSourceStaffId = null;
+      let dragGrabOffsetX = 0;
+      let activeGhostElement = null;
+
+      function removeDragGhost() {
+        if (activeGhostElement) {
+          activeGhostElement.remove();
+          activeGhostElement = null;
+        }
+      }
+
+      function updateDragGhost(track, computedMinutes, durationMinutes, timeStr) {
+        const endMinutes = computedMinutes + durationMinutes;
+        const endH = String(Math.floor(endMinutes / 60)).padStart(2, '0');
+        const endM = String(endMinutes % 60).padStart(2, '0');
+
+        const diffMinutes = computedMinutes - START_MINUTES;
+        const rawLeft = (diffMinutes / 60) * HOUR_WIDTH;
+        const rawWidth = (durationMinutes / 60) * HOUR_WIDTH;
+        const leftPx = Math.round(rawLeft + 2);
+        const widthPx = Math.max(34, Math.round(rawWidth - 4));
+
+        if (!activeGhostElement || activeGhostElement.parentElement !== track) {
+          removeDragGhost();
+          activeGhostElement = document.createElement('div');
+          activeGhostElement.className = 'schedule-drop-ghost';
+          track.appendChild(activeGhostElement);
+        }
+
+        activeGhostElement.style.left = `${leftPx}px`;
+        activeGhostElement.style.width = `${widthPx}px`;
+        activeGhostElement.innerHTML = `
+          <div class="ghost-time">⏰ ${timeStr} – ${endH}:${endM}</div>
+          <div class="ghost-sub">${durationMinutes} phút</div>
+        `;
+      }
+
+      function attachCardEvents(card) {
+        if (!card) return;
+
+        // Drag start
+        card.addEventListener('dragstart', (e) => {
+          draggedApptId = card.getAttribute('data-appt-id');
+          draggedSourceStaffId = card.getAttribute('data-current-staff-id');
+          const rect = card.getBoundingClientRect();
+          dragGrabOffsetX = e.clientX - rect.left;
+          card.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', draggedApptId);
+        });
+
+        // Drag end
+        card.addEventListener('dragend', () => {
+          card.classList.remove('dragging');
+          removeDragGhost();
+          document.querySelectorAll('.schedule-track-td.drag-over').forEach(c => c.classList.remove('drag-over'));
+          document.querySelectorAll('.schedule-staff-row.row-drag-target').forEach(r => r.classList.remove('row-drag-target'));
+        });
+
+        // Click to view details
+        card.addEventListener('click', (e) => {
+          if (card.classList.contains('dragging')) return;
+          const apptId = card.getAttribute('data-appt-id');
+          const appt = dailyAppointments.find(a => a.id === apptId);
+          if (appt) openApptDetailModal(appt);
+        });
+      }
+
+      function attachAllCardEvents() {
+        document.querySelectorAll('.schedule-appt-card').forEach(card => attachCardEvents(card));
+      }
+
+      function attachDropTrackHandlers() {
+        // Drop target: each continuous timeline track cell in the matrix
+        const dropTracks = scheduleTbody.querySelectorAll('.schedule-track-td');
+
+        dropTracks.forEach(track => {
+          track.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            track.classList.add('drag-over');
+
+            const row = track.closest('.schedule-staff-row');
+            if (row) row.classList.add('row-drag-target');
+
+            const appt = dailyAppointments.find(a => a.id === draggedApptId);
+            const duration = appt ? (Number(appt.duration_minutes) || 30) : 30;
+
+            const trackRect = track.getBoundingClientRect();
+            const mouseXInTrack = e.clientX - trackRect.left;
+            let cardLeftInTrack = mouseXInTrack - (dragGrabOffsetX || 0);
+            if (cardLeftInTrack < 0) cardLeftInTrack = 0;
+
+            const minutesFromStart = (cardLeftInTrack / HOUR_WIDTH) * 60;
+            let computedMinutes = START_MINUTES + minutesFromStart;
+            // Snap to 15-minute slot for clean alignment
+            computedMinutes = Math.round(computedMinutes / 15) * 15;
+
+            const snapH = String(Math.floor(computedMinutes / 60)).padStart(2, '0');
+            const snapM = String(computedMinutes % 60).padStart(2, '0');
+            const targetTimeStr = `${snapH}:${snapM}`;
+
+            updateDragGhost(track, computedMinutes, duration, targetTimeStr);
+          });
+
+          track.addEventListener('dragleave', (e) => {
+            // Only remove if actually leaving the track
+            if (!track.contains(e.relatedTarget)) {
+              track.classList.remove('drag-over');
+              const row = track.closest('.schedule-staff-row');
+              if (row) row.classList.remove('row-drag-target');
+              removeDragGhost();
+            }
+          });
+
+          track.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            removeDragGhost();
+            track.classList.remove('drag-over');
+            const row = track.closest('.schedule-staff-row');
+            if (row) row.classList.remove('row-drag-target');
+
+            const apptId = e.dataTransfer.getData('text/plain') || draggedApptId;
+            const targetStaffId = track.getAttribute('data-staff-id');
+
+            if (!apptId || !targetStaffId) return;
+
+            const appt = dailyAppointments.find(a => a.id === apptId);
+            if (!appt) return;
+
+            const trackRect = track.getBoundingClientRect();
+            const mouseXInTrack = e.clientX - trackRect.left;
+            let cardLeftInTrack = mouseXInTrack - (dragGrabOffsetX || 0);
+            if (cardLeftInTrack < 0) cardLeftInTrack = 0;
+
+            const minutesFromStart = (cardLeftInTrack / HOUR_WIDTH) * 60;
+            let computedMinutes = START_MINUTES + minutesFromStart;
+            computedMinutes = Math.round(computedMinutes / 15) * 15;
+
+            const snapH = String(Math.floor(computedMinutes / 60)).padStart(2, '0');
+            const snapM = String(computedMinutes % 60).padStart(2, '0');
+            const newTime = `${snapH}:${snapM}`;
+
+            // If dropped at identical position and staff, no changes needed
+            if (draggedSourceStaffId === targetStaffId && appt.appointment_time === newTime) {
+              return;
+            }
+
+            await executeScheduleAdjustment({
+              apptId,
+              targetStaffId,
+              appointmentTime: newTime,
+              appointmentDate: scheduleDateInput.value
+            });
+          });
+
+          // Click on empty space in track to open Create Appointment Modal with pre-filled staff & time
+          track.addEventListener('click', (e) => {
+            if (e.target.closest('.schedule-appt-card')) return;
+            if (draggedApptId) return;
+
+            const staffId = track.getAttribute('data-staff-id');
+            const trackRect = track.getBoundingClientRect();
+            const clickX = e.clientX - trackRect.left;
+
+            const minutesFromStart = (clickX / HOUR_WIDTH) * 60;
+            let clickedMinutes = START_MINUTES + minutesFromStart;
+            // Snap to 15-minute slot
+            clickedMinutes = Math.floor(clickedMinutes / 15) * 15;
+            if (clickedMinutes < 510) clickedMinutes = 510; // 08:30
+            if (clickedMinutes > 1230) clickedMinutes = 1230; // 20:30
+
+            const snapH = String(Math.floor(clickedMinutes / 60)).padStart(2, '0');
+            const snapM = String(clickedMinutes % 60).padStart(2, '0');
+            const clickedTime = `${snapH}:${snapM}`;
+
+            openCreateApptModal({
+              staffId,
+              date: scheduleDateInput.value,
+              time: clickedTime
+            });
+          });
+        });
+      }
+
+      // ─── IN-PLACE UPDATE APPOINTMENT CARD (PRESERVES SCROLL & DOM STATE) ───
+      function updateAppointmentInPlace(updatedAppt) {
+        if (!updatedAppt || !updatedAppt.id) return;
+
+        // 1. Update in-memory appointment data
+        const idx = dailyAppointments.findIndex(a => a.id === updatedAppt.id);
+        if (idx >= 0) {
+          dailyAppointments[idx] = { ...dailyAppointments[idx], ...updatedAppt };
+        } else {
+          dailyAppointments.push(updatedAppt);
+        }
+        const appt = idx >= 0 ? dailyAppointments[idx] : updatedAppt;
+
+        // 2. Remove existing card from previous position
+        const oldCard = document.querySelector(`.schedule-appt-card[data-appt-id="${appt.id}"]`);
+        if (oldCard) {
+          oldCard.remove();
+        }
+
+        // 3. Render card in new position
+        const isUnassigned = !appt.staff_id;
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = renderAppointmentCard(appt, isUnassigned).trim();
+        const newCard = tempDiv.firstElementChild;
+
+        if (newCard) {
+          if (isUnassigned) {
+            unassignedList.appendChild(newCard);
+          } else {
+            const targetTrack = document.querySelector(`.schedule-track-td[data-staff-id="${appt.staff_id}"]`);
+            if (targetTrack) {
+              targetTrack.appendChild(newCard);
+            }
+          }
+          attachCardEvents(newCard);
+        }
+
+        // 4. Update unassigned box visibility and count
+        const unassigned = dailyAppointments.filter(a => !a.staff_id && a.status !== 'cancelled');
+        if (unassigned.length > 0) {
+          unassignedBox.style.display = 'block';
+          unassignedCount.textContent = unassigned.length;
+        } else {
+          unassignedBox.style.display = 'none';
+        }
+
+        // 5. Update appointment count badges on staff rows
+        updateStaffAppointmentCounts();
+
+        // 6. Re-apply any active filters (search / status) to the updated card
+        applyScheduleFilters();
+      }
+
+      // ─── EXECUTE SCHEDULE ADJUSTMENT (API CALL & VALIDATION WITH STRICT SCROLL RESTORE) ───
+      async function executeScheduleAdjustment({ apptId, targetStaffId, appointmentTime, appointmentDate }) {
+        const targetStaff = activeStaffList.find(s => s.id === targetStaffId);
+        const staffName = targetStaff ? targetStaff.name : 'nhân viên mới';
+
+        // Capture scroll state on both axes (grid scrollLeft and page/container scrollTop)
+        const scrollState = getScheduleScrollState();
+
+        try {
+          const res = await Admin.api(`/api/appointments/${apptId}/assign`, {
+            method: 'PUT',
+            body: {
+              staffId: targetStaffId,
+              appointmentTime,
+              appointmentDate
+            }
+          });
+
+          if (!res.success) {
+            throw new Error(res.error || 'Không thể thay đổi lịch hẹn');
+          }
+
+          Admin.toast(`Đã cập nhật: ${appointmentTime} – ${escapeHtml(staffName)} thành công!`, 'success');
+
+          // In-place DOM update prevents scroll reset & table redraw
+          updateAppointmentInPlace(res.data);
+        } catch (err) {
+          // Display conflict or validation error message without resetting scroll position
+          Admin.toast(err.message || 'Lỗi khi thay đổi lịch hẹn', 'error');
+        } finally {
+          // Strictly restore scroll position on both axes immediately and after DOM reflow
+          strictRestoreScroll(scrollState);
+        }
+      }
+
+      // ─── MODAL: CHI TIẾT LỊCH HẸN & LỊCH SỬ THAY ĐỔI ───
+      const apptModal = document.getElementById('appt-detail-modal');
+      const apptModalBody = document.getElementById('modal-appt-body');
+
+      function openApptDetailModal(appt) {
+        const customerName = escapeHtml(appt.customer_name || 'Khách vãng lai');
+        const phone = escapeHtml(appt.customer_phone || '—');
+        const email = escapeHtml(appt.customer_email || 'Chưa cung cấp');
+        const service = escapeHtml(appt.product_name || 'Dịch vụ Salon');
+        const date = escapeHtml(appt.appointment_date || '—');
+        const time = escapeHtml(appt.appointment_time || '—');
+        const duration = appt.duration_minutes ? `${appt.duration_minutes} phút` : '30 phút';
+        const price = appt.price ? Number(appt.price).toLocaleString('vi-VN') + ' đ' : '150.000 đ';
+        const notes = escapeHtml(appt.notes || 'Không có ghi chú');
+        const currentStaffName = escapeHtml(appt.staff_name || 'Chưa phân công');
+
+        // Render staff dropdown for manual assignment as well
+        let staffOptionsHtml = '<option value="">-- Chưa phân công --</option>';
+        activeStaffList.forEach(s => {
+          const selected = s.id === appt.staff_id ? 'selected' : '';
+          staffOptionsHtml += `<option value="${s.id}" ${selected}>${escapeHtml(s.name)} (${s.role})</option>`;
+        });
+
+        // Audit History list
+        let historyHtml = '<div style="font-size: .82rem; color: var(--mut);">Chưa có lịch sử thay đổi phân công.</div>';
+        if (Array.isArray(appt.history) && appt.history.length > 0) {
+          historyHtml = '<div class="history-timeline">' + appt.history.map(h => {
+            const timeFormatted = Admin.formatDate(h.changed_at);
+            let actionText = '';
+            if (h.action === 'reschedule_and_reassign') {
+              actionText = `đã chuyển giờ từ <strong>${escapeHtml(h.old_time || '—')}</strong> sang <strong>${escapeHtml(h.new_time || '—')}</strong> và đổi thợ từ <span style="color: var(--mut);">${escapeHtml(h.old_staff_name || 'Chưa phân công')}</span> sang <strong>${escapeHtml(h.new_staff_name || 'Mới')}</strong>`;
+            } else if (h.action === 'reschedule_time') {
+              actionText = `đã đổi giờ hẹn từ <strong>${escapeHtml(h.old_time || '—')}</strong> sang <strong>${escapeHtml(h.new_time || '—')}</strong>`;
+            } else {
+              actionText = `đã chuyển phân công từ <span style="color: var(--mut);">${escapeHtml(h.old_staff_name || 'Chưa phân công')}</span> sang <strong>${escapeHtml(h.new_staff_name || 'Mới')}</strong>`;
+            }
+            return `
+              <div class="history-item">
+                <div class="history-time">🕒 ${timeFormatted}</div>
+                <div>
+                  <strong>${escapeHtml(h.changed_by || 'Nhân viên')}</strong> ${actionText}
+                </div>
+              </div>
+            `;
+          }).join('') + '</div>';
+        }
+
+        apptModalBody.innerHTML = `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+            <div>
+              <label class="form-label">Mã đặt lịch</label>
+              <div style="font-weight: 700; color: var(--pri); font-family: monospace;">${escapeHtml(appt.booking_code || '—')}</div>
+            </div>
+            <div>
+              <label class="form-label">Trạng thái</label>
+              <div><span class="appt-card-badge badge-${appt.status}">${appt.status}</span></div>
+            </div>
+            <div>
+              <label class="form-label">Khách hàng</label>
+              <div style="font-weight: 600;">${customerName}</div>
+            </div>
+            <div>
+              <label class="form-label">Số điện thoại</label>
+              <div>${phone}</div>
+            </div>
+            <div>
+              <label class="form-label">Email</label>
+              <div>${email}</div>
+            </div>
+            <div>
+              <label class="form-label">Dịch vụ</label>
+              <div style="font-weight: 600;">${service}</div>
+            </div>
+            <div>
+              <label class="form-label">Thời gian hiện tại</label>
+              <div>📅 ${date} lúc ⏰ <strong>${time}</strong> (${duration})</div>
+            </div>
+            <div>
+              <label class="form-label">Giá dự kiến</label>
+              <div style="font-weight: 600; color: var(--pri);">${price}</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Ghi chú của khách / nội bộ</label>
+            <div style="padding: 8px 12px; background: var(--bg); border-radius: 6px; font-size: .85rem;">${notes}</div>
+          </div>
+
+          <div class="form-group" style="background: #f4f8ed; padding: 14px; border-radius: 8px; border: 1px solid var(--line);">
+            <label class="form-label" style="color: var(--pri); font-weight: 700;">🔄 Điều chỉnh Phân công &amp; Giờ hẹn (Hoặc Kéo thả trực tiếp trên bảng)</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+              <div>
+                <label style="font-size: .78rem; font-weight: 600; color: var(--ink);">Nhân viên phụ trách</label>
+                <select id="modal-select-staff" class="form-control" style="width: 100%; margin-top: 4px;">
+                  ${staffOptionsHtml}
+                </select>
+              </div>
+              <div>
+                <label style="font-size: .78rem; font-weight: 600; color: var(--ink);">Giờ bắt đầu hẹn</label>
+                <input type="time" id="modal-input-time" class="form-control" value="${escapeHtml(appt.appointment_time || '08:30')}" style="width: 100%; margin-top: 4px;">
+              </div>
+            </div>
+            <div style="margin-top: 10px; text-align: right;">
+              <button type="button" class="btn btn-primary btn-sm" id="btn-save-manual-assign">
+                💾 Lưu thay đổi Lịch hẹn
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">📜 Lịch sử phân công &amp; thay đổi</label>
+            ${historyHtml}
+          </div>
+        `;
+
+        document.getElementById('btn-save-manual-assign').addEventListener('click', async () => {
+          const selectedStaffId = document.getElementById('modal-select-staff').value;
+          const selectedTime = document.getElementById('modal-input-time').value;
+          if (!selectedStaffId) {
+            Admin.toast('Vui lòng chọn nhân viên muốn phân công', 'warning');
+            return;
+          }
+          if (!selectedTime) {
+            Admin.toast('Vui lòng chọn giờ hẹn', 'warning');
+            return;
+          }
+          await executeScheduleAdjustment({
+            apptId: appt.id,
+            targetStaffId: selectedStaffId,
+            appointmentTime: selectedTime,
+            appointmentDate: appt.appointment_date || scheduleDateInput.value
+          });
+          closeApptDetailModal();
+        });
+
+        apptModal.classList.add('open');
+      }
+
+      function closeApptDetailModal() {
+        apptModal.classList.remove('open');
+      }
+
+      document.getElementById('btn-close-appt-detail').addEventListener('click', closeApptDetailModal);
+      document.getElementById('btn-cancel-appt-detail').addEventListener('click', closeApptDetailModal);
+      apptModal.addEventListener('click', (e) => {
+        if (e.target === apptModal) closeApptDetailModal();
+      });
+
+      // ─── MODAL: TẠO LỊCH HẸN TRỰC TIẾP TRÊN SCHEDULE ───
+      const createApptModal = document.getElementById('create-appt-modal');
+      const formCreateAppt = document.getElementById('form-create-appt');
+      const inputCustName = document.getElementById('create-appt-cust-name');
+      const inputCustPhone = document.getElementById('create-appt-cust-phone');
+      const inputCustEmail = document.getElementById('create-appt-cust-email');
+      const inputApptDate = document.getElementById('create-appt-date');
+      const inputApptTime = document.getElementById('create-appt-time');
+      const selectApptStaff = document.getElementById('create-appt-staff');
+      const inputApptNotes = document.getElementById('create-appt-notes');
+      const servicesListContainer = document.getElementById('create-appt-services-list');
+      const summaryTotalDuration = document.getElementById('create-appt-total-duration');
+      const summaryTotalPrice = document.getElementById('create-appt-total-price');
+      const btnSubmitCreateAppt = document.getElementById('btn-submit-create-appt');
+
+      let availableServices = [];
+
+      async function loadAvailableServices() {
+        if (availableServices.length > 0) return availableServices;
+        try {
+          const res = await Admin.api('/api/products');
+          if (res.success && Array.isArray(res.data)) {
+            availableServices = res.data;
+          }
+        } catch (err) {
+          console.warn('Không thể tải danh sách dịch vụ:', err);
+        }
+        return availableServices;
+      }
+
+      function updateCreateApptSummary() {
+        const checkedBoxes = servicesListContainer.querySelectorAll('input[type="checkbox"]:checked');
+        let totalDuration = 0;
+        let totalPrice = 0;
+
+        checkedBoxes.forEach(cb => {
+          const serviceId = cb.value;
+          const service = availableServices.find(s => s.id === serviceId);
+          if (service) {
+            totalDuration += Number(service.duration_minutes) || 30;
+            totalPrice += Number(service.price) || 0;
+          }
+        });
+
+        summaryTotalDuration.textContent = `${totalDuration} phút`;
+        summaryTotalPrice.textContent = `${totalPrice.toLocaleString('vi-VN')} đ`;
+      }
+
+      async function openCreateApptModal({ staffId = '', date = '', time = '' } = {}) {
+        await loadAvailableServices();
+
+        // 1. Populate services list
+        if (availableServices.length === 0) {
+          servicesListContainer.innerHTML = '<div style="color: var(--mut); font-size: .82rem;">Không có dịch vụ nào trong hệ thống.</div>';
+        } else {
+          servicesListContainer.innerHTML = availableServices.map((svc, idx) => {
+            const priceStr = Number(svc.price).toLocaleString('vi-VN') + ' đ';
+            const durationStr = `${svc.duration_minutes || 30} phút`;
+            const isChecked = idx === 0 ? 'checked' : '';
+            return `
+              <label style="display: flex; align-items: center; gap: 8px; font-size: .82rem; cursor: pointer; padding: 3px 0;">
+                <input type="checkbox" name="services" value="${svc.id}" ${isChecked} style="accent-color: var(--pri); width: 16px; height: 16px;">
+                <span style="font-weight: 600; color: var(--ink); flex: 1;">${escapeHtml(svc.name)}</span>
+                <span style="color: var(--mut); font-size: .78rem;">(${durationStr})</span>
+                <span style="color: var(--pri); font-weight: 600; font-size: .8rem;">${priceStr}</span>
+              </label>
+            `;
+          }).join('');
+
+          servicesListContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', updateCreateApptSummary);
+          });
+        }
+        updateCreateApptSummary();
+
+        // 2. Populate Staff Select
+        let staffOpts = '<option value="">-- Chưa phân công --</option>';
+        activeStaffList.forEach(s => {
+          const selected = s.id === staffId ? 'selected' : '';
+          const roleLabel = s.role === 'admin' ? 'Quản lý' : s.role === 'receptionist' ? 'Lễ tân' : 'Thợ tóc';
+          staffOpts += `<option value="${s.id}" ${selected}>${escapeHtml(s.name)} (${roleLabel})</option>`;
+        });
+        selectApptStaff.innerHTML = staffOpts;
+
+        // 3. Set Date and Time
+        inputApptDate.value = date || scheduleDateInput.value || todayStr;
+        inputApptTime.value = time || '09:00';
+
+        createApptModal.classList.add('open');
+      }
+
+      function closeCreateApptModal() {
+        createApptModal.classList.remove('open');
+      }
+
+      document.getElementById('btn-close-create-appt').addEventListener('click', closeCreateApptModal);
+      document.getElementById('btn-cancel-create-appt').addEventListener('click', closeCreateApptModal);
+      createApptModal.addEventListener('click', (e) => {
+        if (e.target === createApptModal) closeCreateApptModal();
+      });
+
+      // Button "+ Thêm lịch hẹn" on toolbar
+      document.getElementById('btn-open-create-appt').addEventListener('click', () => {
+        openCreateApptModal({
+          staffId: '',
+          date: scheduleDateInput.value,
+          time: '09:00'
+        });
+      });
+
+      // Submit Create Appointment Form
+      formCreateAppt.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const customerName = inputCustName.value.trim();
+        const customerPhone = inputCustPhone.value.trim();
+        const customerEmail = inputCustEmail.value.trim();
+        const appointmentDate = inputApptDate.value;
+        const appointmentTime = inputApptTime.value;
+        const staffId = selectApptStaff.value || null;
+        const notes = inputApptNotes.value.trim();
+
+        const checkedBoxes = servicesListContainer.querySelectorAll('input[type="checkbox"]:checked');
+        const selectedProductIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+        if (!customerName) {
+          Admin.toast('Vui lòng nhập họ và tên khách hàng', 'warning');
+          inputCustName.focus();
+          return;
+        }
+
+        if (!customerPhone) {
+          Admin.toast('Vui lòng nhập số điện thoại khách hàng', 'warning');
+          inputCustPhone.focus();
+          return;
+        }
+
+        const cleanPhone = customerPhone.replace(/\D/g, '').replace(/^84/, '0');
+        if (!/^(03|05|07|08|09)\d{8}$/.test(cleanPhone)) {
+          Admin.toast('Số điện thoại không hợp lệ. Vui lòng nhập 10 số di động VN (03, 05, 07, 08, 09)', 'warning');
+          inputCustPhone.focus();
+          return;
+        }
+
+        if (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+          Admin.toast('Email không đúng định dạng', 'warning');
+          inputCustEmail.focus();
+          return;
+        }
+
+        if (selectedProductIds.length === 0) {
+          Admin.toast('Vui lòng chọn ít nhất 1 dịch vụ cho lịch hẹn', 'warning');
+          return;
+        }
+
+        if (!appointmentDate || !appointmentTime) {
+          Admin.toast('Vui lòng chọn ngày và giờ hẹn', 'warning');
+          return;
+        }
+
+        // Calculate combined duration & price
+        let totalDuration = 0;
+        let totalPrice = 0;
+        selectedProductIds.forEach(id => {
+          const s = availableServices.find(item => item.id === id);
+          if (s) {
+            totalDuration += Number(s.duration_minutes) || 30;
+            totalPrice += Number(s.price) || 0;
+          }
+        });
+
+        // Capture scroll state before submission
+        const scrollState = getScheduleScrollState();
+
+        btnSubmitCreateAppt.disabled = true;
+        btnSubmitCreateAppt.textContent = '⏳ Đang tạo lịch...';
+
+        try {
+          const res = await Admin.api('/api/appointments', {
+            method: 'POST',
+            body: {
+              customerName,
+              customerPhone: cleanPhone,
+              customerEmail: customerEmail || null,
+              productIds: selectedProductIds,
+              productId: selectedProductIds[0],
+              appointmentDate,
+              appointmentTime,
+              durationMinutes: totalDuration,
+              staffId,
+              notes,
+              confirmedBySystem: true,
+            }
+          });
+
+          if (!res.success || !res.data) {
+            throw new Error(res.error || 'Không thể tạo lịch hẹn');
+          }
+
+          Admin.toast(`Đã tạo lịch hẹn thành công cho ${escapeHtml(customerName)}!`, 'success');
+          closeCreateApptModal();
+
+          // Reset form fields
+          inputCustName.value = '';
+          inputCustPhone.value = '';
+          inputCustEmail.value = '';
+          inputApptNotes.value = '';
+
+          // If created for the currently viewed date, update in-place without page reload
+          if (res.data.appointment_date === scheduleDateInput.value) {
+            updateAppointmentInPlace(res.data);
+          }
+
+          // Strictly restore scroll position
+          strictRestoreScroll(scrollState);
+        } catch (err) {
+          Admin.toast(err.message || 'Lỗi khi tạo lịch hẹn', 'error');
+          // Keep form open with data intact so user can adjust
+          strictRestoreScroll(scrollState);
+        } finally {
+          btnSubmitCreateAppt.disabled = false;
+          btnSubmitCreateAppt.textContent = '➕ Xác nhận Đặt lịch';
+        }
+      });
+
+      // ─── TAB 2: ACCOUNTS LIST LOGIC ───
+      let staffList = [];
+      const tbody = document.getElementById('staff-tbody');
+      const countLabel = document.getElementById('staff-count-label');
+
+      // Modals for Staff Creation / Edit
+      const createModal = document.getElementById('create-staff-modal');
+      const formCreate = document.getElementById('form-create-staff');
+      const createName = document.getElementById('create-name');
+      const createEmail = document.getElementById('create-email');
+      const createPhone = document.getElementById('create-phone');
+      const createPwd = document.getElementById('create-password');
+      const createRole = document.getElementById('create-role');
+
+      const editModal = document.getElementById('edit-staff-modal');
+      const formEdit = document.getElementById('form-edit-staff');
+      const editId = document.getElementById('edit-staff-id');
+      const editName = document.getElementById('edit-name');
+      const editEmail = document.getElementById('edit-email');
+      const editRole = document.getElementById('edit-role');
+      const editActive = document.getElementById('edit-is-active');
+      const editPwd = document.getElementById('edit-password');
+
+      async function loadStaffList() {
+        try {
+          const res = await Admin.api('/api/admin/staff');
+          if (!res.success) throw new Error('Không thể tải danh sách nhân viên');
+
+          staffList = res.data || [];
+          renderStaffTable();
+        } catch (err) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7" class="text-center" style="padding: 2.5rem; color: var(--danger);">
+                ✕ Lỗi tải nhân sự: ${escapeHtml(err.message)}
+              </td>
+            </tr>
+          `;
+        }
+      }
+
+      function renderStaffTable() {
+        countLabel.textContent = `Hiển thị ${staffList.length} nhân viên`;
+
+        if (!staffList.length) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7" class="text-center" style="padding: 3rem; color: var(--text-muted);">
+                <div style="font-size: 2.5rem; margin-bottom: .5rem;">👥</div>
+                <div>Chưa có tài khoản nhân viên nào.</div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = staffList.map(u => {
+          const isSelf = u.id === currentUser.id;
+          const roleBadge = u.role === 'admin'
+            ? '<span class="badge badge-primary">Quản trị viên</span>'
+            : u.role === 'receptionist'
+            ? '<span class="badge badge-info">Nhân viên lễ tân</span>'
+            : '<span class="badge badge-secondary">Thợ tóc / Stylist</span>';
+
+          const activeBadge = u.is_active
+            ? '<span class="badge badge-success">Kích hoạt</span>'
+            : '<span class="badge badge-danger">Đã khóa</span>';
+
+          const availBadge = u.is_available
+            ? '<span class="online-dot" style="margin-right: 4px;"></span> Sẵn sàng'
+            : '<span class="online-dot offline" style="margin-right: 4px;"></span> Đang bận';
+
+          const dateStr = Admin.formatDate(u.created_at);
+
+          return `
+            <tr>
+              <td>
+                <div style="display: flex; align-items: center; gap: .6rem;">
+                  <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem;">
+                    ${escapeHtml(u.name ? u.name.charAt(0).toUpperCase() : 'U')}
+                  </div>
+                  <div>
+                    <strong style="color: var(--text);">${escapeHtml(u.name || '—')}</strong>
+                    ${isSelf ? '<span class="badge badge-info" style="font-size: .65rem; margin-left: 4px;">Bạn</span>' : ''}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span style="font-family: monospace; font-size: .88rem;">${escapeHtml(u.email)}</span>
+              </td>
+              <td>${roleBadge}</td>
+              <td>${activeBadge}</td>
+              <td style="font-size: .82rem; color: var(--text-muted);">${availBadge}</td>
+              <td style="font-size: .82rem; color: var(--text-muted);">${dateStr}</td>
+              ${isAdmin ? `
+                <td style="text-align: right;">
+                  <button type="button" class="btn btn-outline btn-sm btn-edit-user" data-id="${u.id}" title="Chỉnh sửa">
+                    ✏️ Sửa
+                  </button>
+                </td>
+              ` : ''}
+            </tr>
+          `;
+        }).join('');
+
+        if (isAdmin) {
+          tbody.querySelectorAll('.btn-edit-user').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const id = btn.getAttribute('data-id');
+              const user = staffList.find(u => u.id === id);
+              if (user) openEditModal(user);
+            });
+          });
+        }
+      }
+
+      // Create Modal Events
+      function openCreateModal() {
+        formCreate.reset();
+        createRole.value = 'staff';
+        createModal.classList.add('open');
+        createName.focus();
+      }
+
+      function closeCreateModal() {
+        createModal.classList.remove('open');
+      }
+
+      document.getElementById('btn-open-create-staff').addEventListener('click', openCreateModal);
+      document.getElementById('btn-close-create-staff').addEventListener('click', closeCreateModal);
+      document.getElementById('btn-cancel-create-staff').addEventListener('click', closeCreateModal);
+
+      formCreate.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = createName.value.trim();
+        const email = createEmail.value.trim();
+        const phone = createPhone.value.trim();
+        const password = createPwd.value;
+        const role = createRole.value;
+        const isAvailable = document.getElementById('create-is-available')?.value === 'true';
+
+        if (!name || !email || !password) {
+          Admin.toast('Vui lòng điền đầy đủ các trường bắt buộc', 'warning');
+          return;
+        }
+
+        if (password.length < 8) {
+          Admin.toast('Mật khẩu phải từ 8 ký tự trở lên', 'warning');
+          return;
+        }
+
+        const btnSave = document.getElementById('btn-save-create-staff');
+        btnSave.disabled = true;
+
+        try {
+          const res = await Admin.api('/api/admin/staff', {
+            method: 'POST',
+            body: { name, email, phone, password, role, isAvailable }
+          });
+          if (!res.success) throw new Error('Không thể tạo nhân viên');
+
+          Admin.toast('Thêm nhân viên thành công!', 'success');
+          closeCreateModal();
+          loadStaffList();
+        } catch (err) {
+          Admin.toast(err.message || 'Lỗi khi tạo nhân viên', 'error');
+        } finally {
+          btnSave.disabled = false;
+        }
+      });
+
+      // Edit Modal Events
+      function openEditModal(user) {
+        editId.value = user.id;
+        editName.value = user.name || '';
+        editEmail.value = user.email || '';
+        editRole.value = user.role || 'staff';
+        editActive.value = user.is_active ? 'true' : 'false';
+        const editAvailable = document.getElementById('edit-is-available');
+        if (editAvailable) {
+          editAvailable.value = user.is_available ? 'true' : 'false';
+        }
+        editPwd.value = '';
+
+        if (user.id === currentUser.id) {
+          editActive.disabled = true;
+        } else {
+          editActive.disabled = false;
+        }
+
+        editModal.classList.add('open');
+        editName.focus();
+      }
+
+      function closeEditModal() {
+        editModal.classList.remove('open');
+      }
+
+      document.getElementById('btn-close-edit-staff').addEventListener('click', closeEditModal);
+      document.getElementById('btn-cancel-edit-staff').addEventListener('click', closeEditModal);
+
+      [createModal, editModal].forEach(modal => {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) modal.classList.remove('open');
+        });
+      });
+
+      formEdit.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = editId.value;
+        const name = editName.value.trim();
+        const role = editRole.value;
+        const isActive = editActive.value === 'true';
+        const isAvailable = document.getElementById('edit-is-available')?.value === 'true';
+        const password = editPwd.value;
+
+        const body = { name, role, isActive, isAvailable };
+        if (password) {
+          if (password.length < 8) {
+            Admin.toast('Mật khẩu mới phải từ 8 ký tự trở lên', 'warning');
+            return;
+          }
+          body.password = password;
+        }
+
+        const btnSave = document.getElementById('btn-save-edit-staff');
+        btnSave.disabled = true;
+
+        try {
+          const res = await Admin.api(`/api/admin/staff/${id}`, {
+            method: 'PUT',
+            body
+          });
+          if (!res.success) throw new Error('Không thể cập nhật nhân viên');
+
+          Admin.toast('Cập nhật thông tin nhân viên thành công!', 'success');
+          closeEditModal();
+          loadStaffList();
+        } catch (err) {
+          Admin.toast(err.message || 'Lỗi cập nhật', 'error');
+        } finally {
+          btnSave.disabled = false;
+        }
+      });
+
+      document.getElementById('btn-refresh-staff').addEventListener('click', loadStaffList);
+
+      // Initial Schedule Load
+      await loadScheduleData();
+    });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đặt Lịch & Quản Lý Lịch Hẹn - Chatbox Store</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/chat.css">
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <style>
+    .auth-banner {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: var(--radius);
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .booking-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 768px) {
+      .booking-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .slot-btn {
+      padding: 0.45rem 0.75rem;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.15s ease;
+    }
+    .slot-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .slot-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      font-weight: 600;
+    }
+    /* Modal auth styling */
+    .auth-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .auth-modal {
+      background: #fff;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 440px;
+      padding: 2rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a href="/" class="navbar-brand">
+        <span style="font-size: 1.5rem;">⚡</span>
+        <span>Chatbox Store</span>
+      </a>
+      <ul class="navbar-nav">
+        <li><a href="/">Trang chủ</a></li>
+        <li><a href="/products.html">Sản phẩm</a></li>
+        <li><a href="/appointments.html" style="color: var(--primary); font-weight: 600;">Lịch hẹn tư vấn</a></li>
+        <li><a href="/chat.html">Phòng Chat</a></li>
+        <li id="auth-nav-item">
+          <button id="btn-open-auth" class="btn btn-sm btn-outline">Đăng nhập / Đăng ký</button>
+        </li>
+      </ul>
+    </div>
+  </header>
+
+  <main class="container section">
+    <div class="section-title">
+      <h2>Đặt Lịch & Quản Lý Lịch Hẹn Tư Vấn</h2>
+      <p>Đặt lịch hẹn trực tuyến nhanh chóng hoặc tra cứu, theo dõi trạng thái các lịch hẹn của bạn</p>
+    </div>
+
+    <!-- User Auth Status Alert -->
+    <div id="auth-status-banner" class="auth-banner" style="display: none;">
+      <div>
+        <span style="font-size: 1.1rem; margin-right: 0.35rem;">👤</span>
+        <span id="auth-welcome-text">Xin chào khách hàng!</span>
+        <span class="badge badge-success" style="margin-left: 0.5rem;">Đã đăng nhập</span>
+      </div>
+      <div>
+        <button id="btn-logout" class="btn btn-sm btn-outline" style="background: #fff;">Đăng xuất</button>
+      </div>
+    </div>
+
+    <!-- Booking Form & Lookup Grid -->
+    <div class="booking-grid">
+      <!-- 1. Form Đặt lịch mới -->
+      <div class="card p-3">
+        <div class="flex-between mb-2">
+          <h3 style="font-size: 1.1rem; margin: 0;">📅 Đặt Lịch Tư Vấn Mới</h3>
+          <span id="booking-badge" class="badge badge-primary">Trực tuyến</span>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Hệ thống sẽ tự động điền sẵn thông tin nếu bạn đã đăng nhập hoặc đã từng đặt lịch.
+        </p>
+
+        <form id="form-booking">
+          <div class="form-group mb-2">
+            <label class="form-label" for="book-name">Họ và tên <span class="text-danger">*</span></label>
+            <input type="text" id="book-name" class="form-control" placeholder="VD: Nguyễn Văn A" required>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group mb-2">
+              <label class="form-label" for="book-phone">Số điện thoại <span class="text-danger">*</span></label>
+              <input type="tel" id="book-phone" class="form-control" placeholder="0901234567" required>
+            </div>
+            <div class="form-group mb-2">
+              <label class="form-label" for="book-email">Địa chỉ Email <span style="font-size: 0.85em; color: var(--text-muted); font-weight: normal;">(Không bắt buộc)</span></label>
+              <input type="email" id="book-email" class="form-control" placeholder="email@example.com (không bắt buộc)">
+            </div>
+          </div>
+
+          <div class="form-group mb-2">
+            <label class="form-label" for="book-product">Sản phẩm cần tư vấn</label>
+            <select id="book-product" class="form-control">
+              <option value="">Tư vấn chung toàn bộ sản phẩm</option>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group mb-2">
+              <label class="form-label" for="book-date">Ngày hẹn <span class="text-danger">*</span></label>
+              <input type="date" id="book-date" class="form-control" required>
+            </div>
+            <div class="form-group mb-2">
+              <label class="form-label" for="book-time">Giờ hẹn <span class="text-danger">*</span></label>
+              <select id="book-time" class="form-control" required>
+                <option value="">Chọn ngày trước</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label class="form-label" for="book-notes">Ghi chú hoặc yêu cầu cụ thể</label>
+            <textarea id="book-notes" class="form-control" rows="2" placeholder="Ví dụ: Cần tư vấn giải pháp cấu hình máy cho doanh nghiệp..."></textarea>
+          </div>
+
+          <button type="submit" id="btn-submit-booking" class="btn btn-primary" style="width: 100%;">
+            ✓ Xác nhận đặt lịch tư vấn
+          </button>
+        </form>
+      </div>
+
+      <!-- 2. Tra cứu Lịch hẹn bằng SĐT + Mã đặt lịch (CR-01) -->
+      <div class="card p-3">
+        <div class="flex-between mb-2">
+          <h3 style="font-size: 1.1rem; margin: 0;">🔍 Tra Cứu Lịch Hẹn</h3>
+          <span class="badge badge-primary">CR-01</span>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Nhập <strong>Số điện thoại</strong> và <strong>Mã đặt lịch</strong> (ví dụ: BK-20261030-XXXX) để xem trạng thái và thông tin chi tiết lịch hẹn từ bất kỳ thiết bị nào.
+        </p>
+
+        <!-- Form tra cứu theo SĐT + Booking Code -->
+        <form id="form-lookup-code" class="mb-3">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;" class="mb-2">
+            <div class="form-group">
+              <label class="form-label" for="lookup-phone">Số điện thoại <span class="text-danger">*</span></label>
+              <input type="tel" id="lookup-phone" class="form-control" placeholder="0901234567" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lookup-booking-code">Mã đặt lịch <span class="text-danger">*</span></label>
+              <input type="text" id="lookup-booking-code" class="form-control" placeholder="BK-YYYYMMDD-XXXX" required>
+            </div>
+          </div>
+          <button type="submit" id="btn-lookup-code" class="btn btn-primary" style="width: 100%;">
+            🔍 Tra cứu theo SĐT & Mã lịch hẹn
+          </button>
+        </form>
+
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin: 0.75rem 0 0.5rem; text-align: center;">
+          — Hoặc tra cứu bằng Mã xác nhận (Token) —
+        </div>
+        <div class="flex gap-1 mb-2" style="flex-wrap: wrap;">
+          <input type="text" id="token-input" class="form-control" placeholder="Mã xác nhận (UUID token)..." style="flex: 1; min-width: 180px;">
+          <button id="btn-lookup-token" class="btn btn-outline" type="button">Tra theo Token</button>
+        </div>
+
+        <div id="lookup-result" class="mt-2"></div>
+      </div>
+    </div>
+
+    <!-- Recent Appointments Table -->
+    <div class="card p-3">
+      <div class="flex-between mb-2">
+        <div>
+          <h3 style="font-size: 1.1rem; margin: 0;" id="table-title">Lịch Hẹn Của Bạn</h3>
+          <span style="font-size: 0.8rem; color: var(--text-muted);" id="table-sub-title">Danh sách lịch hẹn trong phiên hoặc tài khoản</span>
+        </div>
+        <button class="btn btn-sm btn-outline" onclick="loadMyAppointments()">Làm mới danh sách</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Khách hàng</th>
+              <th>Mã đặt lịch</th>
+              <th>Số điện thoại</th>
+              <th>Sản phẩm tư vấn</th>
+              <th>Ngày hẹn</th>
+              <th>Giờ hẹn</th>
+              <th>Thời lượng</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="my-appointments-tbody">
+            <tr>
+              <td colspan="9" class="text-center p-3 text-muted">Đang tải danh sách lịch hẹn...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Đăng nhập / Đăng ký Khách hàng -->
+  <div class="auth-modal-overlay" id="auth-modal">
+    <div class="auth-modal">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 id="auth-modal-title" style="margin: 0;">Đăng Nhập Khách Hàng</h3>
+        <button type="button" id="btn-close-auth" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #94a3b8;">&times;</button>
+      </div>
+
+      <div style="display: flex; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem;">
+        <button type="button" class="tab-btn active" id="tab-login">Đăng nhập</button>
+        <button type="button" class="tab-btn" id="tab-register">Đăng ký mới</button>
+      </div>
+
+      <!-- Form Đăng nhập -->
+      <form id="form-login">
+        <div class="form-group mb-2">
+          <label class="form-label" for="login-email">Email</label>
+          <input type="email" id="login-email" class="form-control" placeholder="user@example.com" required>
+        </div>
+        <div class="form-group mb-3">
+          <label class="form-label" for="login-password">Mật khẩu</label>
+          <input type="password" id="login-password" class="form-control" placeholder="Mật khẩu của bạn" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem;">Đăng nhập ngay</button>
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center;">
+          Chưa có tài khoản? <a href="javascript:void(0)" onclick="switchAuthTab('register')">Đăng ký tài khoản</a>
+        </div>
+      </form>
+
+      <!-- Form Đăng ký -->
+      <form id="form-register" style="display: none;">
+        <div class="form-group mb-2">
+          <label class="form-label" for="reg-name">Họ và tên <span class="text-danger">*</span></label>
+          <input type="text" id="reg-name" class="form-control" placeholder="Nguyễn Văn A" required>
+        </div>
+        <div class="form-group mb-2">
+          <label class="form-label" for="reg-email">Email <span class="text-danger">*</span></label>
+          <input type="email" id="reg-email" class="form-control" placeholder="email@example.com" required>
+        </div>
+        <div class="form-group mb-2">
+          <label class="form-label" for="reg-phone">Số điện thoại</label>
+          <input type="tel" id="reg-phone" class="form-control" placeholder="0901234567">
+        </div>
+        <div class="form-group mb-3">
+          <label class="form-label" for="reg-password">Mật khẩu (tối thiểu 8 ký tự) <span class="text-danger">*</span></label>
+          <input type="password" id="reg-password" class="form-control" minlength="8" placeholder="Tối thiểu 8 ký tự" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem;">Tạo tài khoản</button>
+        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center;">
+          Đã có tài khoản? <a href="javascript:void(0)" onclick="switchAuthTab('login')">Đăng nhập tại đây</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Floating Chat Window & FAB -->
+  <button id="chat-fab" aria-label="Mở cửa sổ tư vấn">💬</button>
+  <div id="chat-window">
+    <div id="chat-header">
+      <div>
+        <div class="title">Tư Vấn Trực Tuyến <span id="chat-mode-badge" class="badge badge-primary">Trợ lý AI</span></div>
+        <div class="subtitle">Sẵn sàng giải đáp & hỗ trợ đặt lịch</div>
+      </div>
+      <div id="chat-header-actions">
+        <button id="btn-close-chat" title="Đóng">✕</button>
+      </div>
+    </div>
+    <div id="chat-status-bar">
+      <span class="dot"></span>
+      <span id="chat-status-text">Đang kết nối...</span>
+    </div>
+    <div id="chat-messages"></div>
+    <div id="typing-indicator" style="padding: 0 1rem 0.5rem;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); margin-right: 6px;">Đang soạn phản hồi...</span>
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div id="chat-input-area">
+      <div id="chat-actions">
+        <button id="btn-switch-agent">👨‍💼 Chat với nhân viên tư vấn</button>
+        <button id="btn-switch-ai" style="display: none;">🤖 Quay lại Trợ lý AI</button>
+      </div>
+      <div id="chat-input-row">
+        <textarea id="chat-input" placeholder="Nhập câu hỏi hoặc yêu cầu đặt lịch..." rows="1"></textarea>
+        <button id="btn-send">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/chat.js"></script>
+  <script src="/js/appointments.js"></script>
+</body>
+</html>

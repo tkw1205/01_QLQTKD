@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Menu Dịch Vụ & Bảng Giá — Mây Hair Studio</title>
+  <meta name="description" content="Khám phá menu 15 dịch vụ làm tóc, cắt, uốn, nhuộm, gội đầu dưỡng sinh và phục hồi cao cấp tại Mây Hair Studio Đà Nẵng.">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/chat.css">
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a href="/" class="navbar-brand">
+        <span class="brand-logo-pill">M</span>
+        <span id="site-name">Mây Hair Studio</span>
+      </a>
+      <ul class="navbar-nav">
+        <li><a href="/">Trang chủ</a></li>
+        <li><a href="/products.html" style="color: var(--primary); font-weight: 600;">Dịch vụ & Bảng giá</a></li>
+        <li><a href="/appointments.html">Tra cứu lịch hẹn</a></li>
+        <li><a href="/chat.html">Phòng Chat</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <main class="container section">
+    <div class="flex-between mb-3" style="flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 style="font-family: 'Playfair Display', Georgia, serif; font-size: 2rem;">Tất Cả Dịch Vụ Tại Mây Hair Studio</h2>
+        <p style="color: var(--text-muted); max-width: 720px; line-height: 1.6; margin-top: 0.5rem;">
+          Bảng giá dịch vụ minh bạch, sản phẩm chính hãng cao cấp cùng quy trình tư vấn tận tâm. Chọn dịch vụ bạn yêu thích để bắt đầu cuộc trò chuyện cùng trợ lý Mây.
+        </p>
+      </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <div class="search-bar">
+      <input type="text" id="search-input" class="form-control" placeholder="Tìm tên dịch vụ, ví dụ: layer, gội, nâu trà...">
+      <select id="category-filter" class="form-control" style="max-width: 240px;">
+        <option value="">Tất cả danh mục dịch vụ</option>
+      </select>
+      <button id="btn-search" class="btn btn-primary">Tìm kiếm</button>
+      <button id="btn-reset" class="btn btn-secondary">Đặt lại</button>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="grid-3" id="products-grid">
+      <div class="card p-3 skeleton" style="height: 320px;"></div>
+      <div class="card p-3 skeleton" style="height: 320px;"></div>
+      <div class="card p-3 skeleton" style="height: 320px;"></div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination"></div>
+  </main>
+
+  <!-- Floating Chat Window & FAB -->
+  <button id="chat-fab" aria-label="Mở cửa sổ tư vấn">💬</button>
+  <div id="chat-window">
+    <div id="chat-header">
+      <div>
+        <div class="title">Tư Vấn Salon Mây <span id="chat-mode-badge" class="badge badge-primary">Trợ lý AI</span></div>
+        <div class="subtitle">Sẵn sàng tư vấn kiểu tóc & đặt lịch hẹn</div>
+      </div>
+      <div id="chat-header-actions">
+        <button id="btn-close-chat" title="Đóng">✕</button>
+      </div>
+    </div>
+    <div id="chat-status-bar">
+      <span class="dot"></span>
+      <span id="chat-status-text">Đang kết nối...</span>
+    </div>
+    <div id="chat-messages"></div>
+    <div id="typing-indicator" style="padding: 0 1rem 0.5rem;">
+      <span style="font-size: 0.75rem; color: var(--text-muted); margin-right: 6px;">Đang soạn phản hồi...</span>
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>
+    <div id="chat-input-area">
+      <div id="chat-actions">
+        <button id="btn-switch-agent">👨‍💼 Chat với Stylist</button>
+        <button id="btn-switch-ai" style="display: none;">🤖 Quay lại Trợ lý Mây</button>
+      </div>
+      <div id="chat-input-row">
+        <textarea id="chat-input" placeholder="Hỏi về dịch vụ hoặc yêu cầu đặt lịch..." rows="1"></textarea>
+        <button id="btn-send">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/chat.js"></script>
+  <script>
+    let currentPage = 1;
+    const limit = 15; // Show all 15 services conveniently
+
+    async function loadCategories() {
+      try {
+        const res = await API.get('/api/products/categories');
+        const select = document.getElementById('category-filter');
+        if (res.success && res.data) {
+          res.data.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat.id;
+            opt.textContent = `${cat.name} (${cat.product_count || 0})`;
+            select.appendChild(opt);
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load categories', err);
+      }
+    }
+
+    async function loadProducts(page = 1) {
+      currentPage = page;
+      const search = document.getElementById('search-input').value.trim();
+      const category = document.getElementById('category-filter').value;
+
+      let url = `/api/products?page=${page}&limit=${limit}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (category) url += `&category=${encodeURIComponent(category)}`;
+
+      const container = document.getElementById('products-grid');
+      container.innerHTML = '<div class="card p-3 skeleton" style="height: 320px;"></div>'.repeat(3);
+
+      try {
+        const res = await API.get(url);
+        if (res.success && res.data) {
+          if (res.data.length === 0) {
+            container.innerHTML = '<div class="empty-state w-full" style="grid-column: 1 / -1;"><h3>Không có dịch vụ nào khớp với từ khóa tìm kiếm</h3><p>Hãy thử tìm với từ khóa khác hoặc xóa bộ lọc.</p></div>';
+            document.getElementById('pagination').innerHTML = '';
+            return;
+          }
+
+          container.innerHTML = res.data.map(p => `
+            <div class="card product-card">
+              <div class="img-wrapper">
+                ${p.image_url 
+                  ? `<img src="${p.image_url}" alt="${p.name}">` 
+                  : `<div class="img-placeholder">💇‍♀️</div>`}
+              </div>
+              <div class="card-body">
+                <div class="badge badge-info mb-1">${p.category_name || 'Dịch vụ tóc'}</div>
+                <h3 style="font-size: 1.15rem;">${p.name}</h3>
+                <div class="price">${API.formatCurrency(p.price)}</div>
+                <p class="desc">${p.description || 'Chưa có mô tả chi tiết.'}</p>
+                <div class="flex gap-1 mt-2">
+                  <a href="/product-detail.html?id=${p.id}" class="btn btn-sm btn-outline flex-1" style="justify-content: center;">Chi tiết</a>
+                  <button class="btn btn-sm btn-primary" onclick="window.chatWidget.openChat(); window.chatWidget.setProductContext('${p.id}', '${p.name}')">Đặt lịch</button>
+                </div>
+              </div>
+            </div>
+          `).join('');
+
+          renderPagination(res.meta.total, page, limit);
+        }
+      } catch (err) {
+        container.innerHTML = '<div class="alert alert-danger w-full" style="grid-column: 1 / -1;">Không thể tải danh sách dịch vụ.</div>';
+      }
+    }
+
+    function renderPagination(total, page, limit) {
+      const totalPages = Math.ceil(total / limit);
+      const container = document.getElementById('pagination');
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '';
+      for (let i = 1; i <= totalPages; i++) {
+        html += `<button class="page-btn ${i === page ? 'active' : ''}" onclick="loadProducts(${i})">${i}</button>`;
+      }
+      container.innerHTML = html;
+    }
+
+    document.getElementById('btn-search').addEventListener('click', () => loadProducts(1));
+    document.getElementById('search-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') loadProducts(1);
+    });
+    document.getElementById('category-filter').addEventListener('change', () => loadProducts(1));
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      document.getElementById('search-input').value = '';
+      document.getElementById('category-filter').value = '';
+      loadProducts(1);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadCategories();
+      loadProducts(1);
+    });
+  </script>
+</body>
+</html>

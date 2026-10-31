@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Salon Lumière – Đăng nhập Quản trị</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+  <style>
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    .login-container {
+      width: min(420px, 100%);
+    }
+    .lg {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 36px 32px;
+      box-shadow: 0 8px 24px rgba(34, 48, 26, 0.05);
+    }
+    .logo {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      color: var(--ink);
+    }
+    .logo i {
+      color: var(--pri);
+      font-style: normal;
+    }
+    .sub {
+      color: var(--mut);
+      margin: 6px 0 24px;
+      font-size: 13.5px;
+    }
+    .password-input-wrap {
+      position: relative;
+    }
+    .password-toggle-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--mut);
+      cursor: pointer;
+      padding: 4px;
+      font-size: 14px;
+    }
+    .alert-box {
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="lg">
+      <div class="logo">Salon <i>Lumière</i></div>
+      <p class="sub">Đăng nhập để quản lý tiệm</p>
+
+      <div id="login-alert" class="alert-box" style="display: none;">
+        <span>✕</span>
+        <div id="login-alert-msg" style="flex: 1;"></div>
+      </div>
+
+      <form id="form-login" novalidate>
+        <div class="fl">
+          <label class="form-label" for="login-email">Email đăng nhập</label>
+          <input
+            type="email"
+            id="login-email"
+            placeholder="admin@example.com hoặc staff@example.com"
+            required
+            autocomplete="email"
+            autofocus
+          >
+          <div class="form-error" id="email-error" style="display: none;"></div>
+        </div>
+
+        <div class="fl">
+          <label class="form-label" for="login-password">Mật khẩu</label>
+          <div class="password-input-wrap">
+            <input
+              type="password"
+              id="login-password"
+              placeholder="••••••••"
+              required
+              autocomplete="current-password"
+              style="padding-right: 32px;"
+            >
+            <button type="button" class="password-toggle-btn" id="btn-toggle-pwd" title="Hiện/ẩn mật khẩu">👁️</button>
+          </div>
+          <div class="form-error" id="password-error" style="display: none;"></div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin: 14px 0 18px; font-size: 13px;">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--mut); user-select: none;">
+            <input type="checkbox" id="login-remember" checked style="width: auto;">
+            <span>Ghi nhớ đăng nhập</span>
+          </label>
+          <a href="/" style="color: var(--pri); font-weight: 500;">Về cửa hàng ↗</a>
+        </div>
+
+        <button type="submit" class="btn btn-full" id="btn-submit" style="padding: 10px 14px;">
+          <span id="btn-submit-text">Đăng nhập</span>
+          <span id="btn-submit-spinner" class="spinner" style="display: none;"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+  <script>
+    const emailInput = document.getElementById('login-email');
+    const passwordInput = document.getElementById('login-password');
+    const alertBox = document.getElementById('login-alert');
+    const alertMsg = document.getElementById('login-alert-msg');
+    const btnSubmit = document.getElementById('btn-submit');
+    const btnText = document.getElementById('btn-submit-text');
+    const btnSpinner = document.getElementById('btn-submit-spinner');
+    const togglePwd = document.getElementById('btn-toggle-pwd');
+    const emailError = document.getElementById('email-error');
+    const passwordError = document.getElementById('password-error');
+
+    function showError(msg) {
+      alertMsg.textContent = msg;
+      alertBox.style.display = 'flex';
+    }
+
+    function hideError() {
+      alertBox.style.display = 'none';
+      emailError.style.display = 'none';
+      passwordError.style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Check if already authenticated
+      await Admin.checkAuth();
+
+      // Password toggle
+      togglePwd.addEventListener('click', () => {
+        if (passwordInput.type === 'password') {
+          passwordInput.type = 'text';
+          togglePwd.textContent = '🔒';
+        } else {
+          passwordInput.type = 'password';
+          togglePwd.textContent = '👁️';
+        }
+      });
+
+      const form = document.getElementById('form-login');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        hideError();
+
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+
+        let hasError = false;
+        if (!email) {
+          emailError.textContent = 'Vui lòng nhập địa chỉ email';
+          emailError.style.display = 'block';
+          hasError = true;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          emailError.textContent = 'Email không hợp lệ';
+          emailError.style.display = 'block';
+          hasError = true;
+        }
+
+        if (!password) {
+          passwordError.textContent = 'Vui lòng nhập mật khẩu';
+          passwordError.style.display = 'block';
+          hasError = true;
+        }
+
+        if (hasError) return;
+
+        // Loading state
+        btnSubmit.disabled = true;
+        btnText.style.display = 'none';
+        btnSpinner.style.display = 'inline-block';
+
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.');
+          }
+
+          const { token, user } = data.data;
+
+          if (user.role === 'user') {
+            throw new Error('Tài khoản khách hàng không có quyền truy cập trang quản trị!');
+          }
+
+          Admin.setToken(token);
+          Admin.setUser(user);
+
+          // Role-based smart redirect
+          if (user.role === 'receptionist') {
+            window.location.replace('/admin/appointments.html');
+          } else {
+            window.location.replace('/admin/dashboard.html');
+          }
+        } catch (err) {
+          showError(err.message);
+          btnSubmit.disabled = false;
+          btnText.style.display = 'inline';
+          btnSpinner.style.display = 'none';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

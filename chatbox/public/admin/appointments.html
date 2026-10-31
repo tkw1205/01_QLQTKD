@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Salon Lumière – Quản lý lịch hẹn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+</head>
+<body>
+  <div class="admin-layout">
+    <!-- Topbar Navigation -->
+    <header class="admin-sidebar" id="admin-sidebar"></header>
+
+    <!-- Main Content -->
+    <div class="admin-main">
+      <header class="admin-header">
+        <div>
+          <h2>Quản lý lịch hẹn</h2>
+          <p class="sub">Tạo, xác nhận và theo dõi lịch hẹn của khách</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: .75rem;">
+          <button type="button" class="btn ghost sm" id="btn-refresh-appts">
+            <span>🔄</span> <span>Tải lại</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="admin-content">
+        <!-- Filter Bar -->
+        <div class="search-bar" style="margin-bottom: 1.25rem;">
+          <div style="display: flex; align-items: center; gap: .5rem;">
+            <label for="filter-date" style="font-size: .85rem; font-weight: 500; white-space: nowrap;">Ngày hẹn:</label>
+            <input type="date" id="filter-date" class="form-control" style="max-width: 170px;">
+          </div>
+
+          <div style="display: flex; align-items: center; gap: .5rem;">
+            <label for="filter-status" style="font-size: .85rem; font-weight: 500; white-space: nowrap;">Trạng thái:</label>
+            <select id="filter-status" class="form-control" style="max-width: 190px;">
+              <option value="">Tất cả trạng thái</option>
+              <option value="holding">Đang giữ chỗ (10p)</option>
+              <option value="pending">Chờ xác nhận</option>
+              <option value="confirmed">Đã xác nhận</option>
+              <option value="in_progress">Đang phục vụ</option>
+              <option value="completed">Đã hoàn thành</option>
+              <option value="cancelled">Đã hủy</option>
+              <option value="no_show">Khách vắng mặt</option>
+            </select>
+          </div>
+
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-reset-filters">
+            Đặt lại bộ lọc
+          </button>
+        </div>
+
+        <!-- Appointments Table Card -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h3 style="font-size: 1rem; margin: 0;">Danh sách Đăng ký Lịch hẹn</h3>
+              <div style="font-size: .8rem; color: var(--text-muted); margin-top: .2rem;" id="appts-count-label">
+                Hiển thị 0 lịch hẹn
+              </div>
+            </div>
+            <div style="display: flex; gap: .5rem;">
+              <span class="badge badge-warning" id="count-pending-badge">0 Chờ duyệt</span>
+              <span class="badge badge-success" id="count-confirmed-badge">0 Đã duyệt</span>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Khách hàng</th>
+                  <th>Liên hệ</th>
+                  <th>Sản phẩm tư vấn</th>
+                  <th>Ngày & Giờ hẹn</th>
+                  <th>Thời lượng</th>
+                  <th>Trạng thái</th>
+                  <th>Ghi chú</th>
+                  <th style="text-align: right;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="appts-tbody">
+                <tr>
+                  <td colspan="8" class="text-center" style="padding: 2.5rem; color: var(--text-muted);">
+                    <div class="spinner" style="margin-bottom: .5rem;"></div>
+                    <div>Đang tải lịch hẹn...</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="card-footer" style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-size: .85rem; color: var(--text-muted);" id="pagination-info">
+              Trang 1 / 1
+            </div>
+            <div style="display: flex; gap: .5rem;" id="pagination-controls">
+              <button type="button" class="btn btn-outline btn-sm" id="btn-prev-page" disabled>◀ Trước</button>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-next-page" disabled>Sau ▶</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Đổi lịch hẹn (Reschedule) -->
+  <div class="modal-overlay" id="reschedule-modal-overlay">
+    <div class="modal" style="max-width: 460px;">
+      <div class="modal-header">
+        <h3>Đổi thời gian Lịch hẹn</h3>
+        <button type="button" class="modal-close" id="btn-close-reschedule">&times;</button>
+      </div>
+      <form id="form-reschedule">
+        <div class="modal-body">
+          <input type="hidden" id="reschedule-appt-id">
+          <div style="margin-bottom: 1rem; padding: .75rem; background: var(--bg); border-radius: var(--radius); font-size: .85rem;">
+            <div>Khách hàng: <strong id="reschedule-customer-name">—</strong></div>
+            <div style="margin-top: .2rem;">Thời gian hiện tại: <span id="reschedule-current-time" style="color: var(--primary); font-weight: 600;">—</span></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reschedule-date">Ngày hẹn mới <span class="text-danger">*</span></label>
+            <input type="date" id="reschedule-date" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="reschedule-time">Giờ hẹn mới <span class="text-danger">*</span></label>
+            <input type="time" id="reschedule-time" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="btn-cancel-reschedule">Hủy</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-reschedule">
+            Lưu thời gian mới
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Auth check
+      const currentUser = await Admin.checkAuth();
+      if (!currentUser) return;
+
+      // 2. Initialize Layout
+      Admin.initLayout('appointments');
+
+      // State
+      let currentPage = 1;
+      const limit = 15;
+      let totalAppointments = 0;
+      let appointments = [];
+
+      // Elements
+      const filterDate = document.getElementById('filter-date');
+      const filterStatus = document.getElementById('filter-status');
+      const btnReset = document.getElementById('btn-reset-filters');
+      const tbody = document.getElementById('appts-tbody');
+      const countLabel = document.getElementById('appts-count-label');
+      const paginationInfo = document.getElementById('pagination-info');
+      const btnPrev = document.getElementById('btn-prev-page');
+      const btnNext = document.getElementById('btn-next-page');
+
+      // Reschedule Modal Elements
+      const modalReschedule = document.getElementById('reschedule-modal-overlay');
+      const formReschedule = document.getElementById('form-reschedule');
+      const reschId = document.getElementById('reschedule-appt-id');
+      const reschName = document.getElementById('reschedule-customer-name');
+      const reschCurr = document.getElementById('reschedule-current-time');
+      const reschDate = document.getElementById('reschedule-date');
+      const reschTime = document.getElementById('reschedule-time');
+
+      // Check URL query parameters (e.g. from Dashboard)
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('status')) {
+        filterStatus.value = urlParams.get('status');
+      }
+
+      // 3. Load Appointments
+      async function loadAppointments(page = 1) {
+        currentPage = page;
+        const status = filterStatus.value;
+        const date = filterDate.value;
+
+        const params = new URLSearchParams({
+          page: currentPage,
+          limit: limit
+        });
+        if (status) params.append('status', status);
+        if (date) params.append('date', date);
+
+        try {
+          const res = await Admin.api(`/api/appointments?${params.toString()}`);
+          if (!res.success) throw new Error('Không thể tải lịch hẹn');
+
+          appointments = res.data || [];
+          totalAppointments = res.meta?.total || 0;
+
+          renderAppointmentsTable();
+          updatePagination();
+          updateSummaryBadges();
+        } catch (err) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="8" class="text-center" style="padding: 2.5rem; color: var(--danger);">
+                ✕ Lỗi tải lịch hẹn: ${escapeHtml(err.message)}
+              </td>
+            </tr>
+          `;
+        }
+      }
+
+      function updateSummaryBadges() {
+        const pendingCount = appointments.filter(a => a.status === 'pending').length;
+        const confirmedCount = appointments.filter(a => a.status === 'confirmed').length;
+        document.getElementById('count-pending-badge').textContent = `${pendingCount} Chờ duyệt`;
+        document.getElementById('count-confirmed-badge').textContent = `${confirmedCount} Đã duyệt`;
+      }
+
+      function renderAppointmentsTable() {
+        countLabel.textContent = `Hiển thị ${appointments.length} trên tổng số ${totalAppointments} lịch hẹn`;
+
+        if (!appointments.length) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="8" class="text-center" style="padding: 3rem; color: var(--text-muted);">
+                <div style="font-size: 2.5rem; margin-bottom: .5rem;">📅</div>
+                <div>Không có lịch hẹn nào phù hợp bộ lọc.</div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = appointments.map(a => {
+          let statusBadge = '<span class="badge badge-secondary">Chưa xác định</span>';
+          if (a.status === 'holding') {
+            statusBadge = '<span class="badge badge-secondary" style="background: #e0e7ff; color: #4338ca;">Giữ chỗ (10p)</span>';
+          } else if (a.status === 'pending') {
+            statusBadge = '<span class="badge badge-warning">Chờ xác nhận</span>';
+          } else if (a.status === 'confirmed') {
+            statusBadge = '<span class="badge badge-success">Đã xác nhận</span>';
+          } else if (a.status === 'in_progress') {
+            statusBadge = '<span class="badge badge-info">Đang phục vụ</span>';
+          } else if (a.status === 'completed') {
+            statusBadge = '<span class="badge badge-info">Hoàn thành</span>';
+          } else if (a.status === 'cancelled') {
+            statusBadge = '<span class="badge badge-danger">Đã hủy</span>';
+          } else if (a.status === 'no_show') {
+            statusBadge = '<span class="badge badge-secondary" style="background: #fee2e2; color: #991b1b;">Vắng mặt</span>';
+          }
+
+          const dateDisplay = Admin.formatDate(a.appointment_date);
+          const timeDisplay = Admin.formatTime(a.appointment_time);
+
+          const currentUser = Admin.getUser();
+          const isReceptionist = currentUser && currentUser.role === 'receptionist';
+
+          return `
+            <tr>
+              <td>
+                <div style="font-weight: 600; color: var(--text);">${escapeHtml(a.customer_name || 'Khách hàng')}</div>
+                <div style="font-size: .72rem; color: var(--text-muted); font-family: monospace;">Mã: ${escapeHtml(a.booking_code || (a.confirmation_token ? a.confirmation_token.slice(0, 8) : a.id.slice(0, 8)))}</div>
+              </td>
+              <td>
+                <a href="tel:${escapeHtml(a.customer_phone)}" style="font-weight: 500; color: var(--text);">
+                  📞 ${escapeHtml(a.customer_phone || '—')}
+                </a>
+                ${a.customer_email ? `<div style="font-size: .75rem; color: var(--text-muted);">✉️ ${escapeHtml(a.customer_email)}</div>` : ''}
+              </td>
+              <td>
+                ${a.product_name ? `<strong>${escapeHtml(a.product_name)}</strong>` : '<span style="color: var(--text-muted); font-size: .85rem;">Tư vấn chung</span>'}
+              </td>
+              <td>
+                <div style="font-weight: 600; color: var(--primary); font-size: .95rem;">${timeDisplay}</div>
+                <div style="font-size: .78rem; color: var(--text-muted);">${dateDisplay}</div>
+              </td>
+              <td style="font-size: .85rem;">${a.duration_minutes || 30} phút</td>
+              <td>${statusBadge}</td>
+              <td style="max-width: 180px; font-size: .8rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(a.notes || '')}">
+                ${escapeHtml(a.notes || '—')}
+              </td>
+              <td style="text-align: right;">
+                ${isReceptionist ? `
+                  <span class="badge badge-secondary" title="Nhân viên lễ tân có quyền xem, không được thay đổi trạng thái">👁️ Chỉ xem</span>
+                ` : `
+                <div style="display: flex; gap: .35rem; justify-content: flex-end; flex-wrap: wrap;">
+                  ${a.status === 'pending' ? `
+                    <button type="button" class="btn btn-sm btn-success btn-update-status" data-id="${a.id}" data-status="confirmed" title="Xác nhận lịch">
+                      ✓ Duyệt
+                    </button>
+                  ` : ''}
+
+                  ${a.status === 'confirmed' ? `
+                    <button type="button" class="btn btn-sm btn-outline btn-update-status" data-id="${a.id}" data-status="completed" title="Đánh dấu hoàn thành">
+                      ✓ Xong
+                    </button>
+                  ` : ''}
+
+                  ${a.status !== 'cancelled' && a.status !== 'completed' ? `
+                    <button type="button" class="btn btn-outline btn-sm btn-open-reschedule" data-id="${a.id}" title="Đổi ngày/giờ hẹn">
+                      ⏰ Đổi lịch
+                    </button>
+                    <button type="button" class="btn btn-outline btn-sm text-danger btn-update-status" data-id="${a.id}" data-status="cancelled" title="Hủy lịch">
+                      ✕ Hủy
+                    </button>
+                  ` : ''}
+                </div>
+                `}
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Attach Status Change Actions
+        tbody.querySelectorAll('.btn-update-status').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-id');
+            const newStatus = btn.getAttribute('data-status');
+            const statusLabel = newStatus === 'confirmed' ? 'Xác nhận' : newStatus === 'completed' ? 'Hoàn thành' : 'Hủy';
+
+            Admin.confirmModal({
+              title: `${statusLabel} lịch hẹn`,
+              message: `Bạn có chắc muốn chuyển trạng thái lịch hẹn này sang "${statusLabel}"?`,
+              confirmText: statusLabel,
+              confirmType: newStatus === 'cancelled' ? 'danger' : 'primary',
+              onConfirm: async () => {
+                try {
+                  const res = await Admin.api(`/api/appointments/${id}/status`, {
+                    method: 'PUT',
+                    body: { status: newStatus }
+                  });
+                  if (!res.success) throw new Error('Không thể cập nhật trạng thái');
+                  Admin.toast(`Đã cập nhật trạng thái thành "${statusLabel}"!`, 'success');
+                  loadAppointments(currentPage);
+                } catch (err) {
+                  Admin.toast(err.message || 'Lỗi cập nhật', 'error');
+                }
+              }
+            });
+          });
+        });
+
+        // Attach Reschedule Actions
+        tbody.querySelectorAll('.btn-open-reschedule').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-id');
+            const appt = appointments.find(a => a.id === id);
+            if (appt) openRescheduleModal(appt);
+          });
+        });
+      }
+
+      function updatePagination() {
+        const totalPages = Math.ceil(totalAppointments / limit) || 1;
+        paginationInfo.textContent = `Trang ${currentPage} / ${totalPages} (${totalAppointments} lịch)`;
+        btnPrev.disabled = currentPage <= 1;
+        btnNext.disabled = currentPage >= totalPages;
+      }
+
+      btnPrev.addEventListener('click', () => {
+        if (currentPage > 1) loadAppointments(currentPage - 1);
+      });
+
+      btnNext.addEventListener('click', () => {
+        loadAppointments(currentPage + 1);
+      });
+
+      // Filter events
+      filterDate.addEventListener('change', () => loadAppointments(1));
+      filterStatus.addEventListener('change', () => loadAppointments(1));
+      btnReset.addEventListener('click', () => {
+        filterDate.value = '';
+        filterStatus.value = '';
+        loadAppointments(1);
+      });
+      document.getElementById('btn-refresh-appts').addEventListener('click', () => loadAppointments(currentPage));
+
+      // 4. Reschedule Modal
+      function openRescheduleModal(appt) {
+        reschId.value = appt.id;
+        reschName.textContent = appt.customer_name;
+        reschCurr.textContent = `${Admin.formatTime(appt.appointment_time)} - ${Admin.formatDate(appt.appointment_date)}`;
+        
+        // Format date for date input: YYYY-MM-DD
+        if (appt.appointment_date) {
+          const d = new Date(appt.appointment_date);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          reschDate.value = `${y}-${m}-${day}`;
+        } else {
+          reschDate.value = '';
+        }
+
+        reschTime.value = appt.appointment_time ? appt.appointment_time.slice(0, 5) : '09:00';
+        modalReschedule.classList.add('open');
+      }
+
+      function closeRescheduleModal() {
+        modalReschedule.classList.remove('open');
+      }
+
+      document.getElementById('btn-close-reschedule').addEventListener('click', closeRescheduleModal);
+      document.getElementById('btn-cancel-reschedule').addEventListener('click', closeRescheduleModal);
+
+      // Close modal on click outside backdrop
+      modalReschedule.addEventListener('click', (e) => {
+        if (e.target === modalReschedule) closeRescheduleModal();
+      });
+
+      formReschedule.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = reschId.value;
+        const appointmentDate = reschDate.value;
+        const appointmentTime = reschTime.value;
+
+        if (!appointmentDate || !appointmentTime) {
+          Admin.toast('Vui lòng chọn đầy đủ ngày và giờ hẹn mới', 'warning');
+          return;
+        }
+
+        const btnSubmit = document.getElementById('btn-submit-reschedule');
+        btnSubmit.disabled = true;
+
+        try {
+          const res = await Admin.api(`/api/appointments/${id}/reschedule`, {
+            method: 'PUT',
+            body: { appointmentDate, appointmentTime }
+          });
+
+          if (!res.success) throw new Error('Không thể đổi lịch hẹn');
+
+          Admin.toast('Đổi lịch hẹn thành công!', 'success');
+          closeRescheduleModal();
+          loadAppointments(currentPage);
+        } catch (err) {
+          Admin.toast(err.message || 'Lỗi khi đổi lịch hẹn', 'error');
+        } finally {
+          btnSubmit.disabled = false;
+        }
+      });
+
+      // Initial load
+      await loadAppointments(1);
+    });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1832 @@
+{
+  "metadata": {
+    "title": "ĐẶC TẢ QUẢN LÝ QUY TRÌNH KINH DOANH & HỆ THỐNG SALON (N1.QLQTKD)",
+    "source_file": "docs/spec/N1.QLQTKD.md",
+    "extracted_at": "2026-10-29T23:01:58.651651",
+    "generator": "scripts/prepare_spec_n1.py",
+    "version": "1.0",
+    "total_lines_read": 132
+  },
+  "general_ui_specs": {
+    "title": "CHỨC NĂNG CÁC ROLES - TỔNG QUAN GIAO DIỆN",
+    "navigation_bar": "Menu điều hướng nằm ngang, màu chủ đạo xanh bơ / pastel",
+    "notification_system": {
+      "has_icon": true,
+      "notification_types": [
+        "Khách vào nhắn với chat bot",
+        "Khách yêu cầu muốn gặp nhân viên trong lúc nhắn với AI"
+      ],
+      "action_on_click": "Bấm vào từng thông báo di chuyển đến khung chat của khách hàng đó"
+    }
+  },
+  "roles_permissions": [
+    {
+      "role_name": "CHỦ TIỆM",
+      "role_code": "OWNER",
+      "menu_modules": [
+        {
+          "module_name": "Quản lý lịch hẹn",
+          "raw_description": "Quyền: tạo lịch hẹn, sửa lịch hẹn, xóa lịch hẹn, xem chi tiết lịch hẹn xem lịch hẹn 2 dạng Theo lịch nhân viên / Theo bảng đặt lịch theo khách hàng bảng đặt lịch theo khách hàng gồm Thao tác Sửa, Xóa, Xem chi tiết (các icon thao tác nằm bên phải) và các trường thông tin mã lịch hẹn (sinh tự động) tên khách hàng tên dịch vụ thời gian (giờ bắt đầu - giờ kết thúc) trạng thái (mới đặt- đang phục vụ - hoàn thành - đã hủy) Xem chi tiết gồm các thông tin: mã lịch hẹn, tên khách hàng, tên dịch vụ, thời gian, trạng thái,  tên nhân viên, ghi chú, giá Tạo lịch hẹn gồm các thông tin: tên khách hàng số điện thoại ngày hẹn dịch vụ (dropdown) giờ bắt đầu  nhân viên thực hiện (dropdown các nhân viên có điều kiện: có lịch đi làm vào hôm đó + chưa có lịch hẹn vào ngày, giờ hẹn đang chọn) trạng thái (mặc định cứng Mới đặt) ghi chú Sửa được các trường thông tin trừ mã lịch hẹn Tìm kiếm theo tên khách hàng (tìm gần đúng) Lọc theo Ngày  Lọc theo giờ bắt đầu",
+          "permissions": [
+            "tạo lịch hẹn",
+            "sửa lịch hẹn",
+            "xóa lịch hẹn",
+            "xem chi tiết lịch hẹn xem lịch hẹn 2 dạng Theo lịch nhân viên / Theo bảng đặt lịch theo khách hàng bảng đặt lịch theo khách hàng gồm Thao tác Sửa",
+            "Xóa",
+            "Xem chi tiết (các icon thao tác nằm bên phải) và các trường thông tin mã lịch hẹn (sinh tự động) tên khách hàng tên dịch vụ thời gian (giờ bắt đầu - giờ kết thúc) trạng thái (mới đặt- đang phục vụ - hoàn thành - đã hủy) Xem chi tiết gồm các thông tin: mã lịch hẹn",
+            "tên khách hàng",
+            "tên dịch vụ",
+            "thời gian",
+            "trạng thái",
+            "tên nhân viên",
+            "ghi chú",
+            "giá Tạo lịch hẹn gồm các thông tin: tên khách hàng số điện thoại ngày hẹn dịch vụ (dropdown) giờ bắt đầu  nhân viên thực hiện (dropdown các nhân viên có điều kiện: có lịch đi làm vào hôm đó + chưa có lịch hẹn vào ngày",
+            "giờ hẹn đang chọn) trạng thái (mặc định cứng Mới đặt) ghi chú Sửa được các trường thông tin trừ mã lịch hẹn Tìm kiếm theo tên khách hàng (tìm gần đúng) Lọc theo Ngày  Lọc theo giờ bắt đầu"
+          ],
+          "ui_features": []
+        },
+        {
+          "module_name": "Quản lý dịch vụ",
+          "raw_description": "Quyền : tạo dịch vụ, sửa dịch vụ, xóa dịch vụ, xem chi tiết dịch vụ, tạo nhóm dịch vụ Bảng dịch vụ gồm thao tác Sửa, Xóa (các icon thao tác nằm bên phải),  và các trường thông tin mã dịch vụ (sinh tự động) nhóm dịch vụ tên dịch vụ thời gian thực hiện số nhân viên thực hiện nhấn vào từng dòng dịch vụ xổ xuống chi tiết dịch vụ thêm các thông tin tên, size, giá tương ứng từng size Tạo dịch vụ gồm các thông tin  nhóm dịch vụ ( dropdown có sẵn, thêm mới) tên dịch vụ ảnh minh họa các size  giá tương ứng từng size  thời gian thực hiện (nhập số phút) Số nhân viên thực hiện Mô tả Sửa được các trường thông tin trừ mã dịch vụ Tìm kiếm theo tên dịch vụ (tìm gần đúng) Lọc theo nhóm dịch vụ",
+          "permissions": [
+            "tạo dịch vụ",
+            "sửa dịch vụ",
+            "xóa dịch vụ",
+            "xem chi tiết dịch vụ",
+            "tạo nhóm dịch vụ Bảng dịch vụ gồm thao tác Sửa",
+            "Xóa (các icon thao tác nằm bên phải)",
+            "và các trường thông tin mã dịch vụ (sinh tự động) nhóm dịch vụ tên dịch vụ thời gian thực hiện số nhân viên thực hiện nhấn vào từng dòng dịch vụ xổ xuống chi tiết dịch vụ thêm các thông tin tên",
+            "size",
+            "giá tương ứng từng size Tạo dịch vụ gồm các thông tin  nhóm dịch vụ ( dropdown có sẵn",
+            "thêm mới) tên dịch vụ ảnh minh họa các size  giá tương ứng từng size  thời gian thực hiện (nhập số phút) Số nhân viên thực hiện Mô tả Sửa được các trường thông tin trừ mã dịch vụ Tìm kiếm theo tên dịch vụ (tìm gần đúng) Lọc theo nhóm dịch vụ"
+          ],
+          "ui_features": []
+        },
+        {
+          "module_name": "Theo dõi chat",
+          "raw_description": "chat với khách hàng (giao diện messenger) flexbox bên trái: các khách hàng flexbox bên phải: khung chat khi bấm vao từng khách hàng",
+          "permissions": [],
+          "ui_features": []
+        },
+        {
+          "module_name": "Quản lý nhân viên & lịch làm việc",
+          "raw_description": "Quyền: tạo nhân viên, sửa nhân viên, xóa nhân viên, tạo lịch làm việc có 2 tab: Danh sách nhân viên \\",
+          "permissions": [
+            "tạo nhân viên",
+            "sửa nhân viên",
+            "xóa nhân viên",
+            "tạo lịch làm việc có 2 tab: Danh sách nhân viên \\"
+          ],
+          "ui_features": []
+        }
+      ]
+    },
+    {
+      "role_name": "LỄ TÂN",
+      "role_code": "RECEPTIONIST",
+      "menu_modules": [
+        {
+          "module_name": "Quản lý lịch hẹn",
+          "raw_description": "Quyền: tạo lịch hẹn, sửa lịch hẹn, xóa lịch hẹn, xem chi tiết lịch hẹn xem lịch hẹn 2 dạng Theo lịch nhân viên / Theo bảng đặt lịch theo khách hàng bảng đặt lịch theo khách hàng gồm Thao tác Sửa, Xóa, Xem chi tiết (các icon thao tác nằm bên phải) và các trường thông tin mã lịch hẹn (sinh tự động) tên khách hàng tên dịch vụ thời gian (giờ bắt đầu - giờ kết thúc) trạng thái (mới đặt- đang phục vụ - hoàn thành - đã hủy) Xem chi tiết gồm các thông tin: mã lịch hẹn, tên khách hàng, tên dịch vụ, thời gian, trạng thái,  tên nhân viên, ghi chú, giá Tạo lịch hẹn gồm các thông tin: tên khách hàng số điện thoại ngày hẹn dịch vụ (dropdown) giờ bắt đầu  nhân viên thực hiện (dropdown các nhân viên có điều kiện: có lịch đi làm vào hôm đó + chưa có lịch hẹn vào ngày, giờ hẹn đang chọn) trạng thái (mặc định cứng Mới đặt) ghi chú Sửa được các trường thông tin trừ mã lịch hẹn Tìm kiếm theo tên khách hàng (tìm gần đúng) Lọc theo Ngày  Lọc theo giờ bắt đầu",
+          "permissions": [
+            "tạo lịch hẹn",
+            "sửa lịch hẹn",
+            "xóa lịch hẹn",
+            "xem chi tiết lịch hẹn xem lịch hẹn 2 dạng Theo lịch nhân viên / Theo bảng đặt lịch theo khách hàng bảng đặt lịch theo khách hàng gồm Thao tác Sửa",
+            "Xóa",
+            "Xem chi tiết (các icon thao tác nằm bên phải) và các trường thông tin mã lịch hẹn (sinh tự động) tên khách hàng tên dịch vụ thời gian (giờ bắt đầu - giờ kết thúc) trạng thái (mới đặt- đang phục vụ - hoàn thành - đã hủy) Xem chi tiết gồm các thông tin: mã lịch hẹn",
+            "tên khách hàng",
+            "tên dịch vụ",
+            "thời gian",
+            "trạng thái",
+            "tên nhân viên",
+            "ghi chú",
+            "giá Tạo lịch hẹn gồm các thông tin: tên khách hàng số điện thoại ngày hẹn dịch vụ (dropdown) giờ bắt đầu  nhân viên thực hiện (dropdown các nhân viên có điều kiện: có lịch đi làm vào hôm đó + chưa có lịch hẹn vào ngày",
+            "giờ hẹn đang chọn) trạng thái (mặc định cứng Mới đặt) ghi chú Sửa được các trường thông tin trừ mã lịch hẹn Tìm kiếm theo tên khách hàng (tìm gần đúng) Lọc theo Ngày  Lọc theo giờ bắt đầu"
+          ],
+          "ui_features": []
+        },
+        {
+          "module_name": "Quản lý dịch vụ",
+          "raw_description": "Quyền : xem dịch vụ Bảng dịch vụ gồm thao tác Sửa, Xóa (các icon thao tác nằm bên phải),  và các trường thông tin mã dịch vụ (sinh tự động) nhóm dịch vụ tên dịch vụ thời gian thực hiện số nhân viên thực hiện nhấn vào từng dòng dịch vụ xổ xuống chi tiết dịch vụ thêm các thông tin tên, size, giá tương ứng từng size Tìm kiếm theo tên dịch vụ (tìm gần đúng) Lọc theo nhóm dịch vụ",
+          "permissions": [
+            "xem dịch vụ Bảng dịch vụ gồm thao tác Sửa",
+            "Xóa (các icon thao tác nằm bên phải)",
+            "và các trường thông tin mã dịch vụ (sinh tự động) nhóm dịch vụ tên dịch vụ thời gian thực hiện số nhân viên thực hiện nhấn vào từng dòng dịch vụ xổ xuống chi tiết dịch vụ thêm các thông tin tên",
+            "size",
+            "giá tương ứng từng size Tìm kiếm theo tên dịch vụ (tìm gần đúng) Lọc theo nhóm dịch vụ"
+          ],
+          "ui_features": []
+        },
+        {
+          "module_name": "Theo dõi chat",
+          "raw_description": "chat với khách hàng (giao diện messenger) flexbox bên trái: các khách hàng flexbox bên phải: khung chat khi bấm vao từng khách hàng",
+          "permissions": [],
+          "ui_features": []
+        }
+      ]
+    }
+  ],
+  "web_salon_interface": {
+    "url": "https://remix-m-y-hair-studio-4070.ai.studio",
+    "navigation_items": [
+      {
+        "menu_name": "Trang chủ",
+        "description": "– Xem tên, logo, hình ảnh và thông tin giới thiệu salon. – Xem các dịch vụ nổi bật, giá tham khảo và thời lượng. – Chọn “Chat tư vấn & đặt lịch” để mở khung chat. – Chọn “Xem tất cả dịch vụ” để chuyển đến trang danh sách dịch vụ.",
+        "features": [
+          "Xem tên, logo, hình ảnh và thông tin giới thiệu salon.",
+          "Xem các dịch vụ nổi bật, giá tham khảo và thời lượng.",
+          "Chọn “Chat tư vấn & đặt lịch” để mở khung chat.",
+          "Chọn “Xem tất cả dịch vụ” để chuyển đến trang danh sách dịch vụ."
+        ]
+      },
+      {
+        "menu_name": "Tất cả dịch vụ",
+        "description": "– Xem danh sách dịch vụ gồm: hình ảnh, tên dịch vụ, mô tả, giá tham khảo và thời lượng. – Tìm kiếm dịch vụ theo từ khóa. – Lọc theo nhóm: Cắt & tạo kiểu, Gội & chăm sóc, Nhuộm, Uốn & duỗi, Phục hồi. – Xóa từ khóa và bộ lọc để xem lại toàn bộ danh sách. – Chọn “Tư vấn dịch vụ này” để mở chat kèm thông tin dịch vụ đã chọn.",
+        "features": [
+          "Xem danh sách dịch vụ gồm: hình ảnh, tên dịch vụ, mô tả, giá tham khảo và thời lượng.",
+          "Tìm kiếm dịch vụ theo từ khóa.",
+          "Lọc theo nhóm: Cắt & tạo kiểu, Gội & chăm sóc, Nhuộm, Uốn & duỗi, Phục hồi.",
+          "Xóa từ khóa và bộ lọc để xem lại toàn bộ danh sách.",
+          "Chọn “Tư vấn dịch vụ này” để mở chat kèm thông tin dịch vụ đã chọn."
+        ]
+      },
+      {
+        "menu_name": "Về Mây",
+        "description": "– Xem giới thiệu salon, không gian, phong cách phục vụ và cam kết chất lượng.",
+        "features": [
+          "Xem giới thiệu salon, không gian, phong cách phục vụ và cam kết chất lượng."
+        ]
+      },
+      {
+        "menu_name": "Mái tóc tại Mây",
+        "description": "– Xem bộ sưu tập kiểu tóc gồm: hình ảnh, tên kiểu tóc, mô tả và dịch vụ liên quan. – Lọc theo nhóm: Cắt, Nhuộm, Uốn, Phục hồi. – Mở ảnh lớn, xem ảnh trước/sau và đóng cửa sổ xem ảnh. – Chọn “Tư vấn kiểu này” để chuyển thông tin kiểu tóc vào hội thoại.",
+        "features": [
+          "Xem bộ sưu tập kiểu tóc gồm: hình ảnh, tên kiểu tóc, mô tả và dịch vụ liên quan.",
+          "Lọc theo nhóm: Cắt, Nhuộm, Uốn, Phục hồi.",
+          "Mở ảnh lớn, xem ảnh trước/sau và đóng cửa sổ xem ảnh.",
+          "Chọn “Tư vấn kiểu này” để chuyển thông tin kiểu tóc vào hội thoại."
+        ]
+      },
+      {
+        "menu_name": "Đội ngũ",
+        "description": "– Xem ảnh, tên, chức danh và chuyên môn của nhân viên. (Bỏ phần đặt lịch với chuyên viên)",
+        "features": [
+          "Xem ảnh, tên, chức danh và chuyên môn của nhân viên. (Bỏ phần đặt lịch với chuyên viên)"
+        ]
+      },
+      {
+        "menu_name": "Đánh giá",
+        "description": "– Xem đánh giá gồm: tên khách, số sao, nội dung, dịch vụ và ngày đánh giá. – Xem điểm trung bình và tổng số đánh giá mẫu. – Chuyển sang các đánh giá trước hoặc tiếp theo. – Hiện chỉ xem đánh giá minh họa, chưa có chức năng gửi đánh giá.",
+        "features": [
+          "Xem đánh giá gồm: tên khách, số sao, nội dung, dịch vụ và ngày đánh giá.",
+          "Xem điểm trung bình và tổng số đánh giá mẫu.",
+          "Chuyển sang các đánh giá trước hoặc tiếp theo.",
+          "Hiện chỉ xem đánh giá minh họa, chưa có chức năng gửi đánh giá."
+        ]
+      },
+      {
+        "menu_name": "Liên hệ",
+        "description": "– Xem địa chỉ, thông tin liên hệ và giờ hoạt động. – Chọn “Chỉ đường trên Google Maps” để mở bản đồ.",
+        "features": [
+          "Xem địa chỉ, thông tin liên hệ và giờ hoạt động.",
+          "Chọn “Chỉ đường trên Google Maps” để mở bản đồ."
+        ]
+      },
+      {
+        "menu_name": "Chat tư vấn",
+        "description": "– Mở, thu nhỏ hoặc đóng khung chat. – Nhập và gửi tin nhắn. – Chọn các nội dung nhanh: Tư vấn dịch vụ, Đặt lịch ngay, Gặp chuyên viên. – Nhận thông tin dịch vụ, giá và thời lượng. – Chọn dịch vụ muốn đặt hoặc xem dịch vụ khác. – Giữ hội thoại khi chuyển giữa trang chủ và trang dịch vụ trong cùng phiên.",
+        "features": [
+          "Mở, thu nhỏ hoặc đóng khung chat.",
+          "Nhập và gửi tin nhắn.",
+          "Chọn các nội dung nhanh: Tư vấn dịch vụ, Đặt lịch ngay, Gặp chuyên viên.",
+          "Nhận thông tin dịch vụ, giá và thời lượng.",
+          "Chọn dịch vụ muốn đặt hoặc xem dịch vụ khác.",
+          "Giữ hội thoại khi chuyển giữa trang chủ và trang dịch vụ trong cùng phiên."
+        ]
+      },
+      {
+        "menu_name": "Đặt lịch trong chat",
+        "description": "– Trả lời tư vấn của khách – Nhận thông báo giữ chỗ tạm thời trong 10 phút. – Nhập họ tên, số điện thoại và ghi chú tùy chọn. – Xem lại thông tin gồm: mã giữ chỗ, dịch vụ, giá dự kiến, ngày hẹn, giờ bắt đầu–kết thúc, chuyên viên, tên khách, số điện thoại và ghi chú. – Nhận thông báo khi hết hạn giữ chỗ và lựa chọn đặt lại.",
+        "features": [
+          "Trả lời tư vấn của khách",
+          "Nhận thông báo giữ chỗ tạm thời trong 10 phút.",
+          "Nhập họ tên, số điện thoại và ghi chú tùy chọn.",
+          "Xem lại thông tin gồm: mã giữ chỗ, dịch vụ, giá dự kiến, ngày hẹn, giờ bắt đầu",
+          "kết thúc, chuyên viên, tên khách, số điện thoại và ghi chú.",
+          "Nhận thông báo khi hết hạn giữ chỗ và lựa chọn đặt lại."
+        ]
+      },
+      {
+        "menu_name": "Gặp chuyên viên",
+        "description": "– Yêu cầu chuyển từ trợ lý tự động sang chuyên viên tư vấn. – Xem thông báo chuyển tiếp. – Chọn quay lại đặt lịch hoặc xem bảng giá. – Hiện chức năng chuyển chuyên viên đang được mô phỏng, chưa có nhân viên thật tiếp nhận.",
+        "features": [
+          "Yêu cầu chuyển từ trợ lý tự động sang chuyên viên tư vấn.",
+          "Xem thông báo chuyển tiếp.",
+          "Chọn quay lại đặt lịch hoặc xem bảng giá.",
+          "Hiện chức năng chuyển chuyên viên đang được mô phỏng, chưa có nhân viên thật tiếp nhận."
+        ]
+      }
+    ]
+  },
+  "hair_size_definitions": {
+    "S": "Tóc ngắn\\[Tóc từ cằm trở lên\\]",
+    "M": "Tóc lỡ \\[Tóc từ cằm đến ngang vai\\]",
+    "L": "Tóc dài \\[Tóc từ ngang ngực trở xuống\\]"
+  },
+  "service_catalog": {
+    "summary": {
+      "total_categories": 8,
+      "total_unique_services": 26,
+      "total_price_entries": 78,
+      "price_min_vnd": 35000,
+      "price_max_vnd": 2500000
+    },
+    "categories": [
+      {
+        "category_name": "Cắt tóc",
+        "total_services": 1,
+        "services": [
+          {
+            "service_name": "Cắt tạo kiểu",
+            "category": "Cắt tóc",
+            "duration_minutes": 45,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 130000,
+                "price_formatted": "130.000 VNĐ",
+                "duration_minutes": 45,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 150000,
+                "price_formatted": "150.000 VNĐ",
+                "duration_minutes": 45,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 170000,
+                "price_formatted": "170.000 VNĐ",
+                "duration_minutes": 45,
+                "required_staff": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "category_name": "Gội đầu & tạo kiểu",
+        "total_services": 3,
+        "services": [
+          {
+            "service_name": "Gội đầu",
+            "category": "Gội đầu & tạo kiểu",
+            "duration_minutes": 20,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 40000,
+                "price_formatted": "40.000 VNĐ",
+                "duration_minutes": 20,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 50000,
+                "price_formatted": "50.000 VNĐ",
+                "duration_minutes": 20,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 60000,
+                "price_formatted": "60.000 VNĐ",
+                "duration_minutes": 20,
+                "required_staff": 1
+              }
+            ]
+          },
+          {
+            "service_name": "Tạo kiểu",
+            "category": "Gội đầu & tạo kiểu",
+            "duration_minutes": 25,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 80000,
+                "price_formatted": "80.000 VNĐ",
+                "duration_minutes": 25,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 100000,
+                "price_formatted": "100.000 VNĐ",
+                "duration_minutes": 25,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 120000,
+                "price_formatted": "120.000 VNĐ",
+                "duration_minutes": 25,
+                "required_staff": 1
+              }
+            ]
+          },
+          {
+            "service_name": "Xả phồng",
+            "category": "Gội đầu & tạo kiểu",
+            "duration_minutes": 25,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 130000,
+                "price_formatted": "130.000 VNĐ",
+                "duration_minutes": 25,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 150000,
+                "price_formatted": "150.000 VNĐ",
+                "duration_minutes": 25,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 170000,
+                "price_formatted": "170.000 VNĐ",
+                "duration_minutes": 25,
+                "required_staff": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "category_name": "Uốn",
+        "total_services": 3,
+        "services": [
+          {
+            "service_name": "Uốn mái / phá mái",
+            "category": "Uốn",
+            "duration_minutes": 60,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 80000,
+                "price_formatted": "80.000 VNĐ",
+                "duration_minutes": 60,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 100000,
+                "price_formatted": "100.000 VNĐ",
+                "duration_minutes": 60,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 120000,
+                "price_formatted": "120.000 VNĐ",
+                "duration_minutes": 60,
+                "required_staff": 1
+              }
+            ]
+          },
+          {
+            "service_name": "Phồng chân",
+            "category": "Uốn",
+            "duration_minutes": 90,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 180000,
+                "price_formatted": "180.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 200000,
+                "price_formatted": "200.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 230000,
+                "price_formatted": "230.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 1
+              }
+            ]
+          },
+          {
+            "service_name": "Uốn (sản phẩm ART)",
+            "category": "Uốn",
+            "duration_minutes": 150,
+            "required_staff": 2,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 229000,
+                "price_formatted": "229.000 VNĐ",
+                "duration_minutes": 150,
+                "required_staff": 2
+              },
+              {
+                "size": "M",
+                "price_vnd": 249000,
+                "price_formatted": "249.000 VNĐ",
+                "duration_minutes": 150,
+                "required_staff": 2
+              },
+              {
+                "size": "L",
+                "price_vnd": 279000,
+                "price_formatted": "279.000 VNĐ",
+                "duration_minutes": 150,
+                "required_staff": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "category_name": "Duỗi",
+        "total_services": 3,
+        "services": [
+          {
+            "service_name": "Duỗi mái",
+            "category": "Duỗi",
+            "duration_minutes": 60,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 180000,
+                "price_formatted": "180.000 VNĐ",
+                "duration_minutes": 60,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 200000,
+                "price_formatted": "200.000 VNĐ",
+                "duration_minutes": 60,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 230000,
+                "price_formatted": "230.000 VNĐ",
+                "duration_minutes": 60,
+                "required_staff": 1
+              }
+            ]
+          },
+          {
+            "service_name": "Duỗi gốc",
+            "category": "Duỗi",
+            "duration_minutes": 90,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 230000,
+                "price_formatted": "230.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 250000,
+                "price_formatted": "250.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 280000,
+                "price_formatted": "280.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 1
+              }
+            ]
+          },
+          {
+            "service_name": "Duỗi (sản phẩm ART)",
+            "category": "Duỗi",
+            "duration_minutes": 150,
+            "required_staff": 2,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 319000,
+                "price_formatted": "319.000 VNĐ",
+                "duration_minutes": 150,
+                "required_staff": 2
+              },
+              {
+                "size": "M",
+                "price_vnd": 349000,
+                "price_formatted": "349.000 VNĐ",
+                "duration_minutes": 150,
+                "required_staff": 2
+              },
+              {
+                "size": "L",
+                "price_vnd": 379000,
+                "price_formatted": "379.000 VNĐ",
+                "duration_minutes": 150,
+                "required_staff": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "category_name": "Nhuộm",
+        "total_services": 2,
+        "services": [
+          {
+            "service_name": "Nhuộm (sản phẩm ART)",
+            "category": "Nhuộm",
+            "duration_minutes": 120,
+            "required_staff": 2,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 229000,
+                "price_formatted": "229.000 VNĐ",
+                "duration_minutes": 120,
+                "required_staff": 2
+              },
+              {
+                "size": "M",
+                "price_vnd": 249000,
+                "price_formatted": "249.000 VNĐ",
+                "duration_minutes": 120,
+                "required_staff": 2
+              },
+              {
+                "size": "L",
+                "price_vnd": 279000,
+                "price_formatted": "279.000 VNĐ",
+                "duration_minutes": 120,
+                "required_staff": 2
+              }
+            ]
+          },
+          {
+            "service_name": "Chấm chân",
+            "category": "Nhuộm",
+            "duration_minutes": 60,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 180000,
+                "price_formatted": "180.000 VNĐ",
+                "duration_minutes": 60,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 200000,
+                "price_formatted": "200.000 VNĐ",
+                "duration_minutes": 60,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 230000,
+                "price_formatted": "230.000 VNĐ",
+                "duration_minutes": 60,
+                "required_staff": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "category_name": "Phục hồi & dưỡng tóc",
+        "total_services": 4,
+        "services": [
+          {
+            "service_name": "Hấp dầu",
+            "category": "Phục hồi & dưỡng tóc",
+            "duration_minutes": 40,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 130000,
+                "price_formatted": "130.000 VNĐ",
+                "duration_minutes": 40,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 150000,
+                "price_formatted": "150.000 VNĐ",
+                "duration_minutes": 40,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 170000,
+                "price_formatted": "170.000 VNĐ",
+                "duration_minutes": 40,
+                "required_staff": 1
+              }
+            ]
+          },
+          {
+            "service_name": "Phục hồi theo tóc",
+            "category": "Phục hồi & dưỡng tóc",
+            "duration_minutes": 60,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 250000,
+                "price_formatted": "250.000 VNĐ",
+                "duration_minutes": 60,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 300000,
+                "price_formatted": "300.000 VNĐ",
+                "duration_minutes": 60,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 350000,
+                "price_formatted": "350.000 VNĐ",
+                "duration_minutes": 60,
+                "required_staff": 1
+              }
+            ]
+          },
+          {
+            "service_name": "Phục hồi Biotin",
+            "category": "Phục hồi & dưỡng tóc",
+            "duration_minutes": 75,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 420000,
+                "price_formatted": "420.000 VNĐ",
+                "duration_minutes": 75,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 450000,
+                "price_formatted": "450.000 VNĐ",
+                "duration_minutes": 75,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 490000,
+                "price_formatted": "490.000 VNĐ",
+                "duration_minutes": 75,
+                "required_staff": 1
+              }
+            ]
+          },
+          {
+            "service_name": "Phục hồi chuyên sâu",
+            "category": "Phục hồi & dưỡng tóc",
+            "duration_minutes": 90,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 600000,
+                "price_formatted": "600.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 700000,
+                "price_formatted": "700.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 800000,
+                "price_formatted": "800.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "category_name": "Nối tóc",
+        "total_services": 3,
+        "services": [
+          {
+            "service_name": "Nối hoàn vũ",
+            "category": "Nối tóc",
+            "duration_minutes": 120,
+            "required_staff": 2,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 35000,
+                "price_formatted": "35.000 VNĐ",
+                "duration_minutes": 120,
+                "required_staff": 2
+              },
+              {
+                "size": "M",
+                "price_vnd": 40000,
+                "price_formatted": "40.000 VNĐ",
+                "duration_minutes": 120,
+                "required_staff": 2
+              },
+              {
+                "size": "L",
+                "price_vnd": 45000,
+                "price_formatted": "45.000 VNĐ",
+                "duration_minutes": 120,
+                "required_staff": 2
+              }
+            ]
+          },
+          {
+            "service_name": "Nối light",
+            "category": "Nối tóc",
+            "duration_minutes": 90,
+            "required_staff": 2,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 70000,
+                "price_formatted": "70.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 2
+              },
+              {
+                "size": "M",
+                "price_vnd": 75000,
+                "price_formatted": "75.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 2
+              },
+              {
+                "size": "L",
+                "price_vnd": 85000,
+                "price_formatted": "85.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 2
+              }
+            ]
+          },
+          {
+            "service_name": "Baby light",
+            "category": "Nối tóc",
+            "duration_minutes": 90,
+            "required_staff": 2,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 45000,
+                "price_formatted": "45.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 2
+              },
+              {
+                "size": "M",
+                "price_vnd": 50000,
+                "price_formatted": "50.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 2
+              },
+              {
+                "size": "L",
+                "price_vnd": 60000,
+                "price_formatted": "60.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "category_name": "Tẩy tóc",
+        "total_services": 7,
+        "services": [
+          {
+            "service_name": "Tẩy 1 lần",
+            "category": "Tẩy tóc",
+            "duration_minutes": 120,
+            "required_staff": 2,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 600000,
+                "price_formatted": "600.000 VNĐ",
+                "duration_minutes": 120,
+                "required_staff": 2
+              },
+              {
+                "size": "M",
+                "price_vnd": 700000,
+                "price_formatted": "700.000 VNĐ",
+                "duration_minutes": 120,
+                "required_staff": 2
+              },
+              {
+                "size": "L",
+                "price_vnd": 800000,
+                "price_formatted": "800.000 VNĐ",
+                "duration_minutes": 120,
+                "required_staff": 2
+              }
+            ]
+          },
+          {
+            "service_name": "Bóc đen / đỏ",
+            "category": "Tẩy tóc",
+            "duration_minutes": 150,
+            "required_staff": 2,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 600000,
+                "price_formatted": "600.000 VNĐ",
+                "duration_minutes": 150,
+                "required_staff": 2
+              },
+              {
+                "size": "M",
+                "price_vnd": 700000,
+                "price_formatted": "700.000 VNĐ",
+                "duration_minutes": 150,
+                "required_staff": 2
+              },
+              {
+                "size": "L",
+                "price_vnd": 800000,
+                "price_formatted": "800.000 VNĐ",
+                "duration_minutes": 150,
+                "required_staff": 2
+              }
+            ]
+          },
+          {
+            "service_name": "Tẩy Balay",
+            "category": "Tẩy tóc",
+            "duration_minutes": 240,
+            "required_staff": 2,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 2000000,
+                "price_formatted": "2.000.000 VNĐ",
+                "duration_minutes": 240,
+                "required_staff": 2
+              },
+              {
+                "size": "M",
+                "price_vnd": 2250000,
+                "price_formatted": "2.250.000 VNĐ",
+                "duration_minutes": 240,
+                "required_staff": 2
+              },
+              {
+                "size": "L",
+                "price_vnd": 2500000,
+                "price_formatted": "2.500.000 VNĐ",
+                "duration_minutes": 240,
+                "required_staff": 2
+              }
+            ]
+          },
+          {
+            "service_name": "Hidden",
+            "category": "Tẩy tóc",
+            "duration_minutes": 150,
+            "required_staff": 2,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 650000,
+                "price_formatted": "650.000 VNĐ",
+                "duration_minutes": 150,
+                "required_staff": 2
+              },
+              {
+                "size": "M",
+                "price_vnd": 700000,
+                "price_formatted": "700.000 VNĐ",
+                "duration_minutes": 150,
+                "required_staff": 2
+              },
+              {
+                "size": "L",
+                "price_vnd": 780000,
+                "price_formatted": "780.000 VNĐ",
+                "duration_minutes": 150,
+                "required_staff": 2
+              }
+            ]
+          },
+          {
+            "service_name": "Tẩy ombre",
+            "category": "Tẩy tóc",
+            "duration_minutes": 210,
+            "required_staff": 2,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 2000000,
+                "price_formatted": "2.000.000 VNĐ",
+                "duration_minutes": 210,
+                "required_staff": 2
+              },
+              {
+                "size": "M",
+                "price_vnd": 2250000,
+                "price_formatted": "2.250.000 VNĐ",
+                "duration_minutes": 210,
+                "required_staff": 2
+              },
+              {
+                "size": "L",
+                "price_vnd": 2500000,
+                "price_formatted": "2.500.000 VNĐ",
+                "duration_minutes": 210,
+                "required_staff": 2
+              }
+            ]
+          },
+          {
+            "service_name": "Tẩy nổi",
+            "category": "Tẩy tóc",
+            "duration_minutes": 120,
+            "required_staff": 2,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 750000,
+                "price_formatted": "750.000 VNĐ",
+                "duration_minutes": 120,
+                "required_staff": 2
+              },
+              {
+                "size": "M",
+                "price_vnd": 800000,
+                "price_formatted": "800.000 VNĐ",
+                "duration_minutes": 120,
+                "required_staff": 2
+              },
+              {
+                "size": "L",
+                "price_vnd": 880000,
+                "price_formatted": "880.000 VNĐ",
+                "duration_minutes": 120,
+                "required_staff": 2
+              }
+            ]
+          },
+          {
+            "service_name": "Nâng nền",
+            "category": "Tẩy tóc",
+            "duration_minutes": 90,
+            "required_staff": 1,
+            "variants": [
+              {
+                "size": "S",
+                "price_vnd": 200000,
+                "price_formatted": "200.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 1
+              },
+              {
+                "size": "M",
+                "price_vnd": 350000,
+                "price_formatted": "350.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 1
+              },
+              {
+                "size": "L",
+                "price_vnd": 500000,
+                "price_formatted": "500.000 VNĐ",
+                "duration_minutes": 90,
+                "required_staff": 1
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "all_services": [
+      {
+        "id": 1,
+        "category": "Cắt tóc",
+        "service_name": "Cắt tạo kiểu",
+        "size": "S",
+        "price_vnd": 130000,
+        "price_formatted": "130.000 VNĐ",
+        "duration_minutes": 45,
+        "required_staff": 1
+      },
+      {
+        "id": 2,
+        "category": "Cắt tóc",
+        "service_name": "Cắt tạo kiểu",
+        "size": "M",
+        "price_vnd": 150000,
+        "price_formatted": "150.000 VNĐ",
+        "duration_minutes": 45,
+        "required_staff": 1
+      },
+      {
+        "id": 3,
+        "category": "Cắt tóc",
+        "service_name": "Cắt tạo kiểu",
+        "size": "L",
+        "price_vnd": 170000,
+        "price_formatted": "170.000 VNĐ",
+        "duration_minutes": 45,
+        "required_staff": 1
+      },
+      {
+        "id": 4,
+        "category": "Gội đầu & tạo kiểu",
+        "service_name": "Gội đầu",
+        "size": "S",
+        "price_vnd": 40000,
+        "price_formatted": "40.000 VNĐ",
+        "duration_minutes": 20,
+        "required_staff": 1
+      },
+      {
+        "id": 5,
+        "category": "Gội đầu & tạo kiểu",
+        "service_name": "Gội đầu",
+        "size": "M",
+        "price_vnd": 50000,
+        "price_formatted": "50.000 VNĐ",
+        "duration_minutes": 20,
+        "required_staff": 1
+      },
+      {
+        "id": 6,
+        "category": "Gội đầu & tạo kiểu",
+        "service_name": "Gội đầu",
+        "size": "L",
+        "price_vnd": 60000,
+        "price_formatted": "60.000 VNĐ",
+        "duration_minutes": 20,
+        "required_staff": 1
+      },
+      {
+        "id": 7,
+        "category": "Gội đầu & tạo kiểu",
+        "service_name": "Tạo kiểu",
+        "size": "S",
+        "price_vnd": 80000,
+        "price_formatted": "80.000 VNĐ",
+        "duration_minutes": 25,
+        "required_staff": 1
+      },
+      {
+        "id": 8,
+        "category": "Gội đầu & tạo kiểu",
+        "service_name": "Tạo kiểu",
+        "size": "M",
+        "price_vnd": 100000,
+        "price_formatted": "100.000 VNĐ",
+        "duration_minutes": 25,
+        "required_staff": 1
+      },
+      {
+        "id": 9,
+        "category": "Gội đầu & tạo kiểu",
+        "service_name": "Tạo kiểu",
+        "size": "L",
+        "price_vnd": 120000,
+        "price_formatted": "120.000 VNĐ",
+        "duration_minutes": 25,
+        "required_staff": 1
+      },
+      {
+        "id": 10,
+        "category": "Gội đầu & tạo kiểu",
+        "service_name": "Xả phồng",
+        "size": "S",
+        "price_vnd": 130000,
+        "price_formatted": "130.000 VNĐ",
+        "duration_minutes": 25,
+        "required_staff": 1
+      },
+      {
+        "id": 11,
+        "category": "Gội đầu & tạo kiểu",
+        "service_name": "Xả phồng",
+        "size": "M",
+        "price_vnd": 150000,
+        "price_formatted": "150.000 VNĐ",
+        "duration_minutes": 25,
+        "required_staff": 1
+      },
+      {
+        "id": 12,
+        "category": "Gội đầu & tạo kiểu",
+        "service_name": "Xả phồng",
+        "size": "L",
+        "price_vnd": 170000,
+        "price_formatted": "170.000 VNĐ",
+        "duration_minutes": 25,
+        "required_staff": 1
+      },
+      {
+        "id": 13,
+        "category": "Uốn",
+        "service_name": "Uốn mái / phá mái",
+        "size": "S",
+        "price_vnd": 80000,
+        "price_formatted": "80.000 VNĐ",
+        "duration_minutes": 60,
+        "required_staff": 1
+      },
+      {
+        "id": 14,
+        "category": "Uốn",
+        "service_name": "Uốn mái / phá mái",
+        "size": "M",
+        "price_vnd": 100000,
+        "price_formatted": "100.000 VNĐ",
+        "duration_minutes": 60,
+        "required_staff": 1
+      },
+      {
+        "id": 15,
+        "category": "Uốn",
+        "service_name": "Uốn mái / phá mái",
+        "size": "L",
+        "price_vnd": 120000,
+        "price_formatted": "120.000 VNĐ",
+        "duration_minutes": 60,
+        "required_staff": 1
+      },
+      {
+        "id": 16,
+        "category": "Uốn",
+        "service_name": "Phồng chân",
+        "size": "S",
+        "price_vnd": 180000,
+        "price_formatted": "180.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 1
+      },
+      {
+        "id": 17,
+        "category": "Uốn",
+        "service_name": "Phồng chân",
+        "size": "M",
+        "price_vnd": 200000,
+        "price_formatted": "200.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 1
+      },
+      {
+        "id": 18,
+        "category": "Uốn",
+        "service_name": "Phồng chân",
+        "size": "L",
+        "price_vnd": 230000,
+        "price_formatted": "230.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 1
+      },
+      {
+        "id": 19,
+        "category": "Uốn",
+        "service_name": "Uốn (sản phẩm ART)",
+        "size": "S",
+        "price_vnd": 229000,
+        "price_formatted": "229.000 VNĐ",
+        "duration_minutes": 150,
+        "required_staff": 2
+      },
+      {
+        "id": 20,
+        "category": "Uốn",
+        "service_name": "Uốn (sản phẩm ART)",
+        "size": "M",
+        "price_vnd": 249000,
+        "price_formatted": "249.000 VNĐ",
+        "duration_minutes": 150,
+        "required_staff": 2
+      },
+      {
+        "id": 21,
+        "category": "Uốn",
+        "service_name": "Uốn (sản phẩm ART)",
+        "size": "L",
+        "price_vnd": 279000,
+        "price_formatted": "279.000 VNĐ",
+        "duration_minutes": 150,
+        "required_staff": 2
+      },
+      {
+        "id": 22,
+        "category": "Duỗi",
+        "service_name": "Duỗi mái",
+        "size": "S",
+        "price_vnd": 180000,
+        "price_formatted": "180.000 VNĐ",
+        "duration_minutes": 60,
+        "required_staff": 1
+      },
+      {
+        "id": 23,
+        "category": "Duỗi",
+        "service_name": "Duỗi mái",
+        "size": "M",
+        "price_vnd": 200000,
+        "price_formatted": "200.000 VNĐ",
+        "duration_minutes": 60,
+        "required_staff": 1
+      },
+      {
+        "id": 24,
+        "category": "Duỗi",
+        "service_name": "Duỗi mái",
+        "size": "L",
+        "price_vnd": 230000,
+        "price_formatted": "230.000 VNĐ",
+        "duration_minutes": 60,
+        "required_staff": 1
+      },
+      {
+        "id": 25,
+        "category": "Duỗi",
+        "service_name": "Duỗi gốc",
+        "size": "S",
+        "price_vnd": 230000,
+        "price_formatted": "230.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 1
+      },
+      {
+        "id": 26,
+        "category": "Duỗi",
+        "service_name": "Duỗi gốc",
+        "size": "M",
+        "price_vnd": 250000,
+        "price_formatted": "250.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 1
+      },
+      {
+        "id": 27,
+        "category": "Duỗi",
+        "service_name": "Duỗi gốc",
+        "size": "L",
+        "price_vnd": 280000,
+        "price_formatted": "280.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 1
+      },
+      {
+        "id": 28,
+        "category": "Duỗi",
+        "service_name": "Duỗi (sản phẩm ART)",
+        "size": "S",
+        "price_vnd": 319000,
+        "price_formatted": "319.000 VNĐ",
+        "duration_minutes": 150,
+        "required_staff": 2
+      },
+      {
+        "id": 29,
+        "category": "Duỗi",
+        "service_name": "Duỗi (sản phẩm ART)",
+        "size": "M",
+        "price_vnd": 349000,
+        "price_formatted": "349.000 VNĐ",
+        "duration_minutes": 150,
+        "required_staff": 2
+      },
+      {
+        "id": 30,
+        "category": "Duỗi",
+        "service_name": "Duỗi (sản phẩm ART)",
+        "size": "L",
+        "price_vnd": 379000,
+        "price_formatted": "379.000 VNĐ",
+        "duration_minutes": 150,
+        "required_staff": 2
+      },
+      {
+        "id": 31,
+        "category": "Nhuộm",
+        "service_name": "Nhuộm (sản phẩm ART)",
+        "size": "S",
+        "price_vnd": 229000,
+        "price_formatted": "229.000 VNĐ",
+        "duration_minutes": 120,
+        "required_staff": 2
+      },
+      {
+        "id": 32,
+        "category": "Nhuộm",
+        "service_name": "Nhuộm (sản phẩm ART)",
+        "size": "M",
+        "price_vnd": 249000,
+        "price_formatted": "249.000 VNĐ",
+        "duration_minutes": 120,
+        "required_staff": 2
+      },
+      {
+        "id": 33,
+        "category": "Nhuộm",
+        "service_name": "Nhuộm (sản phẩm ART)",
+        "size": "L",
+        "price_vnd": 279000,
+        "price_formatted": "279.000 VNĐ",
+        "duration_minutes": 120,
+        "required_staff": 2
+      },
+      {
+        "id": 34,
+        "category": "Nhuộm",
+        "service_name": "Chấm chân",
+        "size": "S",
+        "price_vnd": 180000,
+        "price_formatted": "180.000 VNĐ",
+        "duration_minutes": 60,
+        "required_staff": 1
+      },
+      {
+        "id": 35,
+        "category": "Nhuộm",
+        "service_name": "Chấm chân",
+        "size": "M",
+        "price_vnd": 200000,
+        "price_formatted": "200.000 VNĐ",
+        "duration_minutes": 60,
+        "required_staff": 1
+      },
+      {
+        "id": 36,
+        "category": "Nhuộm",
+        "service_name": "Chấm chân",
+        "size": "L",
+        "price_vnd": 230000,
+        "price_formatted": "230.000 VNĐ",
+        "duration_minutes": 60,
+        "required_staff": 1
+      },
+      {
+        "id": 37,
+        "category": "Phục hồi & dưỡng tóc",
+        "service_name": "Hấp dầu",
+        "size": "S",
+        "price_vnd": 130000,
+        "price_formatted": "130.000 VNĐ",
+        "duration_minutes": 40,
+        "required_staff": 1
+      },
+      {
+        "id": 38,
+        "category": "Phục hồi & dưỡng tóc",
+        "service_name": "Hấp dầu",
+        "size": "M",
+        "price_vnd": 150000,
+        "price_formatted": "150.000 VNĐ",
+        "duration_minutes": 40,
+        "required_staff": 1
+      },
+      {
+        "id": 39,
+        "category": "Phục hồi & dưỡng tóc",
+        "service_name": "Hấp dầu",
+        "size": "L",
+        "price_vnd": 170000,
+        "price_formatted": "170.000 VNĐ",
+        "duration_minutes": 40,
+        "required_staff": 1
+      },
+      {
+        "id": 40,
+        "category": "Phục hồi & dưỡng tóc",
+        "service_name": "Phục hồi theo tóc",
+        "size": "S",
+        "price_vnd": 250000,
+        "price_formatted": "250.000 VNĐ",
+        "duration_minutes": 60,
+        "required_staff": 1
+      },
+      {
+        "id": 41,
+        "category": "Phục hồi & dưỡng tóc",
+        "service_name": "Phục hồi theo tóc",
+        "size": "M",
+        "price_vnd": 300000,
+        "price_formatted": "300.000 VNĐ",
+        "duration_minutes": 60,
+        "required_staff": 1
+      },
+      {
+        "id": 42,
+        "category": "Phục hồi & dưỡng tóc",
+        "service_name": "Phục hồi theo tóc",
+        "size": "L",
+        "price_vnd": 350000,
+        "price_formatted": "350.000 VNĐ",
+        "duration_minutes": 60,
+        "required_staff": 1
+      },
+      {
+        "id": 43,
+        "category": "Phục hồi & dưỡng tóc",
+        "service_name": "Phục hồi Biotin",
+        "size": "S",
+        "price_vnd": 420000,
+        "price_formatted": "420.000 VNĐ",
+        "duration_minutes": 75,
+        "required_staff": 1
+      },
+      {
+        "id": 44,
+        "category": "Phục hồi & dưỡng tóc",
+        "service_name": "Phục hồi Biotin",
+        "size": "M",
+        "price_vnd": 450000,
+        "price_formatted": "450.000 VNĐ",
+        "duration_minutes": 75,
+        "required_staff": 1
+      },
+      {
+        "id": 45,
+        "category": "Phục hồi & dưỡng tóc",
+        "service_name": "Phục hồi Biotin",
+        "size": "L",
+        "price_vnd": 490000,
+        "price_formatted": "490.000 VNĐ",
+        "duration_minutes": 75,
+        "required_staff": 1
+      },
+      {
+        "id": 46,
+        "category": "Phục hồi & dưỡng tóc",
+        "service_name": "Phục hồi chuyên sâu",
+        "size": "S",
+        "price_vnd": 600000,
+        "price_formatted": "600.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 1
+      },
+      {
+        "id": 47,
+        "category": "Phục hồi & dưỡng tóc",
+        "service_name": "Phục hồi chuyên sâu",
+        "size": "M",
+        "price_vnd": 700000,
+        "price_formatted": "700.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 1
+      },
+      {
+        "id": 48,
+        "category": "Phục hồi & dưỡng tóc",
+        "service_name": "Phục hồi chuyên sâu",
+        "size": "L",
+        "price_vnd": 800000,
+        "price_formatted": "800.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 1
+      },
+      {
+        "id": 49,
+        "category": "Nối tóc",
+        "service_name": "Nối hoàn vũ",
+        "size": "S",
+        "price_vnd": 35000,
+        "price_formatted": "35.000 VNĐ",
+        "duration_minutes": 120,
+        "required_staff": 2
+      },
+      {
+        "id": 50,
+        "category": "Nối tóc",
+        "service_name": "Nối hoàn vũ",
+        "size": "M",
+        "price_vnd": 40000,
+        "price_formatted": "40.000 VNĐ",
+        "duration_minutes": 120,
+        "required_staff": 2
+      },
+      {
+        "id": 51,
+        "category": "Nối tóc",
+        "service_name": "Nối hoàn vũ",
+        "size": "L",
+        "price_vnd": 45000,
+        "price_formatted": "45.000 VNĐ",
+        "duration_minutes": 120,
+        "required_staff": 2
+      },
+      {
+        "id": 52,
+        "category": "Nối tóc",
+        "service_name": "Nối light",
+        "size": "S",
+        "price_vnd": 70000,
+        "price_formatted": "70.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 2
+      },
+      {
+        "id": 53,
+        "category": "Nối tóc",
+        "service_name": "Nối light",
+        "size": "M",
+        "price_vnd": 75000,
+        "price_formatted": "75.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 2
+      },
+      {
+        "id": 54,
+        "category": "Nối tóc",
+        "service_name": "Nối light",
+        "size": "L",
+        "price_vnd": 85000,
+        "price_formatted": "85.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 2
+      },
+      {
+        "id": 55,
+        "category": "Nối tóc",
+        "service_name": "Baby light",
+        "size": "S",
+        "price_vnd": 45000,
+        "price_formatted": "45.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 2
+      },
+      {
+        "id": 56,
+        "category": "Nối tóc",
+        "service_name": "Baby light",
+        "size": "M",
+        "price_vnd": 50000,
+        "price_formatted": "50.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 2
+      },
+      {
+        "id": 57,
+        "category": "Nối tóc",
+        "service_name": "Baby light",
+        "size": "L",
+        "price_vnd": 60000,
+        "price_formatted": "60.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 2
+      },
+      {
+        "id": 58,
+        "category": "Tẩy tóc",
+        "service_name": "Tẩy 1 lần",
+        "size": "S",
+        "price_vnd": 600000,
+        "price_formatted": "600.000 VNĐ",
+        "duration_minutes": 120,
+        "required_staff": 2
+      },
+      {
+        "id": 59,
+        "category": "Tẩy tóc",
+        "service_name": "Tẩy 1 lần",
+        "size": "M",
+        "price_vnd": 700000,
+        "price_formatted": "700.000 VNĐ",
+        "duration_minutes": 120,
+        "required_staff": 2
+      },
+      {
+        "id": 60,
+        "category": "Tẩy tóc",
+        "service_name": "Tẩy 1 lần",
+        "size": "L",
+        "price_vnd": 800000,
+        "price_formatted": "800.000 VNĐ",
+        "duration_minutes": 120,
+        "required_staff": 2
+      },
+      {
+        "id": 61,
+        "category": "Tẩy tóc",
+        "service_name": "Bóc đen / đỏ",
+        "size": "S",
+        "price_vnd": 600000,
+        "price_formatted": "600.000 VNĐ",
+        "duration_minutes": 150,
+        "required_staff": 2
+      },
+      {
+        "id": 62,
+        "category": "Tẩy tóc",
+        "service_name": "Bóc đen / đỏ",
+        "size": "M",
+        "price_vnd": 700000,
+        "price_formatted": "700.000 VNĐ",
+        "duration_minutes": 150,
+        "required_staff": 2
+      },
+      {
+        "id": 63,
+        "category": "Tẩy tóc",
+        "service_name": "Bóc đen / đỏ",
+        "size": "L",
+        "price_vnd": 800000,
+        "price_formatted": "800.000 VNĐ",
+        "duration_minutes": 150,
+        "required_staff": 2
+      },
+      {
+        "id": 64,
+        "category": "Tẩy tóc",
+        "service_name": "Tẩy Balay",
+        "size": "S",
+        "price_vnd": 2000000,
+        "price_formatted": "2.000.000 VNĐ",
+        "duration_minutes": 240,
+        "required_staff": 2
+      },
+      {
+        "id": 65,
+        "category": "Tẩy tóc",
+        "service_name": "Tẩy Balay",
+        "size": "M",
+        "price_vnd": 2250000,
+        "price_formatted": "2.250.000 VNĐ",
+        "duration_minutes": 240,
+        "required_staff": 2
+      },
+      {
+        "id": 66,
+        "category": "Tẩy tóc",
+        "service_name": "Tẩy Balay",
+        "size": "L",
+        "price_vnd": 2500000,
+        "price_formatted": "2.500.000 VNĐ",
+        "duration_minutes": 240,
+        "required_staff": 2
+      },
+      {
+        "id": 67,
+        "category": "Tẩy tóc",
+        "service_name": "Hidden",
+        "size": "S",
+        "price_vnd": 650000,
+        "price_formatted": "650.000 VNĐ",
+        "duration_minutes": 150,
+        "required_staff": 2
+      },
+      {
+        "id": 68,
+        "category": "Tẩy tóc",
+        "service_name": "Hidden",
+        "size": "M",
+        "price_vnd": 700000,
+        "price_formatted": "700.000 VNĐ",
+        "duration_minutes": 150,
+        "required_staff": 2
+      },
+      {
+        "id": 69,
+        "category": "Tẩy tóc",
+        "service_name": "Hidden",
+        "size": "L",
+        "price_vnd": 780000,
+        "price_formatted": "780.000 VNĐ",
+        "duration_minutes": 150,
+        "required_staff": 2
+      },
+      {
+        "id": 70,
+        "category": "Tẩy tóc",
+        "service_name": "Tẩy ombre",
+        "size": "S",
+        "price_vnd": 2000000,
+        "price_formatted": "2.000.000 VNĐ",
+        "duration_minutes": 210,
+        "required_staff": 2
+      },
+      {
+        "id": 71,
+        "category": "Tẩy tóc",
+        "service_name": "Tẩy ombre",
+        "size": "M",
+        "price_vnd": 2250000,
+        "price_formatted": "2.250.000 VNĐ",
+        "duration_minutes": 210,
+        "required_staff": 2
+      },
+      {
+        "id": 72,
+        "category": "Tẩy tóc",
+        "service_name": "Tẩy ombre",
+        "size": "L",
+        "price_vnd": 2500000,
+        "price_formatted": "2.500.000 VNĐ",
+        "duration_minutes": 210,
+        "required_staff": 2
+      },
+      {
+        "id": 73,
+        "category": "Tẩy tóc",
+        "service_name": "Tẩy nổi",
+        "size": "S",
+        "price_vnd": 750000,
+        "price_formatted": "750.000 VNĐ",
+        "duration_minutes": 120,
+        "required_staff": 2
+      },
+      {
+        "id": 74,
+        "category": "Tẩy tóc",
+        "service_name": "Tẩy nổi",
+        "size": "M",
+        "price_vnd": 800000,
+        "price_formatted": "800.000 VNĐ",
+        "duration_minutes": 120,
+        "required_staff": 2
+      },
+      {
+        "id": 75,
+        "category": "Tẩy tóc",
+        "service_name": "Tẩy nổi",
+        "size": "L",
+        "price_vnd": 880000,
+        "price_formatted": "880.000 VNĐ",
+        "duration_minutes": 120,
+        "required_staff": 2
+      },
+      {
+        "id": 76,
+        "category": "Tẩy tóc",
+        "service_name": "Nâng nền",
+        "size": "S",
+        "price_vnd": 200000,
+        "price_formatted": "200.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 1
+      },
+      {
+        "id": 77,
+        "category": "Tẩy tóc",
+        "service_name": "Nâng nền",
+        "size": "M",
+        "price_vnd": 350000,
+        "price_formatted": "350.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 1
+      },
+      {
+        "id": 78,
+        "category": "Tẩy tóc",
+        "service_name": "Nâng nền",
+        "size": "L",
+        "price_vnd": 500000,
+        "price_formatted": "500.000 VNĐ",
+        "duration_minutes": 90,
+        "required_staff": 1
+      }
+    ]
+  }
+}

@@ -3,6 +3,7 @@ const conversationRepo = require('../repositories/conversationRepository');
 const messageRepo = require('../repositories/messageRepository');
 const userRepo = require('../repositories/userRepository');
 const notificationRepo = require('../repositories/notificationRepository');
+const settingsRepo = require('../repositories/settingsRepository');
 const sessionTimeoutService = require('./sessionTimeoutService');
 
 async function getOrCreate(guestSessionId, productContextId = null) {
@@ -281,10 +282,11 @@ async function sendMessage(conversationId, { guestSessionId, content, message, c
     }
 
     // Fresh AI greeting
+    const welcomeMessage = await settingsRepo.get('ai_welcome_message');
     const greetingMsg = await messageRepo.create({
       conversationId: newConv.id,
       senderType: 'assistant',
-      content: 'Xin chào! Chào mừng bạn quay trở lại với Salon Lumière. Em có thể hỗ trợ gì cho bạn hôm nay ạ?',
+      content: welcomeMessage || 'Dạ, em là AI tư vấn của salon. Em có thể hỗ trợ mình tìm hiểu dịch vụ, giá và thời gian thực hiện hoặc hướng dẫn đặt lịch. Mình cần tư vấn nội dung nào ạ?',
     });
 
     let userMsg = null;

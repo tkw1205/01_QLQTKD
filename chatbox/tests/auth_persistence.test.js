@@ -14,6 +14,8 @@ describe('Task 3: Auth Session Persistence & Rate Limiter Test Suite', () => {
   let customerToken = null;
   let customerUser = null;
   let customerCookie = null;
+  let customerEmail = null;
+  const customerPassword = 'CustomerPassword@123';
 
   before(async () => {
     // 1. Admin login
@@ -27,13 +29,13 @@ describe('Task 3: Auth Session Persistence & Rate Limiter Test Suite', () => {
     receptionistUser = recLogin.user;
 
     // 3. Register a test customer user
-    const customerEmail = `persistence_user_${Date.now()}@example.com`;
+    customerEmail = `persistence_user_${Date.now()}@example.com`;
     const regRes = await apiRequest('/api/auth/register', {
       method: 'POST',
       body: {
         name: 'Nguyễn Văn Kiên Định',
         email: customerEmail,
-        password: 'CustomerPassword@123',
+        password: customerPassword,
         phone: '0912345678',
       },
     });
@@ -195,6 +197,23 @@ describe('Task 3: Auth Session Persistence & Rate Limiter Test Suite', () => {
     assert.equal(logoutRes.status, 200);
     assert.ok(logoutRes.headers['set-cookie'], 'Logout phải xóa cookie');
     assert.match(logoutRes.headers['set-cookie'], /token=;/i);
+  });
+
+  test('Đăng nhập khách hàng đã đăng ký trả về token và đúng vai trò user', async () => {
+    const loginRes = await apiRequest('/api/auth/login', {
+      method: 'POST',
+      body: {
+        email: customerEmail,
+        password: customerPassword,
+      },
+    });
+
+    assert.equal(loginRes.status, 200);
+    assert.equal(loginRes.body.success, true);
+    assert.ok(loginRes.body.data.token);
+    assert.equal(loginRes.body.data.user.id, customerUser.id);
+    assert.equal(loginRes.body.data.user.role, 'user');
+    assert.ok(loginRes.headers['set-cookie']);
   });
 
   test('4. Không giới hạn request rate limit trên local: gửi nhiều lần đăng nhập sai liên tiếp KHÔNG bị chặn 429', async () => {

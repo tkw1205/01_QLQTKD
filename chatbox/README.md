@@ -93,7 +93,7 @@ chatbox/
 │   ├── index.html            # Trang chủ cửa hàng
 │   ├── products.html         # Danh mục sản phẩm
 │   ├── product-detail.html   # Chi tiết sản phẩm
-│   ├── appointments.html     # Đặt lịch hẹn, đăng nhập khách & tra cứu lịch
+│   ├── account.html          # Đăng ký, đăng nhập và tài khoản khách hàng
 │   ├── chat.html             # Giao diện chat toàn màn hình
 │   └── admin/                # Bảng điều khiển quản trị (Admin & Receptionist)
 │       ├── dashboard.html    # Báo cáo tổng quan (Admin & Staff)
@@ -286,16 +286,9 @@ Bạn có thể kiểm tra trạng thái kết nối và khả năng gọi Tool 
 ## 8. Hướng dẫn sử dụng các chức năng chính
 
 ### 1. Đặt lịch tư vấn và quản lý lịch hẹn
-- Truy cập `http://localhost:3000/appointments.html`.
-- **Dành cho Người dùng đã đăng nhập (User):**
-  - Bấm **"Đăng nhập / Đăng ký"** ở góc trên để đăng nhập hoặc tạo tài khoản mới.
-  - Khi biểu mẫu mở ra, hệ thống **tự động điền sẵn Họ tên, Số điện thoại, Email** từ tài khoản.
-  - Chọn ngày hẹn -> hệ thống tự động kiểm tra giờ làm việc và hiển thị các khung giờ trống còn lại.
-  - Bấm **"Xác nhận đặt lịch tư vấn"**. Lịch hẹn sẽ được gắn trực tiếp với `user_id` của bạn.
-  - Toàn bộ lịch sử các lần đặt lịch sẽ hiển thị tại bảng danh sách phía dưới.
-- **Dành cho Khách vãng lai (Guest):**
-  - Có thể đặt lịch trực tiếp mà không cần tài khoản.
-  - Khi hoàn tất, nhận được **Mã xác nhận (Confirmation Token)** để tra cứu lịch hẹn bất kỳ lúc nào.
+- Mở chat từ website hoặc truy cập `http://localhost:3000/chat.html` để trò chuyện với Trợ lý AI và yêu cầu hỗ trợ đặt lịch.
+- Đăng ký/đăng nhập tài khoản khách hàng từ mục **Đăng ký/Đăng nhập** trên thanh điều hướng.
+- Đường dẫn `/appointments.html` cũ được chuyển đến giao diện chat; API đặt lịch vẫn được chatbot sử dụng.
 
 ### 2. Dành cho Nhân viên Lễ tân (Receptionist)
 - Đăng nhập tại `http://localhost:3000/admin/login.html` với tài khoản `receptionist@example.com` / `Receptionist@123456`.

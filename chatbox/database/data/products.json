@@ -8,7 +8,7 @@
     "price": 150000,
     "duration": 45,
     "image_url": "/images/studio/service-cut-layer.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -21,7 +21,7 @@
     "price": 180000,
     "duration": 45,
     "image_url": "/images/studio/service-cut-bob.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -34,7 +34,7 @@
     "price": 120000,
     "duration": 30,
     "image_url": "/images/studio/service-cut-men.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -47,7 +47,7 @@
     "price": 70000,
     "duration": 15,
     "image_url": "/images/studio/service-cut-bangs.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -60,7 +60,7 @@
     "price": 90000,
     "duration": 45,
     "image_url": "/images/studio/service-wash-herbal.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -73,7 +73,7 @@
     "price": 60000,
     "duration": 30,
     "image_url": "/images/studio/service-wash-quick.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -86,7 +86,7 @@
     "price": 180000,
     "duration": 45,
     "image_url": "/images/studio/service-scalp-detox.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -99,7 +99,7 @@
     "price": 650000,
     "duration": 90,
     "image_url": "/images/studio/service-color-milktea.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -112,7 +112,7 @@
     "price": 950000,
     "duration": 120,
     "image_url": "/images/studio/service-color-balayage.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -125,7 +125,7 @@
     "price": 350000,
     "duration": 60,
     "image_url": "/images/studio/service-color-touchup.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -138,7 +138,7 @@
     "price": 650000,
     "duration": 120,
     "image_url": "/images/studio/service-perm-wave.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -151,7 +151,7 @@
     "price": 250000,
     "duration": 60,
     "image_url": "/images/studio/service-perm-root.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -164,7 +164,7 @@
     "price": 600000,
     "duration": 90,
     "image_url": "/images/studio/service-perm-straight.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -177,7 +177,7 @@
     "price": 450000,
     "duration": 60,
     "image_url": "/images/studio/service-treatment-keratin.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
   },
@@ -190,8 +190,927 @@
     "price": 550000,
     "duration": 60,
     "image_url": "/images/studio/service-treatment-stemcell.jpg",
-    "status": "active",
+    "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
     "updated_at": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223001",
+    "category_id": "11111111-1111-1111-1111-111111111101",
+    "name": "Cắt tạo kiểu",
+    "slug": "cat-tao-kieu",
+    "description": null,
+    "price": 130000,
+    "prices_by_size": {
+      "S": {
+        "price": 130000,
+        "duration": 45,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 150000,
+        "duration": 45,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 170000,
+        "duration": 45,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 45,
+    "staff_count": 1,
+    "aliases": [
+      "cắt tóc",
+      "cắt tạo kiểu",
+      "cắt tóc tạo kiểu"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223002",
+    "category_id": "11111111-1111-1111-1111-111111111102",
+    "name": "Gội đầu",
+    "slug": "goi-dau",
+    "description": null,
+    "price": 40000,
+    "prices_by_size": {
+      "S": {
+        "price": 40000,
+        "duration": 20,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 50000,
+        "duration": 20,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 60000,
+        "duration": 20,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 20,
+    "staff_count": 1,
+    "aliases": [
+      "gội đầu"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223003",
+    "category_id": "11111111-1111-1111-1111-111111111102",
+    "name": "Tạo kiểu",
+    "slug": "tao-kieu",
+    "description": null,
+    "price": 80000,
+    "prices_by_size": {
+      "S": {
+        "price": 80000,
+        "duration": 25,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 100000,
+        "duration": 25,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 120000,
+        "duration": 25,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 25,
+    "staff_count": 1,
+    "aliases": [
+      "tạo kiểu"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223004",
+    "category_id": "11111111-1111-1111-1111-111111111102",
+    "name": "Xả phồng",
+    "slug": "xa-phong",
+    "description": null,
+    "price": 130000,
+    "prices_by_size": {
+      "S": {
+        "price": 130000,
+        "duration": 25,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 150000,
+        "duration": 25,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 170000,
+        "duration": 25,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 25,
+    "staff_count": 1,
+    "aliases": [
+      "xả phồng"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223005",
+    "category_id": "11111111-1111-1111-1111-111111111103",
+    "name": "Uốn mái / phồng mái",
+    "slug": "uon-mai-phong-mai",
+    "description": null,
+    "price": 80000,
+    "prices_by_size": {
+      "S": {
+        "price": 80000,
+        "duration": 60,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 100000,
+        "duration": 60,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 120000,
+        "duration": 60,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 60,
+    "staff_count": 1,
+    "aliases": [
+      "uốn mái",
+      "phồng mái"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223006",
+    "category_id": "11111111-1111-1111-1111-111111111103",
+    "name": "Phồng chân",
+    "slug": "phong-chan",
+    "description": null,
+    "price": 180000,
+    "prices_by_size": {
+      "S": {
+        "price": 180000,
+        "duration": 90,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 200000,
+        "duration": 90,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 230000,
+        "duration": 90,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 90,
+    "staff_count": 1,
+    "aliases": [
+      "phồng chân"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223007",
+    "category_id": "11111111-1111-1111-1111-111111111103",
+    "name": "Uốn (sản phẩm ART)",
+    "slug": "uon-san-pham-art",
+    "description": null,
+    "price": 229000,
+    "prices_by_size": {
+      "S": {
+        "price": 229000,
+        "duration": 150,
+        "staff_count": 2
+      },
+      "M": {
+        "price": 249000,
+        "duration": 150,
+        "staff_count": 2
+      },
+      "L": {
+        "price": 279000,
+        "duration": 150,
+        "staff_count": 2
+      }
+    },
+    "price_unit": null,
+    "duration": 150,
+    "staff_count": 2,
+    "aliases": [
+      "uốn art",
+      "uốn sản phẩm art"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223008",
+    "category_id": "11111111-1111-1111-1111-111111111104",
+    "name": "Duỗi mái",
+    "slug": "duoi-mai",
+    "description": null,
+    "price": 180000,
+    "prices_by_size": {
+      "S": {
+        "price": 180000,
+        "duration": 60,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 200000,
+        "duration": 60,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 230000,
+        "duration": 60,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 60,
+    "staff_count": 1,
+    "aliases": [
+      "duỗi mái"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223009",
+    "category_id": "11111111-1111-1111-1111-111111111104",
+    "name": "Duỗi gốc",
+    "slug": "duoi-goc",
+    "description": null,
+    "price": 230000,
+    "prices_by_size": {
+      "S": {
+        "price": 230000,
+        "duration": 90,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 250000,
+        "duration": 90,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 280000,
+        "duration": 90,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 90,
+    "staff_count": 1,
+    "aliases": [
+      "duỗi gốc"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223010",
+    "category_id": "11111111-1111-1111-1111-111111111104",
+    "name": "Duỗi (sản phẩm ART)",
+    "slug": "duoi-san-pham-art",
+    "description": null,
+    "price": 319000,
+    "prices_by_size": {
+      "S": {
+        "price": 319000,
+        "duration": 150,
+        "staff_count": 2
+      },
+      "M": {
+        "price": 349000,
+        "duration": 150,
+        "staff_count": 2
+      },
+      "L": {
+        "price": 379000,
+        "duration": 150,
+        "staff_count": 2
+      }
+    },
+    "price_unit": null,
+    "duration": 150,
+    "staff_count": 2,
+    "aliases": [
+      "duỗi art",
+      "duỗi sản phẩm art"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223011",
+    "category_id": "11111111-1111-1111-1111-111111111105",
+    "name": "Nhuộm (sản phẩm ART)",
+    "slug": "nhuom-san-pham-art",
+    "description": null,
+    "price": 229000,
+    "prices_by_size": {
+      "S": {
+        "price": 229000,
+        "duration": 120,
+        "staff_count": 2
+      },
+      "M": {
+        "price": 249000,
+        "duration": 120,
+        "staff_count": 2
+      },
+      "L": {
+        "price": 279000,
+        "duration": 120,
+        "staff_count": 2
+      }
+    },
+    "price_unit": null,
+    "duration": 120,
+    "staff_count": 2,
+    "aliases": [
+      "nhuộm art",
+      "nhuộm sản phẩm art"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223012",
+    "category_id": "11111111-1111-1111-1111-111111111105",
+    "name": "Chấm chân",
+    "slug": "cham-chan",
+    "description": null,
+    "price": 180000,
+    "prices_by_size": {
+      "S": {
+        "price": 180000,
+        "duration": 60,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 200000,
+        "duration": 60,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 230000,
+        "duration": 60,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 60,
+    "staff_count": 1,
+    "aliases": [
+      "chấm chân"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223013",
+    "category_id": "11111111-1111-1111-1111-111111111106",
+    "name": "Hấp dầu",
+    "slug": "hap-dau",
+    "description": null,
+    "price": 130000,
+    "prices_by_size": {
+      "S": {
+        "price": 130000,
+        "duration": 40,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 150000,
+        "duration": 40,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 170000,
+        "duration": 40,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 40,
+    "staff_count": 1,
+    "aliases": [
+      "hấp dầu"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223014",
+    "category_id": "11111111-1111-1111-1111-111111111106",
+    "name": "Phục hồi theo tóc",
+    "slug": "phuc-hoi-theo-toc",
+    "description": null,
+    "price": 250000,
+    "prices_by_size": {
+      "S": {
+        "price": 250000,
+        "duration": 60,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 300000,
+        "duration": 60,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 350000,
+        "duration": 60,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 60,
+    "staff_count": 1,
+    "aliases": [
+      "phục hồi theo tóc"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223015",
+    "category_id": "11111111-1111-1111-1111-111111111106",
+    "name": "Phục hồi Biotin",
+    "slug": "phuc-hoi-biotin",
+    "description": null,
+    "price": 420000,
+    "prices_by_size": {
+      "S": {
+        "price": 420000,
+        "duration": 75,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 450000,
+        "duration": 75,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 490000,
+        "duration": 75,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 75,
+    "staff_count": 1,
+    "aliases": [
+      "phục hồi biotin",
+      "biotin"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223016",
+    "category_id": "11111111-1111-1111-1111-111111111106",
+    "name": "Phục hồi chuyên sâu",
+    "slug": "phuc-hoi-chuyen-sau",
+    "description": null,
+    "price": 600000,
+    "prices_by_size": {
+      "S": {
+        "price": 600000,
+        "duration": 90,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 700000,
+        "duration": 90,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 800000,
+        "duration": 90,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 90,
+    "staff_count": 1,
+    "aliases": [
+      "phục hồi chuyên sâu"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223017",
+    "category_id": "11111111-1111-1111-1111-111111111107",
+    "name": "Nối hoàn vũ",
+    "slug": "noi-hoan-vu",
+    "description": null,
+    "price": 35000,
+    "prices_by_size": {
+      "S": {
+        "price": 35000,
+        "duration": 120,
+        "staff_count": 2
+      },
+      "M": {
+        "price": 40000,
+        "duration": 120,
+        "staff_count": 2
+      },
+      "L": {
+        "price": 45000,
+        "duration": 120,
+        "staff_count": 2
+      }
+    },
+    "price_unit": "per_tap",
+    "duration": 120,
+    "staff_count": 2,
+    "aliases": [
+      "nối hoàn vũ"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223018",
+    "category_id": "11111111-1111-1111-1111-111111111107",
+    "name": "Nối light",
+    "slug": "noi-light",
+    "description": null,
+    "price": 70000,
+    "prices_by_size": {
+      "S": {
+        "price": 70000,
+        "duration": 90,
+        "staff_count": 2
+      },
+      "M": {
+        "price": 75000,
+        "duration": 90,
+        "staff_count": 2
+      },
+      "L": {
+        "price": 85000,
+        "duration": 90,
+        "staff_count": 2
+      }
+    },
+    "price_unit": "per_tap",
+    "duration": 90,
+    "staff_count": 2,
+    "aliases": [
+      "nối light"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223019",
+    "category_id": "11111111-1111-1111-1111-111111111107",
+    "name": "Baby light",
+    "slug": "baby-light",
+    "description": null,
+    "price": 45000,
+    "prices_by_size": {
+      "S": {
+        "price": 45000,
+        "duration": 90,
+        "staff_count": 2
+      },
+      "M": {
+        "price": 50000,
+        "duration": 90,
+        "staff_count": 2
+      },
+      "L": {
+        "price": 60000,
+        "duration": 90,
+        "staff_count": 2
+      }
+    },
+    "price_unit": "per_tap",
+    "duration": 90,
+    "staff_count": 2,
+    "aliases": [
+      "baby light"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223020",
+    "category_id": "11111111-1111-1111-1111-111111111108",
+    "name": "Tẩy 1 lần",
+    "slug": "tay-1-lan",
+    "description": null,
+    "price": 600000,
+    "prices_by_size": {
+      "S": {
+        "price": 600000,
+        "duration": 120,
+        "staff_count": 2
+      },
+      "M": {
+        "price": 700000,
+        "duration": 120,
+        "staff_count": 2
+      },
+      "L": {
+        "price": 800000,
+        "duration": 120,
+        "staff_count": 2
+      }
+    },
+    "price_unit": null,
+    "duration": 120,
+    "staff_count": 2,
+    "aliases": [
+      "tẩy 1 lần"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223021",
+    "category_id": "11111111-1111-1111-1111-111111111108",
+    "name": "Bóc đen / đỏ",
+    "slug": "boc-den-do",
+    "description": null,
+    "price": 600000,
+    "prices_by_size": {
+      "S": {
+        "price": 600000,
+        "duration": 150,
+        "staff_count": 2
+      },
+      "M": {
+        "price": 700000,
+        "duration": 150,
+        "staff_count": 2
+      },
+      "L": {
+        "price": 800000,
+        "duration": 150,
+        "staff_count": 2
+      }
+    },
+    "price_unit": null,
+    "duration": 150,
+    "staff_count": 2,
+    "aliases": [
+      "bóc đen đỏ",
+      "bóc đen",
+      "bóc đỏ"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223022",
+    "category_id": "11111111-1111-1111-1111-111111111108",
+    "name": "Tẩy Balay",
+    "slug": "tay-balay",
+    "description": null,
+    "price": 2000000,
+    "prices_by_size": {
+      "S": {
+        "price": 2000000,
+        "duration": 240,
+        "staff_count": 2
+      },
+      "M": {
+        "price": 2250000,
+        "duration": 240,
+        "staff_count": 2
+      },
+      "L": {
+        "price": 2500000,
+        "duration": 240,
+        "staff_count": 2
+      }
+    },
+    "price_unit": null,
+    "duration": 240,
+    "staff_count": 2,
+    "aliases": [
+      "tẩy balay"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223023",
+    "category_id": "11111111-1111-1111-1111-111111111108",
+    "name": "Hidden",
+    "slug": "hidden",
+    "description": null,
+    "price": 650000,
+    "prices_by_size": {
+      "S": {
+        "price": 650000,
+        "duration": 150,
+        "staff_count": 2
+      },
+      "M": {
+        "price": 700000,
+        "duration": 150,
+        "staff_count": 2
+      },
+      "L": {
+        "price": 780000,
+        "duration": 150,
+        "staff_count": 2
+      }
+    },
+    "price_unit": null,
+    "duration": 150,
+    "staff_count": 2,
+    "aliases": [
+      "hidden"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223024",
+    "category_id": "11111111-1111-1111-1111-111111111108",
+    "name": "Tẩy ombre",
+    "slug": "tay-ombre",
+    "description": null,
+    "price": 2000000,
+    "prices_by_size": {
+      "S": {
+        "price": 2000000,
+        "duration": 210,
+        "staff_count": 2
+      },
+      "M": {
+        "price": 2250000,
+        "duration": 210,
+        "staff_count": 2
+      },
+      "L": {
+        "price": 2500000,
+        "duration": 210,
+        "staff_count": 2
+      }
+    },
+    "price_unit": null,
+    "duration": 210,
+    "staff_count": 2,
+    "aliases": [
+      "tẩy ombre"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223025",
+    "category_id": "11111111-1111-1111-1111-111111111108",
+    "name": "Tẩy nền",
+    "slug": "tay-nen",
+    "description": null,
+    "price": 750000,
+    "prices_by_size": {
+      "S": {
+        "price": 750000,
+        "duration": 120,
+        "staff_count": 2
+      },
+      "M": {
+        "price": 800000,
+        "duration": 120,
+        "staff_count": 2
+      },
+      "L": {
+        "price": 880000,
+        "duration": 120,
+        "staff_count": 2
+      }
+    },
+    "price_unit": null,
+    "duration": 120,
+    "staff_count": 2,
+    "aliases": [
+      "tẩy nền"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
+  },
+  {
+    "id": "22222222-2222-2222-2222-222222223026",
+    "category_id": "11111111-1111-1111-1111-111111111108",
+    "name": "Nâng nền",
+    "slug": "nang-nen",
+    "description": null,
+    "price": 200000,
+    "prices_by_size": {
+      "S": {
+        "price": 200000,
+        "duration": 90,
+        "staff_count": 1
+      },
+      "M": {
+        "price": 350000,
+        "duration": 90,
+        "staff_count": 1
+      },
+      "L": {
+        "price": 500000,
+        "duration": 90,
+        "staff_count": 1
+      }
+    },
+    "price_unit": null,
+    "duration": 90,
+    "staff_count": 1,
+    "aliases": [
+      "nâng nền"
+    ],
+    "image_url": null,
+    "status": "active",
+    "created_at": "2026-10-31T13:07:44.567Z",
+    "updated_at": "2026-10-31T13:07:44.567Z"
   }
 ]

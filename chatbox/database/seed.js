@@ -7,6 +7,8 @@
  */
 require('dotenv').config();
 
+const fs = require('fs');
+const path = require('path');
 const bcrypt = require('bcryptjs');
 const jsonStore = require('../src/config/jsonStore');
 const { runMigrations } = require('./migrate');
@@ -246,6 +248,30 @@ async function seedProducts() {
   console.log(`[Seed] ✓ ${products.length} products total (${added} new)`);
 }
 
+async function syncApprovedSalonCatalog() {
+  const categoriesPath = path.join(__dirname, 'data', 'categories.json');
+  const productsPath = path.join(__dirname, 'data', 'products.json');
+  const approvedCategories = JSON.parse(fs.readFileSync(categoriesPath, 'utf8'));
+  const approvedProducts = JSON.parse(fs.readFileSync(productsPath, 'utf8'));
+
+  const categories = jsonStore.getCollection('categories');
+  for (const approved of approvedCategories) {
+    const existing = categories.find(item => item.id === approved.id || item.slug === approved.slug);
+    if (existing) Object.assign(existing, approved);
+    else categories.push({ ...approved });
+  }
+  jsonStore.saveCollection('categories', categories);
+
+  const products = jsonStore.getCollection('products');
+  for (const approved of approvedProducts) {
+    const existing = products.find(item => item.id === approved.id || item.slug === approved.slug);
+    if (existing) Object.assign(existing, approved);
+    else products.push({ ...approved });
+  }
+  jsonStore.saveCollection('products', products);
+  console.log(`[Seed] ✓ Synchronized approved salon catalog (${approvedCategories.filter(c => c.is_active).length} active categories, ${approvedProducts.filter(p => p.status === 'active').length} active services)`);
+}
+
 async function seedStaffUser() {
   console.log('[Seed] Seeding staff user...');
   const users = jsonStore.getCollection('users');
@@ -320,6 +346,7 @@ async function main() {
 
     await seedCategories();
     await seedProducts();
+    await syncApprovedSalonCatalog();
     await seedStaffUser();
     await seedBusinessSettings();
 

@@ -2,12 +2,12 @@
 const appointmentRepo = require('../repositories/appointmentRepository');
 const settingsRepo = require('../repositories/settingsRepository');
 
-const PHONE_REGEX = /^(0[3|5|7|8|9])[0-9]{8}$/;
+const PHONE_REGEX = /^0[35789][0-9]{8}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function cleanPhoneNumber(phone) {
   if (!phone) return '';
-  let p = phone.trim().replace(/[\s.-]/g, '');
+  let p = phone.trim().replace(/[\s().-]/g, '');
   if (p.startsWith('+84')) p = '0' + p.slice(3);
   else if (p.startsWith('84') && p.length === 11) p = '0' + p.slice(2);
   return p;

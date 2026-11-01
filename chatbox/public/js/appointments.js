@@ -139,7 +139,7 @@ async function loadProductsDropdown() {
       res.data.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id;
-        opt.textContent = `${p.name} (${API.formatCurrency(p.price)})`;
+        opt.textContent = `${p.name} (${API.formatProductPrice(p)})`;
         select.appendChild(opt);
       });
     }

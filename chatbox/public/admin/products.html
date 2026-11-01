@@ -262,6 +262,7 @@
       const prodName = document.getElementById('prod-name');
       const prodCat = document.getElementById('prod-category');
       const prodPrice = document.getElementById('prod-price');
+      const prodPriceLabel = document.querySelector('label[for="prod-price"]');
       const prodStatus = document.getElementById('prod-status');
       const prodImage = document.getElementById('prod-image');
       const prodDesc = document.getElementById('prod-desc');
@@ -371,7 +372,12 @@
             statusBadge = '<span class="badge badge-danger">Ngừng KD</span>';
           }
 
-          const priceStr = Admin.formatCurrency(p.price);
+          const priceStr = p.prices_by_size
+            ? ['S', 'M', 'L']
+              .filter(size => p.prices_by_size[size]?.price != null)
+              .map(size => `${size}: ${Admin.formatCurrency(p.prices_by_size[size].price)}${p.price_unit === 'per_tap' ? '/tép' : ''}`)
+              .join(' · ') || 'Liên hệ'
+            : Admin.formatCurrency(p.price);
           const dateStr = Admin.formatDate(p.updated_at || p.created_at);
 
           const imgHtml = p.image_url
@@ -478,6 +484,7 @@
         prodModalTitle.textContent = 'Thêm sản phẩm mới';
         formProduct.reset();
         prodStatus.value = 'active';
+        prodPriceLabel.textContent = 'Giá niêm yết (VND)';
         prodModal.classList.add('open');
         prodName.focus();
       }
@@ -488,6 +495,9 @@
         prodName.value = product.name || '';
         prodCat.value = product.category_id || '';
         prodPrice.value = product.price != null ? product.price : '';
+        prodPriceLabel.textContent = product.prices_by_size
+          ? 'Giá size S (VND)'
+          : 'Giá niêm yết (VND)';
         prodStatus.value = product.status || 'active';
         prodImage.value = product.image_url || '';
         prodDesc.value = product.description || '';
@@ -523,7 +533,17 @@
           return;
         }
 
+        const selectedProduct = products.find(product => product.id === id);
         const body = { name, categoryId, price, status, imageUrl, description };
+        if (selectedProduct?.prices_by_size) {
+          body.prices_by_size = {
+            ...selectedProduct.prices_by_size,
+            S: {
+              ...selectedProduct.prices_by_size.S,
+              price,
+            },
+          };
+        }
         const btnSave = document.getElementById('btn-save-product');
         btnSave.disabled = true;
 

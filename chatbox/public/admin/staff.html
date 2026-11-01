@@ -228,7 +228,7 @@
             <div style="color: var(--mut); font-size: .82rem;">Đang tải danh sách dịch vụ salon...</div>
           </div>
           <div id="create-appt-service-summary" style="padding: 6px 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; font-size: .84rem; color: #166534; font-weight: 600; margin-bottom: 14px;">
-            Tổng thời lượng: <span id="create-appt-total-duration">0 phút</span> | Tổng chi phí: <span id="create-appt-total-price">0 đ</span>
+            Tổng thời lượng: <span id="create-appt-total-duration">0 phút</span> | <span id="create-appt-price-label">Tổng chi phí</span>: <span id="create-appt-total-price">0 đ</span>
           </div>
 
           <!-- 3. Scheduling & Staff assignment -->
@@ -1333,10 +1333,28 @@
       const inputApptNotes = document.getElementById('create-appt-notes');
       const servicesListContainer = document.getElementById('create-appt-services-list');
       const summaryTotalDuration = document.getElementById('create-appt-total-duration');
+      const summaryTotalPriceLabel = document.getElementById('create-appt-price-label');
       const summaryTotalPrice = document.getElementById('create-appt-total-price');
       const btnSubmitCreateAppt = document.getElementById('btn-submit-create-appt');
 
       let availableServices = [];
+
+      function getServiceDuration(service) {
+        return Number(
+          service.prices_by_size?.S?.duration ??
+          service.duration_minutes ??
+          service.duration
+        ) || 30;
+      }
+
+      function formatServicePrice(service) {
+        if (!service.prices_by_size) return `${Number(service.price).toLocaleString('vi-VN')} đ`;
+        const unit = service.price_unit === 'per_tap' ? '/tép' : '';
+        return ['S', 'M', 'L']
+          .filter(size => service.prices_by_size[size]?.price != null)
+          .map(size => `${size}: ${Number(service.prices_by_size[size].price).toLocaleString('vi-VN')} đ${unit}`)
+          .join(' · ') || 'Liên hệ';
+      }
 
       async function loadAvailableServices() {
         if (availableServices.length > 0) return availableServices;
@@ -1360,11 +1378,17 @@
           const serviceId = cb.value;
           const service = availableServices.find(s => s.id === serviceId);
           if (service) {
-            totalDuration += Number(service.duration_minutes) || 30;
+            totalDuration += getServiceDuration(service);
             totalPrice += Number(service.price) || 0;
           }
         });
 
+        const selectedServices = Array.from(checkedBoxes)
+          .map(checkbox => availableServices.find(service => service.id === checkbox.value))
+          .filter(Boolean);
+        summaryTotalPriceLabel.textContent = selectedServices.some(service => service.prices_by_size)
+          ? 'Tạm tính theo size S'
+          : 'Tổng chi phí';
         summaryTotalDuration.textContent = `${totalDuration} phút`;
         summaryTotalPrice.textContent = `${totalPrice.toLocaleString('vi-VN')} đ`;
       }
@@ -1377,8 +1401,8 @@
           servicesListContainer.innerHTML = '<div style="color: var(--mut); font-size: .82rem;">Không có dịch vụ nào trong hệ thống.</div>';
         } else {
           servicesListContainer.innerHTML = availableServices.map((svc, idx) => {
-            const priceStr = Number(svc.price).toLocaleString('vi-VN') + ' đ';
-            const durationStr = `${svc.duration_minutes || 30} phút`;
+            const priceStr = formatServicePrice(svc);
+            const durationStr = `${getServiceDuration(svc)} phút${svc.prices_by_size ? ' (S)' : ''}`;
             const isChecked = idx === 0 ? 'checked' : '';
             return `
               <label style="display: flex; align-items: center; gap: 8px; font-size: .82rem; cursor: pointer; padding: 3px 0;">
@@ -1487,7 +1511,7 @@
         selectedProductIds.forEach(id => {
           const s = availableServices.find(item => item.id === id);
           if (s) {
-            totalDuration += Number(s.duration_minutes) || 30;
+            totalDuration += getServiceDuration(s);
             totalPrice += Number(s.price) || 0;
           }
         });

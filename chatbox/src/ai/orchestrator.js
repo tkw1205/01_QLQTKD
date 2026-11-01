@@ -15,8 +15,11 @@ const {
 const messageRepo = require('../repositories/messageRepository');
 const conversationRepo = require('../repositories/conversationRepository');
 const appointmentRepo = require('../repositories/appointmentRepository');
+const appointmentService = require('../services/appointmentService');
 const settingsRepo = require('../repositories/settingsRepository');
 const productRepo = require('../repositories/productRepository');
+const servicePricing = require('./servicePricing');
+const conversationContextService = require('./conversationContext');
 
 const MAX_TOOL_CALLS = 5;
 const CONFIRMATION_KEYWORDS = [
@@ -37,6 +40,37 @@ function isGreetingOnly(userMessage) {
     .replace(/[.!?,;:]+$/g, '')
     .replace(/\s+/g, ' ');
   return /^(?:(?:xin\s+)?chào|hello|hi|hey)(?:\s+(?:bạn|em|anh|chị|mọi người|salon|shop|ạ|nhé))*$/iu.test(normalized);
+}
+
+function isGenericHaircutRequest(userMessage) {
+  if (!userMessage || typeof userMessage !== 'string') return false;
+  const normalized = userMessage
+    .trim()
+    .toLocaleLowerCase('vi-VN')
+    .replace(/[.!?,;:]+$/g, '')
+    .replace(/\s+/g, ' ');
+
+  return /^(?:(?:tôi|mình|em|anh|chị)\s+)?(?:muốn|cần|định)\s+(?:đi\s+)?cắt\s+tóc(?:\s+(?:ạ|nhé|nha|thôi))*$/iu.test(normalized);
+}
+
+function isBroadHairServiceRequest(userMessage) {
+  return /(?:muốn|cần|định)?\s*(?:đi\s*)?(?:làm tóc|làm đẹp tóc|thay đổi kiểu tóc)/iu
+    .test(String(userMessage || '').trim());
+}
+
+function isBobStyleConsultation(userMessage) {
+  return /\bbob\b/iu.test(userMessage || '') &&
+    /(?:tư vấn|kiểu tóc|muốn biết|phù hợp)/iu.test(userMessage || '');
+}
+
+function isServiceChangeRequest(userMessage) {
+  return /(?:đổi|thay đổi|thay)\s+(?:sang\s+)?(?:dịch vụ|kiểu tóc)/iu
+    .test(userMessage || '');
+}
+
+function formatInvalidPhoneReply(phone) {
+  const digits = appointmentService.cleanPhoneNumber(phone).replace(/\D/gu, '');
+  return `Dạ, số điện thoại ${phone} chưa hợp lệ${digits ? ` (hiện có ${digits.length} chữ số)` : ''}. Anh/chị vui lòng nhập số di động Việt Nam đủ 10 chữ số, bắt đầu bằng 03, 05, 07, 08 hoặc 09 nhé ạ.`;
 }
 
 function isPriceInquiry(userMessage) {
@@ -62,22 +96,16 @@ function isExplicitBookingConfirmation(userMessage) {
     /(?:xác nhận(?: đặt lịch| lịch hẹn)?|đồng ý|chính xác|đúng rồi|đúng vậy|chốt lịch)/iu.test(userMessage || '');
 }
 
-function getAllowedTools(userMessage, history = [], hasActiveHold = false) {
+function getAllowedTools(userMessage, history = []) {
   const bookingIntent = isBookingIntent(userMessage, history);
-  const currentContact = extractBookingContact(
-    [{ sender_type: 'user', content: userMessage }],
-    null
-  );
-  const hasCurrentContact = Object.values(currentContact).some(Boolean);
-  const canConfirmHeldAppointment = hasActiveHold &&
-    (hasCurrentContact || isExplicitBookingConfirmation(userMessage));
   const appointmentLookup = /(?:tra cứu lịch|xem lịch hẹn|lịch của tôi|lịch đã đặt|đặt chưa)/iu.test(userMessage || '');
   const cancellation = /(?:hủy lịch|hủy hẹn|hủy đặt)/iu.test(userMessage || '');
   const businessHours = /(?:giờ làm việc|mấy giờ mở cửa|mấy giờ đóng cửa)/iu.test(userMessage || '');
 
   return TOOL_DEFINITIONS.filter(({ function: tool }) => {
     if (['check_available_slots', 'hold_appointment_slot', 'confirm_appointment', 'create_appointment'].includes(tool.name)) {
-      return bookingIntent || (tool.name === 'confirm_appointment' && canConfirmHeldAppointment);
+      if (tool.name !== 'check_available_slots') return false;
+      return bookingIntent;
     }
     if (tool.name === 'get_appointment_details') return appointmentLookup;
     if (tool.name === 'cancel_appointment') return cancellation;
@@ -92,23 +120,52 @@ function extractBookingContact(messages, conversation) {
     customer_phone: conversation?.customer_phone || '',
     customer_email: conversation?.customer_email || '',
   };
-  const phonePattern = /(?:\+?84|0)\d(?:[\s().-]?\d){8,10}/u;
-  const namePattern = /(?:họ\s*và\s*tên|họ\s*tên|tên(?:\s+khách\s+hàng)?)\s*[:：]\s*(.+?)(?=\s*(?:[,;|]\s*)?(?:số\s*điện\s*thoại|sđt|điện\s*thoại|phone|email)\s*[:：]|$)/iu;
-  const standaloneNamePattern = /^(?:(?:tên(?:\s+của\s+(?:tôi|mình))?|(?:tôi|mình)\s+là)\s+)?([\p{L}][\p{L}\s.'’-]{0,49})$/iu;
+  const phonePattern = /(?:\+?84|0)(?:[\s().-]*\d){7,13}(?![\s().-]*\d)/u;
+  const namePattern = /(?:họ\s*và\s*tên|họ\s*tên|tên(?:\s+khách\s+hàng)?|(?:tôi|mình)\s+tên(?:\s+là)?)\s*[:：]?\s*(.+?)(?=\s*(?:[,;|]\s*)?(?:số\s*điện\s*thoại|sđt|sdt|điện\s*thoại|phone|email)\s*[:：]?|$)/iu;
+  const standaloneNamePattern = /^[\p{L}][\p{L}.'’-]*(?:\s+[\p{L}][\p{L}.'’-]*){1,5}$/iu;
   const emailPattern = /[^\s@]+@[^\s@]+\.[^\s@]+/u;
+  const assistantAskedForName = [...messages]
+    .reverse()
+    .find(message => message.sender_type === 'assistant')
+    ?.content
+    ?.match(/(?:họ\s*và\s*tên|họ\s*tên|cho em xin.*\btên\b|cung cấp.*\btên\b)/iu);
 
   for (const message of messages) {
     if (message.sender_type !== 'user' || !message.content) continue;
     const content = message.content.trim();
+    const phone = content.match(phonePattern)?.[0]?.trim();
+    const email = content.match(emailPattern)?.[0]?.trim();
     let name = content.match(namePattern)?.[1]?.trim();
-    if (!name && !/[0-9?]/u.test(content) && !isExplicitBookingConfirmation(content)) {
-      const standaloneName = content.match(standaloneNamePattern)?.[1]?.trim();
-      if (standaloneName && !/^(?:tôi|mình|em|anh|chị|muốn|cần|đặt|cắt|nhuộm|tóc|dạ|vâng|ừ|ok|okay|oke|chào|xin chào|được|đúng|chính xác)\b/iu.test(standaloneName)) {
+    if (!name && phone) {
+      const remainder = content
+        .replace(phone, ' ')
+        .replace(email || '', ' ')
+        .replace(/^(?:họ\s*và\s*tên|họ\s*tên|tên(?:\s+khách\s+hàng)?|(?:tôi|mình)\s+tên(?:\s+là)?)\s*[:：]?\s*/iu, '')
+        .replace(/(?:số\s*điện\s*thoại|sđt|sdt|điện\s*thoại|phone|email)\s*[:：]?/giu, ' ')
+        .replace(/[,:;|()[\]-]/gu, ' ')
+        .replace(/\s+/gu, ' ')
+        .trim();
+      if (
+        standaloneNamePattern.test(remainder) &&
+        !/^(?:tôi|mình|em|anh|chị|muốn|cần|đặt|cắt|nhuộm|tóc|dạ|vâng|ừ|ok|okay|oke|chào|xin chào|được|đúng|chính xác|mai|hôm|ngày|làm|lúc|chiều|sáng|tối)\b/iu.test(remainder)
+      ) {
+        name = remainder;
+      }
+    }
+    if (
+      !name &&
+      assistantAskedForName &&
+      !/[0-9?]/u.test(content) &&
+      !isExplicitBookingConfirmation(content)
+    ) {
+      const standaloneName = content
+        .replace(/^(?:họ\s*và\s*tên|họ\s*tên|tên(?:\s+khách\s+hàng)?|(?:tôi|mình)\s+tên(?:\s+là)?|(?:tôi|mình)\s+là)\s*[:：]?\s*/iu, '')
+        .trim();
+      if (standaloneNamePattern.test(standaloneName) &&
+          !/^(?:tôi|mình|em|anh|chị|muốn|cần|đặt|cắt|nhuộm|tóc|dạ|vâng|ừ|ok|okay|oke|chào|xin chào|được|đúng|chính xác|mai|hôm|ngày|làm|lúc|chiều|sáng|tối)\b/iu.test(standaloneName)) {
         name = standaloneName;
       }
     }
-    const phone = content.match(phonePattern)?.[0]?.trim();
-    const email = content.match(emailPattern)?.[0]?.trim();
     if (name) contact.customer_name = name;
     if (phone) contact.customer_phone = phone;
     if (email) contact.customer_email = email;
@@ -125,8 +182,12 @@ function formatBookingToolReply(result) {
     if (result.code === 'MISSING_NAME' || result.code === 'MISSING_PHONE') {
       return `Dạ, lịch chưa được xác nhận vì còn thiếu thông tin. ${result.message || result.error}`;
     }
-    if (result.code === 'SLOT_CONFLICT' || result.code === 'HOLD_EXPIRED') {
-      return `Dạ, lịch chưa được xác nhận vì khung giờ giữ chỗ không còn khả dụng. Mình vui lòng cho em biết ngày giờ khác để em kiểm tra lại ạ.`;
+    if (result.code === 'SLOT_CONFLICT' || result.code === 'SLOT_CAPACITY_EXCEEDED') {
+      const alternatives = result.available_slots || [];
+      return `Dạ, rất tiếc khung giờ ${result.appointment_time || ''} ngày ${result.appointment_date || ''} vừa không còn khả dụng.${alternatives.length ? ` Mình có thể chọn một trong các khung giờ còn trống: ${alternatives.slice(0, 6).join(', ')}.` : ' Mình vui lòng chọn ngày giờ khác để em kiểm tra lại ạ.'}`;
+    }
+    if (result.code === 'HOLD_EXPIRED') {
+      return 'Dạ, thời gian giữ chỗ đã hết nên lịch chưa được xác nhận. Mình vui lòng chọn ngày giờ khác để em kiểm tra lại ạ.';
     }
     return `Dạ, hệ thống chưa xác nhận được lịch hẹn. ${result.message || result.error || 'Mình vui lòng thử lại sau hoặc chat với nhân viên để được hỗ trợ.'}`;
   }
@@ -201,7 +262,201 @@ function formatSlotsReply(date, slots, nextDate) {
     const nextStr = nextDate ? `ngày tiếp theo (${nextDate})` : 'ngày hôm sau';
     return `Dạ, ngày ${date} salon hiện đã kín toàn bộ các khung giờ rồi ạ. Bạn có muốn em kiểm tra lịch trống của ${nextStr} không ạ?`;
   }
-  return `Dạ, trong ngày ${date}, salon hiện còn các khung giờ trống sau:\n\n${slots.join(', ')}\n\nBạn thuận tiện chọn khung giờ nào để em hỗ trợ giữ chỗ và đặt lịch cho bạn ạ?`;
+  return `Dạ, trong ngày ${date}, salon hiện còn các khung giờ trống sau:\n\n${slots.join(', ')}\n\nAnh/chị thuận tiện chọn khung giờ nào để em hỗ trợ đặt lịch ạ?`;
+}
+
+function formatBusinessHoursForDate(workingHours, date) {
+  const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const weekday = date
+    ? weekdays[new Date(`${date}T00:00:00Z`).getUTCDay()]
+    : null;
+  const hours = weekday ? workingHours?.[weekday] : null;
+  if (hours) {
+    return hours.enabled
+      ? `${hours.open}–${hours.close}`
+      : 'ngày này salon nghỉ';
+  }
+  const uniqueHours = [...new Set(Object.values(workingHours || {})
+    .filter(item => item?.enabled)
+    .map(item => `${item.open}–${item.close}`))];
+  return uniqueHours.length ? uniqueHours.join(', ') : 'chưa có giờ hoạt động được cấu hình';
+}
+
+async function handleBookingContinuation(userMessage, context) {
+  const state = context.chatContext || {};
+  if (!state.booking_started || servicePricing.isPriceQuestion(userMessage)) return null;
+
+  const hasSelectedService = Array.isArray(state.selected_service_ids) &&
+    state.selected_service_ids.length > 0;
+  if (!hasSelectedService) return null;
+  if (state.booking_service_consultation_pending) {
+    await conversationRepo.updateChatContext(context.conversationId, {
+      booking_service_consultation_pending: false,
+      booking_service_confirmation_pending: Boolean(state.appointment_date && state.appointment_time),
+    });
+    if (state.appointment_date && state.appointment_time) {
+      return `Dạ, em đã ghi nhận mong muốn ${userMessage.trim()} cho kiểu tóc bob. Anh/chị đang chọn lịch lúc ${state.appointment_time} ngày ${state.appointment_date}. Anh/chị xác nhận tiếp tục đặt lịch cắt tóc bob nhé ạ?`;
+    }
+    return 'Dạ, em đã ghi nhận kiểu bob anh/chị mong muốn. Mình muốn đặt lịch vào ngày nào và khoảng thời gian nào ạ?';
+  }
+  if (state.booking_service_just_selected) {
+    const updatedState = {
+      booking_service_just_selected: false,
+      booking_service_confirmation_pending: Boolean(state.appointment_date && state.appointment_time),
+    };
+    await conversationRepo.updateChatContext(context.conversationId, updatedState);
+    if (state.appointment_date && state.appointment_time) {
+      const selectedServices = await Promise.all(state.selected_service_ids.map(id =>
+        productRepo.findById(id)
+      ));
+      const selectedServiceName = selectedServices.filter(Boolean)
+        .map(service => service.name)
+        .join(' + ') || 'dịch vụ vừa chọn';
+      const requestedService = /bob/iu.test(state.booking_service_notes || '')
+        ? 'cắt tóc bob'
+        : state.booking_service_notes
+          ? `${selectedServiceName} (${state.booking_service_notes})`
+          : selectedServiceName;
+      return `Dạ, em đã ghi nhận nhu cầu ${requestedService}. Anh/chị đang chọn lịch lúc ${state.appointment_time} ngày ${state.appointment_date}. Anh/chị xác nhận tiếp tục đặt lịch với dịch vụ này nhé ạ?`;
+    }
+    return 'Dạ, em đã ghi nhận dịch vụ anh/chị muốn sử dụng. Mình muốn đặt lịch vào ngày nào và khoảng thời gian nào ạ?';
+  }
+  if (state.booking_service_confirmation_pending) {
+    if (!isExplicitBookingConfirmation(userMessage)) {
+      if (/(?:không|chưa|để sau|tư vấn thêm)/iu.test(userMessage)) {
+        await conversationRepo.updateChatContext(context.conversationId, {
+          booking_service_confirmation_pending: false,
+          booking_started: false,
+        });
+        return 'Dạ, em sẽ hỗ trợ tư vấn thêm về dịch vụ trước ạ. Anh/chị muốn tìm hiểu thêm điều gì?';
+      }
+      return `Dạ, anh/chị đang chọn lịch lúc ${state.appointment_time} ngày ${state.appointment_date}. Mình xác nhận tiếp tục đặt lịch với dịch vụ đã chọn nhé ạ?`;
+    }
+    await conversationRepo.updateChatContext(context.conversationId, {
+      booking_service_confirmation_pending: false,
+    });
+  }
+  const hoursResult = JSON.parse(await executeTool('get_business_hours', {}, context));
+  const businessHours = formatBusinessHoursForDate(
+    hoursResult.workingHours,
+    state.appointment_date || null
+  );
+  const currentTimeMentioned = conversationContextService.mentionsTime(userMessage);
+
+  if (currentTimeMentioned && state.invalid_appointment_time) {
+    const requested = userMessage.match(/\d{1,2}\s*(?:h|giờ)/iu)?.[0] || 'Giờ vừa cung cấp';
+    return `Dạ, ${requested} không phải giờ hẹn hợp lệ. Giờ hoạt động${state.appointment_date ? ' ngày này' : ''} của salon là ${businessHours}. Mình chọn giúp em một giờ trong khung này nhé ạ.`;
+  }
+
+  if (state.appointment_time) {
+    const [hour, minute] = state.appointment_time.split(':').map(Number);
+    const requestedMinutes = hour * 60 + minute;
+    const applicableHours = state.appointment_date
+      ? (() => {
+        const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const day = weekdays[new Date(`${state.appointment_date}T00:00:00Z`).getUTCDay()];
+        return hoursResult.workingHours?.[day];
+      })()
+      : null;
+    const isOutsideHours = applicableHours
+      ? !applicableHours.enabled ||
+        requestedMinutes < Number(applicableHours.open.slice(0, 2)) * 60 + Number(applicableHours.open.slice(3)) ||
+        requestedMinutes >= Number(applicableHours.close.slice(0, 2)) * 60 + Number(applicableHours.close.slice(3))
+      : Object.values(hoursResult.workingHours || {}).every(day =>
+        !day?.enabled ||
+        requestedMinutes < Number(day.open.slice(0, 2)) * 60 + Number(day.open.slice(3)) ||
+        requestedMinutes >= Number(day.close.slice(0, 2)) * 60 + Number(day.close.slice(3))
+      );
+    if (isOutsideHours) {
+      return `Dạ, salon hoạt động ${businessHours}${state.appointment_date ? ' vào ngày mình chọn' : ''}, nên chưa thể nhận lịch lúc ${state.appointment_time} ạ. Mình chọn giờ khác trong khung hoạt động giúp em nhé.`;
+    }
+  }
+
+  if (!state.appointment_date) {
+    return 'Dạ, em đã ghi nhận nhu cầu dịch vụ của anh/chị. Mình muốn đặt lịch vào ngày nào và khoảng thời gian nào ạ?';
+  }
+  if (!state.appointment_time) {
+    return `Dạ, em đã ghi nhận ngày ${state.appointment_date}. Mình muốn làm vào khung giờ nào trong khoảng ${businessHours} ạ?`;
+  }
+
+  const availabilityResult = JSON.parse(await executeTool('check_available_slots', {
+    date: state.appointment_date,
+    product_ids: state.selected_service_ids,
+  }, context));
+  if (!availabilityResult.success) {
+    return `Dạ, em chưa thể xác nhận khung giờ này: ${availabilityResult.error || 'hệ thống chưa kiểm tra được lịch'}. Mình thử ngày giờ khác hoặc chat với nhân viên giúp em nhé ạ.`;
+  }
+  if (!(availabilityResult.slots || []).includes(state.appointment_time)) {
+    await conversationRepo.updateChatContext(context.conversationId, {
+      booking_confirmation_pending: false,
+    });
+    const alternatives = availabilityResult.slots || [];
+    return alternatives.length
+      ? `Dạ, lúc ${state.appointment_time} ngày ${state.appointment_date} hiện chưa còn chỗ. Các giờ salon còn trống là: ${alternatives.join(', ')}. Mình chọn giờ nào ạ?`
+      : `Dạ, ngày ${state.appointment_date} hiện không còn giờ trống. Mình muốn em kiểm tra ngày khác không ạ?`;
+  }
+
+  const contact = extractBookingContact(
+    [...(context.history || []), { sender_type: 'user', content: userMessage }],
+    context.conversation
+  );
+  const cleanPhone = appointmentService.cleanPhoneNumber(contact.customer_phone);
+  if (contact.customer_phone && !appointmentService.PHONE_REGEX.test(cleanPhone)) {
+    if (contact.customer_name) {
+      await conversationRepo.updateCustomerInfo(context.conversationId, {
+        name: contact.customer_name,
+      });
+    }
+    return formatInvalidPhoneReply(contact.customer_phone);
+  }
+  if (cleanPhone) contact.customer_phone = cleanPhone;
+  if (contact.customer_name || contact.customer_phone || contact.customer_email) {
+    await conversationRepo.updateCustomerInfo(context.conversationId, {
+      name: contact.customer_name,
+      phone: contact.customer_phone,
+      email: contact.customer_email,
+    });
+  }
+
+  if (state.booking_confirmation_pending && isExplicitBookingConfirmation(userMessage)) {
+    const result = JSON.parse(await executeTool('confirm_appointment', {
+      customer_name: contact.customer_name,
+      customer_phone: contact.customer_phone,
+      customer_email: contact.customer_email,
+      appointment_date: state.appointment_date,
+      appointment_time: state.appointment_time,
+      product_ids: state.selected_service_ids,
+      notes: state.booking_service_notes || state.hair_length_text || null,
+    }, context));
+    if (!result.success && ['SLOT_CONFLICT', 'SLOT_CAPACITY_EXCEEDED'].includes(result.code)) {
+      await conversationRepo.updateChatContext(context.conversationId, {
+        booking_confirmation_pending: false,
+      });
+    }
+    return formatBookingToolReply(result);
+  }
+
+  if (state.booking_confirmation_pending && /(?:không|chưa|sai|thay đổi)/iu.test(userMessage)) {
+    await conversationRepo.updateChatContext(context.conversationId, {
+      booking_confirmation_pending: false,
+    });
+    return 'Dạ, em chưa tạo lịch ạ. Anh/chị vui lòng cho em biết thông tin nào cần chỉnh sửa hoặc ngày giờ khác muốn chọn nhé.';
+  }
+
+  const missing = [
+    !contact.customer_name ? 'họ tên' : null,
+    !contact.customer_phone ? 'số điện thoại' : null,
+  ].filter(Boolean);
+  if (missing.length) {
+    return `Dạ, khung giờ ${state.appointment_time} ngày ${state.appointment_date} hiện còn trống. Anh/chị vui lòng cung cấp ${missing.join(' và ')} để em hỗ trợ đặt lịch ạ.`;
+  }
+
+  await conversationRepo.updateChatContext(context.conversationId, {
+    booking_confirmation_pending: true,
+  });
+  const products = await Promise.all(state.selected_service_ids.map(id => productRepo.findById(id)));
+  const serviceName = products.filter(Boolean).map(product => product.name).join(' + ') || 'dịch vụ đã chọn';
+  return `Dạ, em đã nhận được thông tin đặt lịch:\n\n- Dịch vụ: ${serviceName}${state.booking_service_notes ? ` (${state.booking_service_notes})` : ''}\n- Thời gian: ${state.appointment_time} ngày ${state.appointment_date}\n- Họ tên: ${contact.customer_name}\n- Số điện thoại: ${contact.customer_phone}\n\nAnh/chị xác nhận thông tin trên chính xác và đồng ý đặt lịch chứ ạ?`;
 }
 
 async function buildSystemPrompt(conversation, targetDate = null) {
@@ -225,7 +480,16 @@ async function buildSystemPrompt(conversation, targetDate = null) {
       const duration = service.duration === null || service.duration === undefined
         ? 'chưa có thời lượng được xác nhận'
         : `${service.duration} phút`;
-      return `- ID: ${service.id} | ${service.name}: ${service.description || 'chưa có mô tả'} | Giá: ${formatPrice(service.price)} | Thời gian: ${duration}`;
+      const prices = service.prices_by_size
+        ? ['S', 'M', 'L'].map(size => {
+          const tier = service.prices_by_size[size];
+          return tier
+            ? `${size}: ${formatPrice(tier.price)} (${tier.duration || duration}, ${tier.staff_count || service.staff_count || 'chưa rõ'} nhân viên)`
+            : `${size}: chưa có giá`;
+        }).join('; ')
+        : formatPrice(service.price);
+      const unit = service.price_unit === 'per_tap' ? '/tép' : '';
+      return `- ID: ${service.id} | Nhóm: ${service.category_name || 'chưa phân loại'} (${service.category_description || 'chưa có mô tả nhóm'}) | ${service.name}: ${service.description || 'chưa có mô tả dịch vụ'} | Giá: ${prices}${unit} | Thời gian: ${duration} | Nhân viên: ${service.staff_count || 'chưa rõ'}`;
     }).join('\n')
     : '- Hiện chưa có dịch vụ nào được xác nhận trong danh sách.';
 
@@ -250,8 +514,9 @@ async function buildSystemPrompt(conversation, targetDate = null) {
 
 [TƯ VẤN KIỂU TÓC, NHIỀU DỊCH VỤ VÀ ẢNH THAM KHẢO]
 - Khi khách hỏi một kiểu cụ thể (ví dụ layer), trước tiên tìm dịch vụ phù hợp trong danh sách đang hoạt động. Chỉ xác nhận salon có làm khi dịch vụ tương ứng thực sự có trong danh sách; nêu đúng dịch vụ và tư vấn theo mô tả đã xác nhận. Có thể hỏi độ dài tóc, mong muốn tạo kiểu hoặc đặc điểm cần biết, nhưng không khẳng định kiểu chắc chắn hợp với khuôn mặt/chất tóc khi thiếu thông tin.
-- Nếu khách hỏi giá, dùng đúng giá trong danh sách. Danh mục hiện chỉ cung cấp giá niêm yết theo từng dịch vụ, chưa có bảng giá S/M/L; không nói giá phụ thuộc size, không tự quy đổi giá theo size. Có thể hỏi độ dài tóc để tư vấn kiểu hoặc để nhân viên xác nhận khi cần, nhưng không được dùng size để tạo mức giá chưa có.
-- Quy ước size nếu cần trao đổi với nhân viên/khách: S là tóc từ cằm trở lên; M là tóc từ cằm đến ngang vai; L là tóc từ ngang ngực trở xuống. Nếu độ dài ở ranh giới hoặc khoảng giữa các mốc chưa được quy định, hỏi thêm/đề nghị nhân viên xác nhận, không tự phân loại chắc chắn.
+- Nếu khách hỏi giá, ứng dụng sẽ tra cứu chính xác dịch vụ và giá S/M/L từ danh mục hoạt động. Chỉ nhắc lại giá có trong danh mục; không tự tính hoặc suy đoán giá. Nếu thiếu size, hỏi khách; nếu thiếu dịch vụ/giá hoặc tên dịch vụ mơ hồ, hỏi làm rõ và không báo giá.
+- Quy ước size theo dữ liệu salon: S là tóc từ cằm trở lên; M là tóc từ cằm đến ngang vai; L là tóc từ ngang ngực trở xuống. Mốc cằm bị chồng lấn và khoảng từ ngang vai đến ngang ngực chưa được quy định; hỏi khách làm rõ thay vì tự phân loại.
+- Dịch vụ nối tóc có giá theo từng tép; luôn ghi rõ đơn vị /tép, không trình bày như giá trọn gói. Thời lượng và số nhân viên phải theo đúng dòng dịch vụ/size trong danh mục.
 - Khi khách chọn nhiều dịch vụ, tra từng dịch vụ và dùng đúng các ID trong danh mục. Chỉ tính tổng giá khi tất cả dịch vụ đều có giá xác nhận; nếu thiếu giá, nêu rõ chưa tính được tổng chính xác. Chỉ cộng thời lượng đã có dữ liệu thành thời lượng dự kiến; không khẳng định các dịch vụ được làm đồng thời. Lưu các dịch vụ đã chọn trong ngữ cảnh và truyền toàn bộ ID vào công cụ đặt lịch.
 - Nếu khách thay đổi/bỏ một dịch vụ, cập nhật danh sách lựa chọn theo lời khách, không giữ lại dịch vụ đã bỏ; nhắc ngắn danh sách mới và hỏi ngày/giờ hoặc bước còn thiếu.
 - Khi nhận hình tham khảo: chỉ nói đã nhận/xem hình nếu hình ảnh thực sự có trong nội dung đầu vào mà AI truy cập được. Nếu không thấy hình hoặc nền tảng không chuyển ảnh cho AI, nói rõ chưa xem được ảnh và đề nghị mô tả kiểu tóc/tải ảnh theo chức năng website nếu có. Nếu xem được ảnh, chỉ nhận xét các đặc điểm nhìn thấy và hỏi mong muốn/tình trạng tóc; không nhận diện chắc chắn mọi chi tiết, không hứa kết quả giống hệt hình.
@@ -264,11 +529,11 @@ async function buildSystemPrompt(conversation, targetDate = null) {
 4. Khách hỏi chi tiết một mặt hàng/dịch vụ: dùng dịch vụ đang được nhắc đến trong ngữ cảnh nếu xác định được và trả lời theo dữ liệu; chỉ hỏi tên/chọn mục khi chưa xác định được.
 5. Khách cần tư vấn lựa chọn: hỏi mục đích, mong muốn hoặc tiêu chí phù hợp; đề xuất lựa chọn trong danh sách, không khẳng định chắc chắn phù hợp khi thiếu thông tin.
 6. Khách hỏi giá: xác định dịch vụ/mặt hàng rồi dùng giá từ danh sách. Hỏi tên hoặc size tóc chỉ khi thông tin đó thực sự cần để tìm mức giá; không dùng ví dụ giá làm giá thật.
-7. Khách muốn đặt lịch nhưng chưa nêu ngày/giờ: hỏi ngày và khung giờ mong muốn, rồi tiếp tục kiểm tra và hỗ trợ bằng công cụ. Chỉ hỏi thông tin liên hệ còn thiếu khi cần chốt lịch.
+7. Khách muốn đặt lịch: nếu chưa nêu dịch vụ, hỏi muốn sử dụng dịch vụ nào trước. Khi đã rõ dịch vụ, hỏi ngày và khoảng thời gian mong muốn; không hỏi lại thông tin khách đã cung cấp.
 8. Khách hỏi ngày nào còn lịch (kể cả “ngày mai còn lịch trống không?”): gọi check_available_slots ngay cho đúng ngày, sau đó thông báo các khung giờ hệ thống trả về. Không hỏi khách chọn giờ trước khi đưa danh sách giờ trống.
-9. Khách nêu một ngày và giờ cụ thể: gọi check_available_slots cho ngày đó; chỉ gọi hold_appointment_slot nếu giờ khách chọn có trong danh sách còn trống. Nếu không có, báo giờ không khả dụng và đưa giờ khác từ kết quả tra cứu.
-10. Khách đồng ý đặt một giờ đã chọn: xác nhận đúng dịch vụ/ngày/giờ trong ngữ cảnh và hỏi các thông tin bắt buộc còn thiếu (họ tên, số điện thoại); email vẫn tùy chọn. Không lặp lại câu hỏi đã được trả lời. Chỉ tiếp tục tạo lịch theo quy trình công cụ khi đã có sự đồng ý của khách và đủ dữ liệu.
-11. Khách xác nhận thông tin đặt lịch: chỉ gọi công cụ tạo/xác nhận lịch khi có ngày giờ, thông tin bắt buộc và sự đồng ý cần thiết. Báo đang xử lý chỉ khi thực sự đã gửi yêu cầu công cụ; không giả định kết quả trước khi công cụ trả về.
+9. Khách nêu một ngày và giờ cụ thể: gọi check_available_slots cho ngày đó với tổng thời lượng của các dịch vụ đã chọn. Không giữ chỗ tạm thời. Chỉ báo giờ còn trống nếu công cụ trả về đúng giờ đó; nếu không, báo không khả dụng và đề xuất các giờ do công cụ trả về.
+10. Khi giờ còn trống, báo khách giờ đó có thể đặt và hỏi các thông tin bắt buộc còn thiếu (họ tên, số điện thoại); email tùy chọn. Khi có đủ thông tin, tóm tắt dịch vụ/ngày/giờ/thông tin liên hệ và hỏi xác nhận.
+11. Chỉ gọi công cụ tạo lịch sau khi khách xác nhận rõ ràng. Hệ thống phải kiểm tra lại lịch khi tạo; chỉ báo thành công nếu công cụ trả về success: true cùng mã booking thực tế.
 12. Khách hỏi lịch đã đặt chưa: chỉ khẳng định thành công khi lịch sử công cụ/hệ thống của phiên hiện tại xác nhận thành công và có mã thực tế. Khi được xác nhận, cung cấp mã, ngày và giờ đúng dữ liệu; nếu chưa xác nhận hoặc không tìm thấy trạng thái, nói rõ và hướng dẫn tra cứu/liên hệ nhân viên.
 13. Khách muốn tra cứu lịch: hướng dẫn dùng mục Tra cứu lịch hẹn trên website và làm theo xác minh yêu cầu (mã đặt lịch cùng số điện thoại hoặc phương thức hệ thống hỗ trợ). Không tiết lộ lịch nếu chưa xác minh quyền sở hữu.
 14. Khách không tìm thấy lịch: hướng dẫn kiểm tra lại thông tin xác minh và thử chức năng tra cứu trên website; nếu vẫn không được, đề nghị chuyển sang nhân viên.
@@ -342,15 +607,12 @@ QUY TẮC BẮT BUỘC ĐẶT LỊCH (BPMN 2.0 & SALON):
      + Thông báo rõ ràng cho khách về sự cố và đề xuất phương án tiếp theo: hỏi khách khung giờ dự kiến khác để kiểm tra lại hoặc gợi ý bấm "Chat với nhân viên" để được hỗ trợ trực tiếp.
    - Giờ mở cửa hoạt động của Salon là từ 08:30 đến 20:30 hàng ngày.
 
-2. QUY TẮC GIỮ CHỖ (HOLD SLOT) & XỬ LÝ KHUNG GIỜ KÍN:
-   - TUYỆT ĐỐI KHÔNG tự động giữ chỗ 5 phút hoặc thông báo đã giữ chỗ nếu chưa thực sự gọi hold_appointment_slot thành công (success: true).
+2. KIỂM TRA KHUNG GIỜ VÀ XỬ LÝ KHI GIỜ ĐÃ KÍN:
+   - Chỉ sử dụng kết quả thật từ check_available_slots; không tự bịa giờ trống.
    - NẾU KHUNG GIỜ KHÁCH YÊU CẦU ĐÃ KÍN HOẶC CÔNG CỤ BÁO LỖI/TRANH CHẤP (SLOT_CONFLICT):
      + Thông báo lịch sự khung giờ đó không còn trống / đã kín chỗ.
-     + TUYỆT ĐỐI KHÔNG nói "chúng tôi sẽ giữ chỗ tạm thời cho bạn trong 5 phút" khi khung giờ đó đã kín!
      + Chủ động gợi ý các khung giờ còn trống khác trong ngày (hoặc gọi check_available_slots) để khách lựa chọn.
-   - KHI KHÁCH CHỌN MỘT KHUNG GIỜ TRONG DANH SÁCH CÒN TRỐNG:
-     + Gọi công cụ hold_appointment_slot để giữ chỗ 5 phút cho khung giờ khách vừa chọn.
-     + Khi hold thành công, thông báo đã giữ chỗ tạm thời cho khách trong 5 phút và tiếp tục quy trình thu thập thông tin để chốt lịch.
+   - Khi khách chọn giờ còn trống, chỉ thông báo giờ đó có thể đặt và tiếp tục thu thập thông tin; không giữ chỗ tạm thời.
 
 3. THU THẬP THÔNG TIN VÀ KHÔNG HỎI LẠI THÔNG TIN ĐÃ CÓ:
    - KHÔNG yêu cầu khách cung cấp lại thông tin (Họ tên, SĐT) đã có trong hội thoại, trừ khi cần xác nhận hoặc thông tin đó không hợp lệ.
@@ -358,12 +620,12 @@ QUY TẮC BẮT BUỘC ĐẶT LỊCH (BPMN 2.0 & SALON):
      + Họ và tên
      + Số điện thoại liên hệ (10 chữ số tại VN, ví dụ: 0901234567)
    - Địa chỉ Email là TUỲ CHỌN (KHÔNG BẮT BUỘC): Khách có thể cung cấp hoặc không. TUYỆT ĐỐI KHÔNG ép buộc, đòi hỏi hay từ chối chốt lịch nếu khách không có hoặc không muốn cung cấp email. Nếu khách cung cấp email thì lưu lại, nếu không có email thì bỏ qua và vẫn tiến hành chốt lịch bình thường.
-   - NẾU KHÁCH CHƯA CUNG CẤP SĐT HOẶC HỌ TÊN: Bạn PHẢI hỏi thông tin còn thiếu (Họ tên, SĐT).
-   - Khi đã có đủ Họ tên và Số điện thoại, tiến hành chốt lịch ngay!
+   - Nếu thiếu thông tin, chỉ hỏi đúng phần còn thiếu. Chấp nhận họ tên và SĐT cùng một tin nhắn, kể cả khi khách không gắn nhãn; tách số điện thoại khỏi phần tên và chỉ hỏi lại khi thông tin không rõ.
+   - Khi đã có đủ Họ tên và Số điện thoại, tóm tắt thông tin và chờ khách xác nhận trước khi chốt lịch.
 
 4. XÁC NHẬN VÀ CHỐT LỊCH CHÍNH THỨC:
    - Khi đã có đủ Họ tên và SĐT (kèm Email nếu khách có cung cấp), tóm tắt lại thông tin cho khách: Tên, SĐT, Email (nếu có), Dịch vụ, Ngày và Giờ hẹn.
-   - Sau đó BẮT BUỘC gọi công cụ confirm_appointment (hoặc create_appointment) để máy chủ lưu lịch hẹn vào cơ sở dữ liệu.
+   - Chỉ sau khi khách xác nhận tóm tắt, gọi công cụ confirm_appointment để máy chủ kiểm tra lịch lần cuối và lưu lịch hẹn vào cơ sở dữ liệu.
    - TUYỆT ĐỐI KHÔNG tự bịa "Mã booking của bạn là BK-xxxx" khi chưa gọi công cụ confirm_appointment.
    - CHỈ thông báo thành công và cung cấp mã booking thực tế khi công cụ trả về success: true kèm booking_code.
 
@@ -404,18 +666,81 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
     conversation,
   };
 
-  if (activeHoldForConversation) {
-    const currentMessageContact = extractBookingContact(
-      [{ sender_type: 'user', content: userMessage }],
-      null
+  if (isServiceChangeRequest(userMessage)) {
+    if (activeHoldForConversation) {
+      const released = await appointmentService.releaseHoldSlot({
+        holdingToken: activeHoldForConversation.holding_token,
+        guestSessionId,
+      });
+      if (!released) {
+        return {
+          content: 'Dạ, em chưa thể thay đổi dịch vụ vì không cập nhật được khung giờ đang giữ. Anh/chị vui lòng thử lại hoặc chat với nhân viên để được hỗ trợ ạ.',
+          aiConfigured: provider.isConfigured(),
+        };
+      }
+    }
+    const changedServiceRequest = userMessage
+      .replace(/^.*?(?:đổi|thay đổi|thay)\s+(?:dịch vụ\s*)?(?:sang\s+)?/iu, '')
+      .trim();
+    await conversationRepo.updateChatContext(conversationId, {
+      selected_service_ids: [],
+      booking_intent_pending: true,
+      booking_started: false,
+      booking_requested_category: null,
+      booking_service_notes: null,
+      booking_service_just_selected: false,
+      booking_service_consultation_pending: false,
+      booking_service_confirmation_pending: false,
+      booking_confirmation_pending: false,
+      hair_size: null,
+      hair_length_text: null,
+    });
+    if (!changedServiceRequest) {
+      return {
+        content: 'Dạ, anh/chị muốn đổi sang dịch vụ nào ạ?',
+        aiConfigured: provider.isConfigured(),
+      };
+    }
+    const refreshedConversation = await conversationRepo.findById(conversationId);
+    const updatedContext = await conversationContextService.updateConversationContext(
+      conversationId,
+      refreshedConversation,
+      changedServiceRequest,
+      history
     );
+    conversation.chat_context = updatedContext.chat_context;
+    context.conversation = conversation;
+    context.chatContext = updatedContext.chat_context;
+    context.targetDate = updatedContext.chat_context.appointment_date || targetDate;
+  }
+
+  if (activeHoldForConversation) {
     const contact = extractBookingContact(
       [...history, { sender_type: 'user', content: userMessage }],
       conversation
     );
-    const hasCurrentContact = Object.values(currentMessageContact).some(Boolean);
+    const cleanPhone = appointmentService.cleanPhoneNumber(contact.customer_phone);
+    if (contact.customer_phone && !appointmentService.PHONE_REGEX.test(cleanPhone)) {
+      if (contact.customer_name) {
+        await conversationRepo.updateCustomerInfo(conversationId, {
+          name: contact.customer_name,
+        });
+      }
+      return {
+        content: formatInvalidPhoneReply(contact.customer_phone),
+        aiConfigured: provider.isConfigured(),
+      };
+    }
+    if (cleanPhone) contact.customer_phone = cleanPhone;
     const explicitlyConfirmsBooking = isExplicitBookingConfirmation(userMessage);
-    if (contact.customer_name && contact.customer_phone && (hasCurrentContact || explicitlyConfirmsBooking)) {
+    if (contact.customer_name || contact.customer_phone || contact.customer_email) {
+      await conversationRepo.updateCustomerInfo(conversationId, {
+        name: contact.customer_name,
+        phone: contact.customer_phone,
+        email: contact.customer_email,
+      });
+    }
+    if (contact.customer_name && contact.customer_phone && explicitlyConfirmsBooking) {
       const result = JSON.parse(await executeTool('confirm_appointment', {
         customer_name: contact.customer_name,
         customer_phone: contact.customer_phone,
@@ -426,40 +751,229 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
         aiConfigured: provider.isConfigured(),
       };
     }
+    if (contact.customer_name && contact.customer_phone) {
+      return {
+        content: `Dạ, em xác nhận đặt ${activeHoldForConversation.product_name || 'dịch vụ đã chọn'} lúc ${activeHoldForConversation.appointment_time} ngày ${activeHoldForConversation.appointment_date} với họ tên ${contact.customer_name}, số điện thoại ${contact.customer_phone}. Thông tin đã đúng chưa ạ?`,
+        aiConfigured: provider.isConfigured(),
+      };
+    }
+    const missing = [
+      !contact.customer_name ? 'họ tên' : null,
+      !contact.customer_phone ? 'số điện thoại' : null,
+    ].filter(Boolean);
+    return {
+      content: `Dạ, mình vui lòng cung cấp ${missing.join(' và ')} để em hỗ trợ hoàn tất đặt lịch ạ.`,
+      aiConfigured: provider.isConfigured(),
+    };
   }
 
+  const updatedConversation = await conversationContextService.updateConversationContext(
+    conversationId,
+    conversation,
+    userMessage,
+    history
+  );
+  conversation.chat_context = updatedConversation.chat_context;
+  context.conversation = conversation;
+  context.chatContext = updatedConversation.chat_context;
+  context.targetDate = updatedConversation.chat_context.appointment_date || targetDate;
+
   const explicitBookingRequest = /(?:đặt\s*(?:lịch|hẹn|chỗ)|muốn\s*đặt|giữ\s*chỗ)/iu.test(userMessage || '');
-  const requestedTime = extractTimeFromText(userMessage);
-  if (explicitBookingRequest && requestedTime && !isPriceInquiry(userMessage)) {
-    const availableResult = JSON.parse(await executeTool('check_available_slots', {
-      date: targetDate,
-    }, context));
-    if (!availableResult.success) {
-      return {
-        content: 'Dạ, hiện em chưa thể kiểm tra lịch trống. Mình vui lòng thử lại sau hoặc chat với nhân viên để được hỗ trợ ạ.',
-        aiConfigured: provider.isConfigured(),
-      };
+  const hasSelectedService = Array.isArray(context.chatContext.selected_service_ids) &&
+    context.chatContext.selected_service_ids.length > 0;
+  const bookingIsInProgress = context.chatContext.booking_intent_pending ||
+    context.chatContext.booking_started ||
+    context.chatContext.booking_service_confirmation_pending;
+  if (isBroadHairServiceRequest(userMessage)) {
+    if (bookingIsInProgress) {
+      await conversationRepo.updateChatContext(conversationId, {
+        selected_service_ids: [],
+        booking_intent_pending: true,
+        booking_started: false,
+        booking_requested_category: null,
+        booking_service_notes: null,
+        booking_service_just_selected: false,
+        booking_service_confirmation_pending: false,
+        booking_service_consultation_pending: false,
+        booking_confirmation_pending: false,
+        hair_size: null,
+        hair_length_text: null,
+      });
     }
-
-    if (!(availableResult.slots || []).includes(requestedTime)) {
-      const alternatives = availableResult.slots || [];
-      const availability = alternatives.length
-        ? `Ngày ${availableResult.date} hiện còn các khung giờ: ${alternatives.join(', ')}.`
-        : `Ngày ${availableResult.date} hiện không còn khung giờ trống${availableResult.next_date ? `; mình có muốn em kiểm tra ngày ${availableResult.next_date} không ạ` : ''}.`;
-      return {
-        content: `Dạ, khung giờ ${requestedTime} ngày ${availableResult.date} hiện chưa khả dụng. ${availability}`,
-        aiConfigured: provider.isConfigured(),
-      };
-    }
-
-    const holdResult = JSON.parse(await executeTool('hold_appointment_slot', {
-      appointment_date: availableResult.date,
-      appointment_time: requestedTime,
-    }, context));
     return {
-      content: holdResult.success
-        ? `Dạ, em đã giữ chỗ tạm thời lúc ${holdResult.appointment_time} ngày ${holdResult.appointment_date} trong 5 phút. Mình vui lòng cung cấp họ tên và số điện thoại để hoàn tất đặt lịch ạ.`
-        : `Dạ, khung giờ ${requestedTime} ngày ${availableResult.date} vừa không còn khả dụng. ${(holdResult.available_slots || []).length ? `Các giờ còn trống là: ${holdResult.available_slots.join(', ')}.` : 'Mình vui lòng chọn ngày giờ khác để em kiểm tra lại ạ.'}`,
+      content: 'Dạ, anh/chị đang muốn cắt, uốn, nhuộm hay phục hồi tóc ạ? Anh/chị chia sẻ thêm mong muốn để em tư vấn dịch vụ phù hợp nhé.',
+      aiConfigured: provider.isConfigured(),
+    };
+  }
+  if (isBobStyleConsultation(userMessage)) {
+    if (bookingIsInProgress) {
+      const services = (await productRepo.findAll({ status: 'active', page: 1, limit: 1000 })).rows;
+      const haircutService = services.find(service =>
+        service.category_name === 'Cắt tóc' && /cắt tạo kiểu/iu.test(service.name)
+      );
+      if (haircutService) {
+        await conversationRepo.updateChatContext(conversationId, {
+          selected_service_ids: [haircutService.id],
+          booking_intent_pending: false,
+          booking_started: true,
+          booking_service_notes: 'Cắt tóc bob',
+          booking_service_just_selected: false,
+          booking_service_consultation_pending: true,
+          booking_service_confirmation_pending: false,
+          booking_confirmation_pending: false,
+        });
+        context.chatContext.selected_service_ids = [haircutService.id];
+        context.chatContext.booking_started = true;
+        context.chatContext.booking_service_notes = 'Cắt tóc bob';
+        context.chatContext.booking_service_consultation_pending = true;
+        context.chatContext.booking_service_confirmation_pending = false;
+        context.chatContext.booking_confirmation_pending = false;
+      }
+    } else {
+      return {
+        content: 'Dạ, em có thể tư vấn kiểu tóc bob ạ. Anh/chị thích bob ngắn hay bob ngang vai ạ?',
+        aiConfigured: provider.isConfigured(),
+      };
+    }
+    return {
+      content: 'Dạ, em có thể tư vấn kiểu tóc bob ạ. Anh/chị thích bob ngắn hay bob ngang vai ạ?',
+      aiConfigured: provider.isConfigured(),
+    };
+  }
+  if (/\bbob\b/iu.test(userMessage || '') && !bookingIsInProgress && !explicitBookingRequest) {
+    return {
+      content: 'Dạ, anh/chị muốn cắt kiểu tóc bob ạ. Anh/chị muốn tư vấn thêm về kiểu tóc hay muốn đặt lịch cắt tóc ạ?',
+      aiConfigured: provider.isConfigured(),
+    };
+  }
+  const bookingFlowPendingService = (
+    context.chatContext.booking_intent_pending ||
+    context.chatContext.booking_started ||
+    explicitBookingRequest
+  ) && !hasSelectedService;
+  if (
+    bookingFlowPendingService &&
+    (servicePricing.isPriceQuestion(userMessage) || context.chatContext.pricing_inquiry_active)
+  ) {
+    const pricingResult = await servicePricing.resolvePriceInquiry({
+      userMessage,
+      history,
+      conversation,
+    });
+    if (pricingResult?.handled) {
+      return {
+        content: pricingResult.content,
+        aiConfigured: provider.isConfigured(),
+      };
+    }
+  }
+  if (
+    context.chatContext.booking_intent_pending &&
+    context.chatContext.booking_requested_category &&
+    !hasSelectedService
+  ) {
+    if (context.chatContext.booking_requested_category === 'Nhuộm tóc') {
+      return {
+        content: 'Dạ, anh/chị muốn nhuộm tóc màu nào ạ? Anh/chị cho em biết thêm độ dài tóc để em tư vấn dịch vụ phù hợp nhé.',
+        aiConfigured: provider.isConfigured(),
+      };
+    }
+    if (context.chatContext.booking_requested_category === 'Uốn tóc') {
+      return {
+        content: 'Dạ, anh/chị muốn uốn kiểu nào ạ? Anh/chị cho em biết tóc hiện tại dài khoảng bao nhiêu để em kiểm tra dịch vụ phù hợp nhé.',
+        aiConfigured: provider.isConfigured(),
+      };
+    }
+    const services = (await productRepo.findAll({ status: 'active', page: 1, limit: 1000 })).rows;
+    const choices = servicePricing.findCategoryMatches(
+      context.chatContext.booking_requested_category,
+      services
+    ).map(service => service.name);
+    return {
+      content: `Dạ, nhóm ${context.chatContext.booking_requested_category} hiện có các dịch vụ: ${choices.join(', ')}. Anh/chị muốn đặt dịch vụ nào ạ?`,
+      aiConfigured: provider.isConfigured(),
+    };
+  }
+  if (bookingFlowPendingService) {
+    if (!context.chatContext.booking_intent_pending || context.chatContext.booking_started) {
+      await conversationRepo.updateChatContext(conversationId, {
+        booking_intent_pending: true,
+        booking_started: false,
+        booking_confirmation_pending: false,
+      });
+    }
+    if (/(?:bạn biết|em biết|anh\/chị.*biết).*(?:dịch vụ|làm gì)|dịch vụ.*(?:của tôi|tôi làm)/iu.test(userMessage || '')) {
+      return {
+        content: 'Dạ, hiện tại em chưa nhận được thông tin về dịch vụ anh/chị muốn sử dụng. Anh/chị muốn làm dịch vụ nào để em tư vấn ạ?',
+        aiConfigured: provider.isConfigured(),
+      };
+    }
+    return {
+      content: 'Dạ, anh/chị muốn đặt lịch sử dụng dịch vụ gì ạ? Nếu mình chưa rõ, anh/chị có thể chia sẻ mong muốn về mái tóc để em tư vấn các dịch vụ phù hợp như cắt, uốn, nhuộm hoặc phục hồi tóc ạ.',
+      aiConfigured: provider.isConfigured(),
+    };
+  }
+
+  const selectedServices = await Promise.all(
+    (context.chatContext.selected_service_ids || []).map(id => productRepo.findById(id))
+  );
+  const isDyeService = selectedServices.some(service =>
+    /nhuộm/iu.test(`${service?.name || ''} ${service?.category_name || ''}`)
+  );
+  if (context.chatContext.booking_started && isDyeService) {
+    const serviceNotes = context.chatContext.booking_service_notes || '';
+    const hasDyeColor = /(?:màu|nâu|vàng|khói|trà\s*sữa|rêu|đỏ|đen|tím|hạt\s*dẻ)/iu.test(serviceNotes);
+    const hasHairLength = Boolean(
+      context.chatContext.hair_size ||
+      context.chatContext.hair_length_text ||
+      servicePricing.parseHairSize(serviceNotes)?.size
+    );
+    const missingDetails = [
+      !hasDyeColor ? 'màu nhuộm mong muốn' : null,
+      !hasHairLength ? 'độ dài tóc hiện tại' : null,
+    ].filter(Boolean);
+    if (missingDetails.length) {
+      return {
+        content: `Dạ, để tư vấn dịch vụ nhuộm phù hợp, anh/chị cho em biết thêm ${missingDetails.join(' và ')} ạ.`,
+        aiConfigured: provider.isConfigured(),
+      };
+    }
+  }
+
+  const knownContact = extractBookingContact(
+    [...history, { sender_type: 'user', content: userMessage }],
+    conversation
+  );
+  const cleanKnownPhone = appointmentService.cleanPhoneNumber(knownContact.customer_phone);
+  if (knownContact.customer_phone && appointmentService.PHONE_REGEX.test(cleanKnownPhone)) {
+    knownContact.customer_phone = cleanKnownPhone;
+  } else if (knownContact.customer_phone) {
+    knownContact.customer_phone = '';
+  }
+  if (knownContact.customer_name || knownContact.customer_phone || knownContact.customer_email) {
+    await conversationRepo.updateCustomerInfo(conversationId, {
+      name: knownContact.customer_name,
+      phone: knownContact.customer_phone,
+      email: knownContact.customer_email,
+    });
+  }
+
+  const bookingReply = await handleBookingContinuation(userMessage, context);
+  if (bookingReply) {
+    return {
+      content: bookingReply,
+      aiConfigured: provider.isConfigured(),
+    };
+  }
+
+  const pricingResult = await servicePricing.resolvePriceInquiry({
+    userMessage,
+    history,
+    conversation,
+  });
+  if (pricingResult?.handled) {
+    return {
+      content: pricingResult.content,
       aiConfigured: provider.isConfigured(),
     };
   }
@@ -468,6 +982,13 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
     return {
       content: 'Xin lỗi, tính năng AI chưa được cấu hình. Bạn có thể bấm "Chat với nhân viên" để được hỗ trợ trực tiếp.',
       aiConfigured: false,
+    };
+  }
+
+  if (isGenericHaircutRequest(userMessage)) {
+    return {
+      content: 'Dạ, tiệm có một số dịch vụ cắt và tạo kiểu ạ. Mình muốn tỉa gọn, cắt ngắn hay thử kiểu mới? Nếu chưa chọn được, em có thể gợi ý các kiểu tiệm đang có nhé!',
+      aiConfigured: true,
     };
   }
 
@@ -495,7 +1016,7 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
   let finalContent = null;
   let checkedSlotsResult = null;
   let persistedBookingResult = null;
-  const allowedTools = getAllowedTools(userMessage, history, Boolean(activeHoldForConversation));
+  const allowedTools = getAllowedTools(userMessage, history);
   const allowedToolNames = new Set(allowedTools.map(tool => tool.function.name));
 
   try {
@@ -710,6 +1231,7 @@ module.exports = {
   chat,
   detectConfirmation,
   isGreetingOnly,
+  extractBookingContact,
   extractToolCallsFromContent,
   formatSlotsReply,
   buildSystemPrompt,

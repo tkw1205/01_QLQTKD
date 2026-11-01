@@ -19,6 +19,14 @@ describe('Schedule Management & Staff Drag-and-Drop Reassignment Test Suite', ()
 
   const testDate = '2027-06-15';
 
+  function getActiveService(slug) {
+    const service = jsonStore.getCollection('products').find(product =>
+      product.status === 'active' && product.slug === slug
+    );
+    assert.ok(service, `Active service ${slug} must exist`);
+    return service;
+  }
+
   before(async () => {
     // 1. Login Admin
     const adminLogin = await authService.login('admin@example.com', 'Admin@123456');
@@ -423,9 +431,8 @@ describe('Schedule Management & Staff Drag-and-Drop Reassignment Test Suite', ()
 
   // ─── BỔ SUNG: TẠO LỊCH HẸN TRỰC TIẾP TRÊN SCHEDULE ───
   test('12. Tạo lịch hẹn trực tiếp trên Schedule (Multi-service): Tính tổng thời lượng, tổng giá, lưu thợ & confirmed', async () => {
-    const products = jsonStore.getCollection('products');
-    const p1 = products[0]; // e.g. Cắt tạo kiểu
-    const p2 = products[1]; // e.g. Gội đầu
+    const p1 = getActiveService('cat-tao-kieu');
+    const p2 = getActiveService('goi-dau');
 
     const res = await apiRequest('/api/appointments', {
       method: 'POST',
@@ -451,7 +458,8 @@ describe('Schedule Management & Staff Drag-and-Drop Reassignment Test Suite', ()
     assert.equal(data.staff_id, staff1.id);
     assert.equal(data.status, 'confirmed');
 
-    const expectedDuration = (Number(p1.duration_minutes) || 30) + (Number(p2.duration_minutes) || 30);
+    const expectedDuration = [p1, p2].reduce((total, service) =>
+      total + (Number(service.prices_by_size?.S?.duration ?? service.duration_minutes ?? service.duration) || 30), 0);
     const expectedPrice = (Number(p1.price) || 0) + (Number(p2.price) || 0);
     assert.equal(data.duration_minutes, expectedDuration);
     assert.equal(data.price, expectedPrice);
@@ -463,8 +471,7 @@ describe('Schedule Management & Staff Drag-and-Drop Reassignment Test Suite', ()
   });
 
   test('13. Tạo lịch hẹn từ chối nếu thời gian kết thúc vượt quá giờ đóng cửa salon (20:30)', async () => {
-    const products = jsonStore.getCollection('products');
-    const p1 = products[0];
+    const p1 = getActiveService('cat-tao-kieu');
 
     const res = await apiRequest('/api/appointments', {
       method: 'POST',
@@ -486,8 +493,7 @@ describe('Schedule Management & Staff Drag-and-Drop Reassignment Test Suite', ()
   });
 
   test('14. Tạo lịch hẹn từ chối nếu thợ được chọn đã có lịch trùng giờ', async () => {
-    const products = jsonStore.getCollection('products');
-    const p1 = products[0];
+    const p1 = getActiveService('cat-tao-kieu');
 
     // staff1 đã có lịch hẹn ở test 12 lúc 13:00 (kéo dài đến 14:00)
     const res = await apiRequest('/api/appointments', {

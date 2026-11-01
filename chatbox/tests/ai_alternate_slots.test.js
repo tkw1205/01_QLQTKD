@@ -9,10 +9,12 @@ const conversationService = require('../src/services/conversationService');
 const conversationRepo = require('../src/repositories/conversationRepository');
 const messageRepo = require('../src/repositories/messageRepository');
 const appointmentRepo = require('../src/repositories/appointmentRepository');
+const productRepository = require('../src/repositories/productRepository');
 const jsonStore = require('../src/config/jsonStore');
 
 describe('AI Alternate Slots & Booking Flow Test Suite', () => {
   const testGuestId = 'guest-test-alternate-slots';
+  const isolatedBookingSessions = [];
   let testConvId;
   const tomorrow = getVietnamDate(1);
   const nextDay = getNextDate(tomorrow);
@@ -25,6 +27,13 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
 
     const conv = await conversationService.getOrCreate({ guestSessionId: testGuestId });
     testConvId = conv.id;
+    await conversationRepo.updateChatContext(testConvId, {
+      booking_intent_pending: false,
+      booking_started: false,
+      booking_requested_category: null,
+      selected_service_ids: [],
+      booking_confirmation_pending: false,
+    });
   });
 
   after(async () => {
@@ -32,6 +41,16 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
     const appts = jsonStore.loadCollection('appointments', []);
     const cleaned = appts.filter(a => !a.customer_email?.includes('test-alternate') && a.conversation_id !== testConvId && a.id !== 'mock-occupied-1030');
     jsonStore.saveCollection('appointments', cleaned);
+    const isolatedSessionIds = new Set(isolatedBookingSessions.map(item => item.guestSessionId));
+    const isolatedConversationIds = new Set(isolatedBookingSessions.map(item => item.conversationId));
+    jsonStore.saveCollection(
+      'conversations',
+      jsonStore.loadCollection('conversations').filter(item => !isolatedSessionIds.has(item.guest_session_id))
+    );
+    jsonStore.saveCollection(
+      'messages',
+      jsonStore.loadCollection('messages').filter(item => !isolatedConversationIds.has(item.conversation_id))
+    );
   });
 
   test('1. Tình huống 1: Khách đặt lúc 10:30 ngày mai nhưng giờ đó đã kín -> AI báo kín, KHÔNG được thông báo giữ chỗ 10 phút', async () => {
@@ -50,67 +69,18 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
     });
     jsonStore.saveCollection('appointments', appointments);
 
-    // 1.2 Giả lập LLM gọi tool hold_appointment_slot cho 10:30
-    const originalChat = provider.chat;
-    let turn = 0;
-    provider.chat = async ({ messages }) => {
-      turn++;
-      if (turn === 1) {
-        return {
-          choices: [{
-            finish_reason: 'stop',
-            message: {
-              role: 'assistant',
-              content: null,
-              tool_calls: [{
-                id: 'call_hold_1',
-                type: 'function',
-                function: {
-                  name: 'hold_appointment_slot',
-                  arguments: JSON.stringify({ appointment_date: tomorrow, appointment_time: '10:30' })
-                }
-              }]
-            }
-          }]
-        };
-      } else {
-        // Lần 2: Giả sử LLM nhận kết quả thất bại từ tool
-        const toolMsg = messages.find(m => m.role === 'tool');
-        const toolData = JSON.parse(toolMsg.content);
-        assert.equal(toolData.success, false, 'Tool hold phải trả về false khi trùng');
-        assert.ok(toolData.code === 'SLOT_CONFLICT' || toolData.code === 'SLOT_UNAVAILABLE');
+    const guestSessionId = `guest-test-alternate-conflict-${Date.now()}`;
+    const conversation = await conversationService.getOrCreate({ guestSessionId });
+    isolatedBookingSessions.push({ guestSessionId, conversationId: conversation.id });
+    const res = await orchestrator.chat({
+      conversationId: conversation.id,
+      guestSessionId,
+      userMessage: 'Tôi muốn đặt lịch Uốn mái / phồng mái lúc 10:30 ngày mai'
+    });
 
-        // Thử xem nếu LLM vô tình sinh câu ảo tưởng có bị filter không
-        return {
-          choices: [{
-            finish_reason: 'stop',
-            message: {
-              role: 'assistant',
-              content: `Dạ xin lỗi bạn, khung giờ 10:30 ngày mai (${tomorrow}) đã có khách đặt trước rồi ạ. Chúng tôi sẽ giữ chỗ tạm thời cho bạn trong 5 phút. Bạn có muốn đổi sang khung giờ khác không ạ?`
-            }
-          }]
-        };
-      }
-    };
-
-    try {
-      const res = await orchestrator.chat({
-        conversationId: testConvId,
-        guestSessionId: testGuestId,
-        userMessage: 'Tôi muốn đặt lịch lúc 10:30 ngày mai'
-      });
-
-      assert.equal(res.aiConfigured, true);
-      // Kiểm tra tuyệt đối KHÔNG có câu giữ chỗ 5 phút khi slot bị kín
-      assert.doesNotMatch(res.content, /giữ chỗ tạm thời.*(?:5|10) phút/i, 'KHÔNG được thông báo giữ chỗ khi slot đã kín');
-      assert.match(res.content, /10:30|đã có khách đặt|không còn trống|đã kín/i, 'Phải thông báo rõ khung giờ đó đã kín');
-
-      // Lưu tin nhắn vào lịch sử để chuẩn bị cho turn 2
-      await messageRepo.create({ conversationId: testConvId, senderType: 'user', content: 'Tôi muốn đặt lịch lúc 10:30 ngày mai' });
-      await messageRepo.create({ conversationId: testConvId, senderType: 'assistant', content: res.content });
-    } finally {
-      provider.chat = originalChat;
-    }
+    assert.match(res.content, /10:30|đã có khách đặt|không còn trống|đã kín/i, 'Phải thông báo rõ khung giờ đó đã kín');
+    assert.doesNotMatch(res.content, /giữ chỗ tạm thời.*(?:5|10) phút/i, 'KHÔNG được thông báo giữ chỗ khi slot đã kín');
+    assert.equal(await appointmentRepo.findActiveHoldByConversation(conversation.id), null);
   });
 
   test('2. Tình huống 2: Khách hỏi "Còn trống khung giờ khác không?" -> AI tự gọi check_available_slots và trả về danh sách giờ trống', async () => {
@@ -229,84 +199,35 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
     }
   });
 
-  test('4. Tình huống 3: Khách chọn một giờ trong danh sách ("Mình chọn 11:00") -> AI gọi hold_appointment_slot và tiếp tục đặt lịch', async () => {
-    // Đảm bảo khung giờ 11:00 ngày mai và conversation chưa có hold nào trước khi test
-    const appts = jsonStore.getCollection('appointments');
-    const cleaned = appts.filter(a => {
-      if (a.conversation_id === testConvId) return false;
-      if (a.appointment_date === tomorrow) {
-        if (!a.appointment_time) return false;
-        const [h, m] = a.appointment_time.split(':').map(Number);
-        const start = h * 60 + m;
-        const end = start + (a.duration_minutes || 30);
-        // Overlaps with 11:00-11:30 (660 - 690) if start < 690 && end > 660
-        if (start < 690 && end > 660) return false;
-      }
-      return true;
+  test('4. Khách chọn giờ còn trống -> AI yêu cầu thông tin nhưng không giữ chỗ tạm thời', async () => {
+    const guestSessionId = `guest-test-alternate-selection-${Date.now()}`;
+    const conversation = await conversationService.getOrCreate({ guestSessionId });
+    isolatedBookingSessions.push({ guestSessionId, conversationId: conversation.id });
+    const service = (await productRepository.findAll({ status: 'active', page: 1, limit: 1000 }))
+      .rows.find(item => item.name === 'Uốn mái / phồng mái');
+    assert.ok(service);
+    const available = JSON.parse(await executeTool('check_available_slots', {
+      date: tomorrow,
+      product_ids: [service.id],
+    }, { conversationId: conversation.id, guestSessionId }));
+    assert.ok(available.slots.length > 0);
+    const selectedTime = available.slots[0];
+
+    await orchestrator.chat({
+      conversationId: conversation.id,
+      guestSessionId,
+      userMessage: 'Tôi muốn đặt lịch Uốn mái / phồng mái ngày mai'
     });
-    jsonStore.saveCollection('appointments', cleaned);
+    const res = await orchestrator.chat({
+      conversationId: conversation.id,
+      guestSessionId,
+      userMessage: `Mình chọn ${selectedTime}`
+    });
 
-    const originalChat = provider.chat;
-
-    provider.chat = async ({ messages }) => {
-      const lastMsg = messages[messages.length - 1];
-      if (lastMsg.role === 'tool') {
-        const toolData = JSON.parse(lastMsg.content);
-        assert.equal(toolData.success, true);
-        assert.equal(toolData.appointment_time, '11:00');
-        assert.ok(toolData.holding_token);
-
-        return {
-          choices: [{
-            finish_reason: 'stop',
-            message: {
-              role: 'assistant',
-              content: `Dạ em đã giữ chỗ tạm thời khung giờ 11:00 ngày mai (${tomorrow}) cho bạn trong 5 phút rồi ạ. Bạn vui lòng cho em xin Họ tên và Số điện thoại (Email không bắt buộc) để salon xác nhận lịch hẹn nhé!`
-            }
-          }]
-        };
-      }
-
-      // LLM nhận ra khách chọn 11:00 -> gọi hold_appointment_slot
-      return {
-        choices: [{
-          finish_reason: 'stop',
-          message: {
-            role: 'assistant',
-            content: null,
-            tool_calls: [{
-              id: 'call_hold_1100',
-              type: 'function',
-              function: {
-                name: 'hold_appointment_slot',
-                arguments: JSON.stringify({ appointment_date: tomorrow, appointment_time: '11:00' })
-              }
-            }]
-          }
-        }]
-      };
-    };
-
-    try {
-      const res = await orchestrator.chat({
-        conversationId: testConvId,
-        guestSessionId: testGuestId,
-        userMessage: 'Mình chọn 11:00'
-      });
-
-      assert.equal(res.aiConfigured, true);
-      assert.match(res.content, /11:00/);
-      assert.match(res.content, /giữ chỗ tạm thời.*5 phút/i, 'Khi giữ chỗ thành công thì được thông báo 5 phút');
-      assert.match(res.content, /họ tên|số điện thoại/i, 'Tiếp tục thu thập thông tin cá nhân khách');
-
-      // Kiểm tra trong DB xem đã có bản ghi holding chưa
-      const activeHold = await appointmentRepo.findActiveHoldByConversation(testConvId);
-      assert.ok(activeHold, 'Phải có active hold trong database');
-      assert.equal(activeHold.appointment_time, '11:00');
-      assert.equal(activeHold.appointment_date, tomorrow);
-    } finally {
-      provider.chat = originalChat;
-    }
+    assert.match(res.content, new RegExp(selectedTime));
+    assert.match(res.content, /họ tên|số điện thoại/i, 'Tiếp tục thu thập thông tin cá nhân khách');
+    assert.doesNotMatch(res.content, /giữ chỗ tạm thời/i);
+    assert.equal(await appointmentRepo.findActiveHoldByConversation(conversation.id), null);
   });
 
   test('5. Tình huống 4: Ngày đó kín toàn bộ lịch -> AI thông báo kín và chủ động đề xuất kiểm tra ngày tiếp theo', async () => {

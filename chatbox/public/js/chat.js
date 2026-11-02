@@ -15,6 +15,8 @@ class ChatWidget {
   initElements() {
     this.fab = document.getElementById('chat-fab');
     this.window = document.getElementById('chat-window');
+    this.navToggle = document.getElementById('nav-toggle');
+    this.navMenu = document.getElementById('nav-menu');
     this.btnClose = document.getElementById('btn-close-chat');
     this.messagesContainer = document.getElementById('chat-messages');
     this.input = document.getElementById('chat-input');
@@ -29,6 +31,32 @@ class ChatWidget {
   }
 
   bindEvents() {
+    if (this.navToggle && this.navMenu) {
+      this.navToggle.addEventListener('click', () => {
+        const isOpen = this.navMenu.classList.toggle('open');
+        this.navToggle.setAttribute('aria-expanded', String(isOpen));
+      });
+      this.navMenu.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => {
+          this.navMenu.classList.remove('open');
+          this.navToggle.setAttribute('aria-expanded', 'false');
+        });
+      });
+    }
+
+    document.addEventListener('click', (event) => {
+      if (!(event.target instanceof Element)) return;
+      const productButton = event.target.closest('[data-chat-product-id]');
+      if (productButton) {
+        this.openChat(productButton.dataset.chatProductId);
+        return;
+      }
+
+      if (event.target.closest('[data-open-chat]')) {
+        this.openChat();
+      }
+    });
+
     if (this.fab) {
       this.fab.addEventListener('click', () => this.toggleChat());
     }
@@ -61,13 +89,6 @@ class ChatWidget {
     }
   }
 
-  setProductContext(productId, productName) {
-    this.productContextId = productId;
-    if (this.isOpen) {
-      this.loadConversation();
-    }
-  }
-
   async toggleChat() {
     if (this.isOpen) {
       this.closeChat();
@@ -76,10 +97,13 @@ class ChatWidget {
     }
   }
 
-  async openChat() {
+  async openChat(productId = null) {
+    const productChanged = productId !== null && productId !== this.productContextId;
+    if (productId !== null) this.productContextId = productId;
+
     this.isOpen = true;
     if (this.window) this.window.classList.add('open');
-    if (!this.conversation) {
+    if (!this.conversation || productChanged) {
       await this.loadConversation();
     }
     this.scrollToBottom();
@@ -337,7 +361,7 @@ class ChatWidget {
     if (!messages || messages.length === 0) {
       this.appendMessage({
         sender_type: 'assistant',
-        content: 'Xin chào! Em là Trợ lý AI của Salon Lumière. Em có thể tư vấn các gói dịch vụ làm tóc và hỗ trợ anh/chị đặt lịch hẹn nhanh chóng. Anh/chị cần em hỗ trợ gì hôm nay ạ?',
+        content: 'Xin chào quý khách! Em là AI tư vấn của salon. Em có thể hỗ trợ mình tìm hiểu dịch vụ, tham khảo giá và thời gian thực hiện hoặc hướng dẫn đặt lịch trực tuyến. Mình cần tư vấn nội dung nào ạ?',
         created_at: new Date().toISOString()
       });
       return;
@@ -557,4 +581,3 @@ class ChatWidget {
 window.addEventListener('DOMContentLoaded', () => {
   window.chatWidget = new ChatWidget();
 });
-

@@ -17,11 +17,13 @@
         <span class="brand-logo-pill">M</span>
         <span id="site-name">Mây Hair Studio</span>
       </a>
-      <ul class="navbar-nav">
+      <button class="navbar-toggle" id="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <ul class="navbar-nav" id="nav-menu">
         <li><a href="/">Trang chủ</a></li>
-        <li><a href="/products.html" style="color: var(--primary); font-weight: 600;">Dịch vụ & Bảng giá</a></li>
-        <li><a href="/appointments.html">Tra cứu lịch hẹn</a></li>
-        <li><a href="/chat.html">Phòng Chat</a></li>
+        <li><a href="/products.html">Tất cả dịch vụ</a></li>
+        <li><a href="/#danh-gia">Đánh giá</a></li>
+        <li><a href="/#lien-he">Liên hệ</a></li>
+        <li><a href="/account.html">Đăng ký/Đăng nhập</a></li>
       </ul>
     </div>
   </header>
@@ -80,7 +82,7 @@
     </div>
     <div id="chat-input-area">
       <div id="chat-actions">
-        <button id="btn-switch-agent">👨‍💼 Chat với Stylist</button>
+        <button id="btn-switch-agent">👨‍💼 Chat với chuyên viên tư vấn</button>
         <button id="btn-switch-ai" style="display: none;">🤖 Quay lại Trợ lý Mây</button>
       </div>
       <div id="chat-input-row">
@@ -144,11 +146,11 @@
               <div class="card-body">
                 <div class="badge badge-info mb-1">${p.category_name || 'Dịch vụ tóc'}</div>
                 <h3 style="font-size: 1.15rem;">${p.name}</h3>
-                <div class="price">${API.formatCurrency(p.price)}</div>
+                <div class="price">${API.formatProductPrice(p)}</div>
                 <p class="desc">${p.description || 'Chưa có mô tả chi tiết.'}</p>
                 <div class="flex gap-1 mt-2">
-                  <a href="/product-detail.html?id=${p.id}" class="btn btn-sm btn-outline flex-1" style="justify-content: center;">Chi tiết</a>
-                  <button class="btn btn-sm btn-primary" onclick="window.chatWidget.openChat(); window.chatWidget.setProductContext('${p.id}', '${p.name}')">Đặt lịch</button>
+                  <button class="btn btn-sm btn-primary flex-1" data-chat-product-id="${p.id}" style="justify-content: center;">Tư vấn ngay</button>
+                  <a href="/product-detail.html?id=${encodeURIComponent(p.id)}" class="btn btn-sm btn-outline flex-1" style="justify-content: center;">Chi tiết</a>
                 </div>
               </div>
             </div>

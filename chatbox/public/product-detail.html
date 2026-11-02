@@ -17,11 +17,13 @@
         <span class="brand-logo-pill">M</span>
         <span>Mây Hair Studio</span>
       </a>
-      <ul class="navbar-nav">
+      <button class="navbar-toggle" id="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
+      <ul class="navbar-nav" id="nav-menu">
         <li><a href="/">Trang chủ</a></li>
-        <li><a href="/products.html">Dịch vụ & Bảng giá</a></li>
-        <li><a href="/appointments.html">Tra cứu lịch hẹn</a></li>
-        <li><a href="/chat.html">Phòng Chat</a></li>
+        <li><a href="/products.html">Tất cả dịch vụ</a></li>
+        <li><a href="/#danh-gia">Đánh giá</a></li>
+        <li><a href="/#lien-he">Liên hệ</a></li>
+        <li><a href="/account.html">Đăng ký/Đăng nhập</a></li>
       </ul>
     </div>
   </header>
@@ -59,7 +61,7 @@
     </div>
     <div id="chat-input-area">
       <div id="chat-actions">
-        <button id="btn-switch-agent">👨‍💼 Chat với Stylist</button>
+        <button id="btn-switch-agent">👨‍💼 Chat với chuyên viên tư vấn</button>
         <button id="btn-switch-ai" style="display: none;">🤖 Quay lại Trợ lý Mây</button>
       </div>
       <div id="chat-input-row">
@@ -100,7 +102,7 @@
                   <div class="badge badge-info mb-1">${p.category_name || 'Dịch vụ salon tóc'}</div>
                   <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem; font-family: 'Playfair Display', Georgia, serif;">${p.name}</h1>
                   <div class="price" style="font-size: 1.6rem; color: var(--primary); font-weight: 700; margin-bottom: 1rem;">
-                    ${API.formatCurrency(p.price)}
+                    ${API.formatProductPrice(p)}
                   </div>
                   <div style="line-height: 1.8; color: var(--text-muted); margin-bottom: 1.5rem; font-size: 1rem;">
                     ${p.description || 'Chưa có thông tin mô tả chi tiết cho dịch vụ này.'}
@@ -121,7 +123,7 @@
                   <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.6;">
                     Trợ lý ảo Mây và các chuyên viên salon sẵn sàng giải đáp thắc mắc và kiểm tra khung giờ còn trống cho bạn ngay bây giờ.
                   </p>
-                  <button class="btn btn-primary btn-full" onclick="startConsultation('${p.id}', '${p.name}')">
+                  <button class="btn btn-primary btn-full" data-chat-product-id="${p.id}">
                     💬 Tư vấn & Đặt lịch hẹn dịch vụ này
                   </button>
                 </div>
@@ -131,17 +133,6 @@
         }
       } catch (err) {
         container.innerHTML = `<div class="alert alert-danger">${err.message || 'Lỗi khi tải thông tin dịch vụ'}</div>`;
-      }
-    }
-
-    function startConsultation(productId, productName) {
-      if (window.chatWidget) {
-        window.chatWidget.openChat();
-        window.chatWidget.setProductContext(productId, productName);
-        const input = document.getElementById('chat-input');
-        if (input && !input.value) {
-          input.value = `Dạ chào salon! Tôi muốn tư vấn và đặt lịch cho dịch vụ: ${productName}`;
-        }
       }
     }
 

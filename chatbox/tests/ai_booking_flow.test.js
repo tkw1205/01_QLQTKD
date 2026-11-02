@@ -5,8 +5,11 @@ const http = require('http');
 
 const { app } = require('../src/app');
 const { executeTool } = require('../src/ai/tools');
+const orchestrator = require('../src/ai/orchestrator');
+const provider = require('../src/ai/provider');
 const appointmentService = require('../src/services/appointmentService');
 const appointmentRepo = require('../src/repositories/appointmentRepository');
+const productRepository = require('../src/repositories/productRepository');
 const conversationService = require('../src/services/conversationService');
 const conversationRepo = require('../src/repositories/conversationRepository');
 const jsonStore = require('../src/config/jsonStore');
@@ -18,6 +21,7 @@ describe('AI Booking Flow, Email Validation & Admin Sync Test Suite', () => {
   const testGuestId = 'guest-test-ai-booking-flow';
   const testDate = '2027-05-20';
   const testTime = '11:00';
+  const isolatedBookingSessions = [];
   const context = {
     conversationId: testConvId,
     guestSessionId: testGuestId
@@ -32,9 +36,6 @@ describe('AI Booking Flow, Email Validation & Admin Sync Test Suite', () => {
     const appts = jsonStore.loadCollection('appointments', []);
     const cleaned = appts.filter(a => a.customer_email !== 'nguyenvanan@example.com' && a.conversation_id !== testConvId && a.appointment_date !== testDate && a.appointment_date !== '2027-05-22');
     jsonStore.saveCollection('appointments', cleaned);
-
-    // 2. Ensure test conversation exists
-    await conversationService.getOrCreate(testGuestId, null);
 
     // 3. Start test HTTP server
     server = http.createServer(app);
@@ -51,6 +52,16 @@ describe('AI Booking Flow, Email Validation & Admin Sync Test Suite', () => {
     const appts = jsonStore.loadCollection('appointments', []);
     const cleaned = appts.filter(a => a.customer_email !== 'nguyenvanan@example.com' && a.conversation_id !== testConvId && a.appointment_date !== testDate && a.appointment_date !== '2027-05-22');
     jsonStore.saveCollection('appointments', cleaned);
+    const isolatedSessionIds = new Set(isolatedBookingSessions.map(item => item.guestSessionId));
+    const isolatedConversationIds = new Set(isolatedBookingSessions.map(item => item.conversationId));
+    jsonStore.saveCollection(
+      'conversations',
+      jsonStore.loadCollection('conversations').filter(item => !isolatedSessionIds.has(item.guest_session_id))
+    );
+    jsonStore.saveCollection(
+      'messages',
+      jsonStore.loadCollection('messages').filter(item => !isolatedConversationIds.has(item.conversation_id))
+    );
 
     if (server) {
       if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
@@ -116,6 +127,111 @@ describe('AI Booking Flow, Email Validation & Admin Sync Test Suite', () => {
 
     assert.equal(confirmRes.success, false);
     assert.equal(confirmRes.code, 'INVALID_PHONE');
+  });
+
+  test('3.1 LLM thu thập/xác nhận hội thoại và backend giữ/chốt đúng giờ', async t => {
+    const originalChat = provider.chat;
+    const originalIsConfigured = provider.isConfigured;
+    const providerPrompts = [];
+    t.after(() => {
+      provider.chat = originalChat;
+      provider.isConfigured = originalIsConfigured;
+    });
+    provider.isConfigured = () => true;
+    provider.chat = async ({ messages }) => {
+      const prompt = messages.find(message => message.role === 'system')?.content || '';
+      providerPrompts.push(prompt);
+      const latestUserMessage = [...messages].reverse()
+        .find(message => message.role === 'user')?.content || '';
+      const selectedTime = latestUserMessage.match(/\b\d{2}:\d{2}\b/u)?.[0] ||
+        prompt.match(/^- Giờ khách chọn: (.+)$/m)?.[1];
+      if (/Nguyễn Văn A/u.test(latestUserMessage)) {
+        return {
+          choices: [{
+            message: {
+              role: 'assistant',
+              content: 'Dạ, thông tin đặt lịch của Nguyễn Văn A, 0927392930 đã được ghi nhận. Anh/chị xác nhận đặt lịch nhé ạ?',
+            },
+          }],
+        };
+      }
+      return {
+        choices: [{
+          message: {
+            role: 'assistant',
+            content: `Dạ, khung giờ ${selectedTime} hiện còn trống và đã được giữ. Anh/chị vui lòng cung cấp họ tên và số điện thoại ạ.`,
+          },
+        }],
+      };
+    };
+
+    const guestSessionId = `guest-test-booking-confirmation-${Date.now()}`;
+    const bookingConversation = await conversationService.getOrCreate(guestSessionId, null);
+    isolatedBookingSessions.push({
+      guestSessionId,
+      conversationId: bookingConversation.id,
+    });
+    const services = (await productRepository.findAll({ status: 'active', page: 1, limit: 1000 })).rows;
+    const service = services.find(item => item.name === 'Uốn mái / phồng mái');
+    assert.ok(service);
+    const available = JSON.parse(await executeTool('check_available_slots', {
+      date: testDate,
+      product_ids: [service.id],
+    }, { conversationId: bookingConversation.id, guestSessionId }));
+    assert.ok(available.slots.length > 0);
+    const selectedTime = available.slots[0];
+
+    const availableReply = await orchestrator.chat({
+      conversationId: bookingConversation.id,
+      guestSessionId,
+      userMessage: `Tôi muốn đặt lịch ${service.name} ngày ${testDate} lúc ${selectedTime}`,
+    });
+    assert.match(availableReply.content, /hiện còn trống/u);
+    assert.match(availableReply.content, /họ tên và số điện thoại/u);
+    const activeHold = await appointmentRepo.findActiveHoldByConversation(bookingConversation.id);
+    assert.equal(activeHold.appointment_time, selectedTime);
+    assert.match(providerPrompts[0], new RegExp(service.name));
+    assert.match(providerPrompts[0], new RegExp(testDate));
+    assert.match(providerPrompts[0], new RegExp(selectedTime));
+
+    const contactReply = await orchestrator.chat({
+      conversationId: bookingConversation.id,
+      guestSessionId,
+      userMessage: 'Nguyễn Văn A 0927392930',
+    });
+    assert.match(contactReply.content, /thông tin đặt lịch/iu);
+    assert.match(contactReply.content, /0927392930/u);
+    assert.match(contactReply.content, /xác nhận/u);
+    assert.match(providerPrompts[1], /Nguyễn Văn A/u);
+    assert.match(providerPrompts[1], /0927392930/u);
+    const pendingAppointment = jsonStore.loadCollection('appointments').find(a =>
+        a.conversation_id === bookingConversation.id &&
+        a.appointment_date === testDate &&
+        a.appointment_time === selectedTime
+    );
+    assert.equal(pendingAppointment.status, 'holding');
+    assert.equal(providerPrompts.length, 2);
+
+    const confirmationReply = await orchestrator.chat({
+      conversationId: bookingConversation.id,
+      guestSessionId,
+      userMessage: 'Đúng rồi',
+    });
+    assert.match(confirmationReply.content, /xác nhận lịch hẹn thành công/u);
+    const appointment = jsonStore.loadCollection('appointments').find(a =>
+      a.conversation_id === bookingConversation.id &&
+      a.appointment_date === testDate &&
+      a.appointment_time === selectedTime
+    );
+    assert.ok(appointment);
+    assert.equal(appointment.status, 'confirmed');
+    assert.equal(appointment.customer_name, 'Nguyễn Văn A');
+    assert.equal(appointment.customer_phone, '0927392930');
+    assert.deepEqual(appointment.product_ids, [service.id]);
+    assert.equal(
+      (await conversationRepo.findById(bookingConversation.id)).chat_context.booking_completed,
+      true
+    );
   });
 
   test('4. Đầy đủ thông tin hợp lệ -> confirm_appointment tự tìm holding_token của conversation và chốt lịch thành công', async () => {

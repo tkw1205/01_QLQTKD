@@ -1,149 +1,70 @@
 'use strict';
-
 const appointmentRepo = require('../repositories/appointmentRepository');
 const settingsRepo = require('../repositories/settingsRepository');
 
 const PHONE_REGEX = /^0[35789][0-9]{8}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function cleanPhoneNumber(phone) {
   if (!phone) return '';
-
-  let p = phone.trim().replace(/[\s.-]/g, '');
-
-  if (p.startsWith('+84')) {
-    p = '0' + p.slice(3);
-  } else if (p.startsWith('84') && p.length === 11) {
-    p = '0' + p.slice(2);
-  }
-
+  let p = phone.trim().replace(/[\s().-]/g, '');
+  if (p.startsWith('+84')) p = '0' + p.slice(3);
+  else if (p.startsWith('84') && p.length === 11) p = '0' + p.slice(2);
   return p;
+}
+
+function isValidEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  return EMAIL_REGEX.test(email.trim());
 }
 
 async function getBusinessHours() {
   const wh = await settingsRepo.getBusinessSetting('working_hours');
   const duration = parseInt(await settingsRepo.get('appointment_duration')) || 30;
-
-  return {
-    workingHours: wh,
-    appointmentDuration: duration,
-  };
+  return { workingHours: wh, appointmentDuration: duration };
 }
 
 async function checkAvailableSlots(date, requestedDuration) {
-  const durationSetting =
-    parseInt(await settingsRepo.get('appointment_duration')) || 30;
+  const durationSetting = parseInt(await settingsRepo.get('appointment_duration')) || 30;
+  const duration = requestedDuration || durationSetting;
 
-  const duration = Number(requestedDuration) || durationSetting;
-
-  if (!Number.isFinite(duration) || duration <= 0) {
-    throw Object.assign(
-      new Error('Thời lượng dịch vụ không hợp lệ'),
-      { status: 400 }
-    );
-  }
-
+  // Validate date
   const d = new Date(date);
-
   if (isNaN(d.getTime())) {
-    throw Object.assign(
-      new Error('Ngày không hợp lệ'),
-      { status: 400 }
-    );
+    throw Object.assign(new Error('Invalid date'), { status: 400 });
   }
 
-  const nowVN = new Date(
-    new Date().toLocaleString('en-US', {
-      timeZone: 'Asia/Ho_Chi_Minh',
-    })
-  );
-
-  const todayStr =
-    `${nowVN.getFullYear()}-${String(nowVN.getMonth() + 1).padStart(2, '0')}-${String(nowVN.getDate()).padStart(2, '0')}`;
-
+  // Don't allow past dates (using Asia/Ho_Chi_Minh timezone)
+  const nowVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+  const todayStr = `${nowVN.getFullYear()}-${String(nowVN.getMonth() + 1).padStart(2, '0')}-${String(nowVN.getDate()).padStart(2, '0')}`;
   if (date < todayStr) {
-    throw Object.assign(
-      new Error('Không thể đặt lịch vào ngày trong quá khứ'),
-      { status: 400 }
-    );
+    throw Object.assign(new Error('Cannot book appointments in the past'), { status: 400 });
   }
 
-  const slots = await appointmentRepo.findAvailableSlots(
-    date,
-    duration
-  );
-
-  return {
-    date,
-    slots,
-    duration,
-  };
+  const slots = await appointmentRepo.findAvailableSlots(date, duration);
+  return { date, slots, duration };
 }
 
 async function holdSlot({
-  conversationId,
-  guestSessionId,
-  appointmentDate,
-  appointmentTime,
-  durationMinutes,
-  productId,
-  productIds = [],
-  userId = null,
-  notes = null,
+  conversationId, guestSessionId, appointmentDate, appointmentTime,
+  durationMinutes, productId, productIds, userId = null, notes = null,
 }) {
   if (!appointmentDate || !appointmentTime) {
-    throw Object.assign(
-      new Error('Vui lòng cung cấp ngày và giờ cần giữ chỗ'),
-      { status: 400 }
-    );
-  }
-
-  if (!/^\d{2}:\d{2}$/.test(appointmentTime)) {
-    throw Object.assign(
-      new Error('Giờ hẹn không hợp lệ. Định dạng yêu cầu HH:mm'),
-      { status: 400 }
-    );
+    throw Object.assign(new Error('Missing required date or time for holding slot'), { status: 400 });
   }
 
   const d = new Date(appointmentDate);
-
   if (isNaN(d.getTime())) {
-    throw Object.assign(
-      new Error('Ngày hẹn không hợp lệ'),
-      { status: 400 }
-    );
+    throw Object.assign(new Error('Invalid appointment date'), { status: 400 });
   }
 
-  const nowVN = new Date(
-    new Date().toLocaleString('en-US', {
-      timeZone: 'Asia/Ho_Chi_Minh',
-    })
-  );
-
-  const todayStr =
-    `${nowVN.getFullYear()}-${String(nowVN.getMonth() + 1).padStart(2, '0')}-${String(nowVN.getDate()).padStart(2, '0')}`;
-
+  const nowVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+  const todayStr = `${nowVN.getFullYear()}-${String(nowVN.getMonth() + 1).padStart(2, '0')}-${String(nowVN.getDate()).padStart(2, '0')}`;
   if (appointmentDate < todayStr) {
-    throw Object.assign(
-      new Error('Không thể đặt lịch vào ngày trong quá khứ'),
-      { status: 400 }
-    );
+    throw Object.assign(new Error('Cannot book appointments in the past'), { status: 400 });
   }
 
-  const duration =
-    Number(durationMinutes) ||
-    parseInt(await settingsRepo.get('appointment_duration')) ||
-    30;
-
-  if (duration <= 0) {
-    throw Object.assign(
-      new Error('Thời lượng dịch vụ không hợp lệ'),
-      { status: 400 }
-    );
-  }
-
-  const normalizedProductIds = Array.isArray(productIds)
-    ? [...new Set(productIds.filter(Boolean))]
-    : [];
+  const duration = durationMinutes || parseInt(await settingsRepo.get('appointment_duration')) || 30;
 
   return appointmentRepo.hold({
     conversationId,
@@ -151,66 +72,48 @@ async function holdSlot({
     appointmentDate,
     appointmentTime,
     durationMinutes: duration,
-    productId: productId || normalizedProductIds[0] || null,
-    productIds: normalizedProductIds,
+    productId,
+    productIds,
     userId,
     notes,
   });
 }
 
-async function releaseHoldSlot({
-  holdingToken,
-  guestSessionId = null,
-}) {
+async function releaseHoldSlot({ holdingToken, guestSessionId = null }) {
   if (!holdingToken) {
-    throw Object.assign(
-      new Error('Thiếu mã giữ chỗ'),
-      { status: 400 }
-    );
+    throw Object.assign(new Error('holdingToken is required'), { status: 400 });
   }
-
-  return appointmentRepo.releaseHold(
-    holdingToken,
-    guestSessionId
-  );
+  return appointmentRepo.releaseHold(holdingToken, guestSessionId);
 }
 
 async function confirmHoldingSlot({
-  holdingToken,
-  customerName,
-  customerPhone,
-  notes,
-  guestSessionId = null,
-  userId = null,
+  holdingToken, customerName, customerPhone, customerEmail, notes,
+  guestSessionId = null, userId = null,
 }) {
   if (!holdingToken) {
-    throw Object.assign(
-      new Error('Thiếu mã giữ chỗ để xác nhận lịch'),
-      { status: 400 }
-    );
+    throw Object.assign(new Error('holdingToken is required to confirm holding slot'), { status: 400 });
   }
 
   if (!customerName || !customerName.trim()) {
-    throw Object.assign(
-      new Error('Vui lòng cung cấp tên khách hàng'),
-      { status: 400 }
-    );
+    throw Object.assign(new Error('Customer name is required'), { status: 400 });
   }
 
   if (!customerPhone || !customerPhone.trim()) {
+    throw Object.assign(new Error('Customer phone is required'), { status: 400 });
+  }
+
+  const cleanPhone = cleanPhoneNumber(customerPhone);
+  if (!PHONE_REGEX.test(cleanPhone)) {
     throw Object.assign(
-      new Error('Vui lòng cung cấp số điện thoại'),
+      new Error('Số điện thoại không hợp lệ. Vui lòng nhập số di động 10 số tại Việt Nam (bắt đầu bằng 03, 05, 07, 08, 09).'),
       { status: 400 }
     );
   }
 
-  const cleanPhone = cleanPhoneNumber(customerPhone);
-
-  if (!PHONE_REGEX.test(cleanPhone)) {
+  const trimmedEmail = (customerEmail && typeof customerEmail === 'string' && customerEmail.trim()) ? customerEmail.trim() : null;
+  if (trimmedEmail && !isValidEmail(trimmedEmail)) {
     throw Object.assign(
-      new Error(
-        'Số điện thoại không hợp lệ. Vui lòng nhập số di động 10 số tại Việt Nam.'
-      ),
+      new Error('Email không hợp lệ. Vui lòng nhập địa chỉ email chính xác (ví dụ: email@example.com).'),
       { status: 400 }
     );
   }
@@ -219,6 +122,7 @@ async function confirmHoldingSlot({
     holdingToken,
     customerName: customerName.trim(),
     customerPhone: cleanPhone,
+    customerEmail: trimmedEmail,
     notes: notes ? notes.trim() : null,
     guestSessionId,
     userId,
@@ -226,68 +130,51 @@ async function confirmHoldingSlot({
 }
 
 async function createAppointment({
-  conversationId,
-  guestSessionId,
-  confirmedBySystem,
-  customerName,
-  customerPhone,
-  productId,
-  productIds,
-  appointmentDate,
-  appointmentTime,
-  durationMinutes,
-  notes,
-  userId = null,
-  staffId = null,
-  status = 'pending',
-  createdBy = null,
+  conversationId, guestSessionId, confirmedBySystem,
+  customerName, customerPhone, customerEmail,
+  productId, productIds, appointmentDate, appointmentTime,
+  durationMinutes, notes, userId = null,
+  staffId = null, status = 'pending', createdBy = null,
 }) {
+  // Server-side confirmation check: confirmedBySystem must be explicitly set
   if (!confirmedBySystem) {
     throw Object.assign(
-      new Error('Lịch hẹn phải được khách xác nhận trước khi tạo'),
+      new Error('Appointment must be confirmed before creation'),
       { status: 400 }
     );
   }
 
-  if (
-    !customerName ||
-    !customerPhone ||
-    !appointmentDate ||
-    !appointmentTime
-  ) {
-    throw Object.assign(
-      new Error('Thiếu thông tin bắt buộc để tạo lịch hẹn'),
-      { status: 400 }
-    );
+  // Validate required fields
+  if (!customerName || !customerPhone || !appointmentDate || !appointmentTime) {
+    throw Object.assign(new Error('Missing required appointment fields'), { status: 400 });
   }
 
   const cleanPhone = cleanPhoneNumber(customerPhone);
-
   if (!PHONE_REGEX.test(cleanPhone)) {
     throw Object.assign(
-      new Error(
-        'Số điện thoại không hợp lệ. Vui lòng nhập số di động 10 số tại Việt Nam.'
-      ),
+      new Error('Số điện thoại không hợp lệ. Vui lòng nhập số di động 10 số tại Việt Nam (bắt đầu bằng 03, 05, 07, 08, 09).'),
       { status: 400 }
     );
   }
 
-  const duration =
-    Number(durationMinutes) ||
-    parseInt(await settingsRepo.get('appointment_duration')) ||
-    30;
+  const trimmedEmail = (customerEmail && typeof customerEmail === 'string' && customerEmail.trim()) ? customerEmail.trim() : null;
+  if (trimmedEmail && !isValidEmail(trimmedEmail)) {
+    throw Object.assign(
+      new Error('Email không hợp lệ. Vui lòng nhập địa chỉ email chính xác (ví dụ: email@example.com).'),
+      { status: 400 }
+    );
+  }
 
-  const normalizedProductIds = Array.isArray(productIds)
-    ? [...new Set(productIds.filter(Boolean))]
-    : [];
+  const duration = durationMinutes || parseInt(await settingsRepo.get('appointment_duration')) || 30;
 
   const appointment = await appointmentRepo.create({
     conversationId,
     guestSessionId,
     customerName: customerName.trim(),
     customerPhone: cleanPhone,
-    productId: productId || normalizedProductIds[0] || null,
-    productIds: normalizedProductIds,
+    customerEmail: trimmedEmail,
+    productId,
+    productIds,
     appointmentDate,
     appointmentTime,
     durationMinutes: duration,
@@ -301,211 +188,115 @@ async function createAppointment({
   return appointment;
 }
 
-async function getAppointmentByToken(
-  confirmationToken,
-  guestSessionId,
-  currentUser = null
-) {
-  let appt = await appointmentRepo.findByToken(
-    confirmationToken
-  );
-
+async function getAppointmentByToken(confirmationToken, guestSessionId, currentUser = null) {
+  let appt = await appointmentRepo.findByToken(confirmationToken);
   if (!appt) {
-    appt = await appointmentRepo.findByHoldingToken(
-      confirmationToken
-    );
+    appt = await appointmentRepo.findByHoldingToken(confirmationToken);
   }
+  if (!appt) throw Object.assign(new Error('Appointment not found'), { status: 404 });
 
-  if (!appt) {
-    throw Object.assign(
-      new Error('Không tìm thấy lịch hẹn'),
-      { status: 404 }
-    );
-  }
-
-  const isGuestOwner =
-    appt.guest_session_id === guestSessionId;
-
-  const isUserOwner =
-    currentUser &&
-    appt.user_id &&
-    appt.user_id === currentUser.id;
-
-  const isStaff =
-    currentUser &&
-    ['admin', 'staff', 'receptionist'].includes(currentUser.role);
+  // Verify ownership:
+  // 1. Matches guest_session_id
+  // 2. OR user is logged in and owns the appointment (appt.user_id === currentUser.id)
+  // 3. OR user is admin/staff/receptionist
+  const isGuestOwner = appt.guest_session_id === guestSessionId;
+  const isUserOwner = currentUser && appt.user_id && appt.user_id === currentUser.id;
+  const isStaff = currentUser && ['admin', 'staff', 'receptionist'].includes(currentUser.role);
 
   if (!isGuestOwner && !isUserOwner && !isStaff) {
-    throw Object.assign(
-      new Error('Bạn không có quyền truy cập lịch hẹn này'),
-      { status: 403 }
-    );
+    throw Object.assign(new Error('Access denied'), { status: 403 });
   }
-
   return appt;
 }
 
-async function getUserAppointments(
-  userId,
-  { page = 1, limit = 20 } = {}
-) {
+async function getUserAppointments(userId, { page = 1, limit = 20 } = {}) {
   if (!userId) return [];
-
-  return appointmentRepo.findByUserId(
-    userId,
-    { page, limit }
-  );
+  return appointmentRepo.findByUserId(userId, { page, limit });
 }
 
-async function cancelAppointment(
-  id,
-  guestSessionId,
-  currentUser = null
-) {
+async function cancelAppointment(id, guestSessionId, currentUser = null) {
   const appt = await appointmentRepo.findById(id);
+  if (!appt) throw Object.assign(new Error('Appointment not found'), { status: 404 });
 
-  if (!appt) {
-    throw Object.assign(
-      new Error('Không tìm thấy lịch hẹn'),
-      { status: 404 }
-    );
-  }
-
-  const isGuestOwner =
-    appt.guest_session_id === guestSessionId;
-
-  const isUserOwner =
-    currentUser &&
-    appt.user_id &&
-    appt.user_id === currentUser.id;
-
-  const isAdmin =
-    currentUser &&
-    currentUser.role === 'admin';
+  const isGuestOwner = appt.guest_session_id === guestSessionId;
+  const isUserOwner = currentUser && appt.user_id && appt.user_id === currentUser.id;
+  const isAdmin = currentUser && currentUser.role === 'admin';
 
   if (!isGuestOwner && !isUserOwner && !isAdmin) {
-    throw Object.assign(
-      new Error('Bạn không có quyền hủy lịch hẹn này'),
-      { status: 403 }
-    );
+    throw Object.assign(new Error('Access denied'), { status: 403 });
   }
-
   if (appt.status === 'cancelled') {
-    throw Object.assign(
-      new Error('Lịch hẹn đã được hủy trước đó'),
-      { status: 400 }
-    );
+    throw Object.assign(new Error('Appointment already cancelled'), { status: 400 });
   }
-
   if (appt.status === 'completed') {
-    throw Object.assign(
-      new Error('Không thể hủy lịch hẹn đã hoàn thành'),
-      { status: 400 }
-    );
+    throw Object.assign(new Error('Cannot cancel a completed appointment'), { status: 400 });
   }
 
-  return appointmentRepo.updateStatus(
-    id,
-    'cancelled'
-  );
+  return appointmentRepo.updateStatus(id, 'cancelled');
 }
 
-async function lookupAppointmentByPhoneAndBookingCode(
-  phone,
-  bookingCode
-) {
+async function lookupAppointmentByPhoneAndBookingCode(phone, bookingCode) {
   if (!phone || !bookingCode) {
     throw Object.assign(
-      new Error('Vui lòng cung cấp số điện thoại và mã đặt lịch'),
+      new Error('Vui lòng cung cấp đầy đủ số điện thoại và mã đặt lịch'),
       { status: 400 }
     );
   }
 
   const cleanPhone = cleanPhoneNumber(phone);
-
-  if (!PHONE_REGEX.test(cleanPhone)) {
-    throw Object.assign(
-      new Error('Số điện thoại không hợp lệ'),
-      { status: 400 }
-    );
+  if (!cleanPhone) {
+    throw Object.assign(new Error('Số điện thoại không hợp lệ'), { status: 400 });
   }
 
-  const cleanCode = String(bookingCode)
-    .trim()
-    .toUpperCase();
-
+  const cleanCode = String(bookingCode).trim().toUpperCase();
   if (!cleanCode) {
-    throw Object.assign(
-      new Error('Mã đặt lịch không hợp lệ'),
-      { status: 400 }
-    );
+    throw Object.assign(new Error('Mã đặt lịch không hợp lệ'), { status: 400 });
   }
 
   let appt = null;
 
-  if (
-    typeof appointmentRepo.findByBookingCodeAndPhone ===
-    'function'
-  ) {
+  // 1. First attempt: call appointmentRepository.findByBookingCodeAndPhone (bookingCode, phone)
+  if (typeof appointmentRepo.findByBookingCodeAndPhone === 'function') {
     try {
-      appt = await appointmentRepo.findByBookingCodeAndPhone(
-        cleanCode,
-        cleanPhone
-      );
+      appt = await appointmentRepo.findByBookingCodeAndPhone(cleanCode, cleanPhone);
+      if (!appt) {
+        appt = await appointmentRepo.findByBookingCodeAndPhone(cleanCode, phone.trim());
+      }
     } catch (err) {
-      console.warn(
-        '[lookupAppointment] Repository lookup error:',
-        err.message
-      );
+      console.warn('[lookupAppointment] Repository findByBookingCodeAndPhone error, falling back:', err.message);
     }
   }
 
+  // 2. Fallback: search via findAll
   if (!appt && typeof appointmentRepo.findAll === 'function') {
     try {
-      const { rows } = await appointmentRepo.findAll({
-        limit: 10000,
-      });
-
+      const { rows } = await appointmentRepo.findAll({ limit: 10000 });
       if (Array.isArray(rows)) {
         appt = rows.find(a =>
           a.booking_code &&
-          String(a.booking_code).trim().toUpperCase() === cleanCode &&
-          cleanPhoneNumber(a.customer_phone) === cleanPhone
+          a.booking_code.trim().toUpperCase() === cleanCode &&
+          (cleanPhoneNumber(a.customer_phone) === cleanPhone || (a.customer_phone && a.customer_phone.trim() === phone.trim()))
         ) || null;
       }
     } catch (_) {}
   }
 
+  // 3. Fallback: search directly in jsonStore if needed
   if (!appt) {
     try {
       const jsonStore = require('../config/jsonStore');
-      const appointments =
-        jsonStore.getCollection('appointments') || [];
-
+      const appointments = jsonStore.getCollection('appointments') || [];
       const found = appointments.find(a =>
         a.booking_code &&
-        String(a.booking_code).trim().toUpperCase() === cleanCode &&
-        cleanPhoneNumber(a.customer_phone) === cleanPhone
+        a.booking_code.trim().toUpperCase() === cleanCode &&
+        (cleanPhoneNumber(a.customer_phone) === cleanPhone || (a.customer_phone && a.customer_phone.trim() === phone.trim()))
       );
-
       if (found) {
-        const products =
-          jsonStore.getCollection('products') || [];
-
-        const selectedProducts = Array.isArray(found.product_ids)
-          ? products.filter(p => found.product_ids.includes(p.id))
-          : [];
-
-        const firstProduct = found.product_id
-          ? products.find(p => p.id === found.product_id)
-          : null;
-
+        const products = jsonStore.getCollection('products') || [];
+        const product = found.product_id ? products.find(p => p.id === found.product_id) : null;
         appt = {
           ...found,
-          product_name:
-            found.product_name ||
-            selectedProducts.map(p => p.name).join(' + ') ||
-            (firstProduct ? firstProduct.name : null),
+          product_name: product ? product.name : null,
         };
       }
     } catch (_) {}
@@ -513,9 +304,7 @@ async function lookupAppointmentByPhoneAndBookingCode(
 
   if (!appt) {
     throw Object.assign(
-      new Error(
-        'Không tìm thấy lịch hẹn phù hợp với số điện thoại và mã đặt lịch đã cung cấp'
-      ),
+      new Error('Không tìm thấy lịch hẹn phù hợp với số điện thoại và mã đặt lịch đã cung cấp'),
       { status: 404 }
     );
   }
@@ -523,37 +312,14 @@ async function lookupAppointmentByPhoneAndBookingCode(
   return appt;
 }
 
-async function reassignStaff(
-  id,
-  {
-    newStaffId,
-    appointmentTime,
-    appointmentDate,
-    changedBy,
-    changedById,
-  }
-) {
+async function reassignStaff(id, { newStaffId, appointmentTime, appointmentDate, changedBy, changedById }) {
   if (!id) {
-    throw Object.assign(
-      new Error('Thiếu mã lịch hẹn'),
-      { status: 400 }
-    );
+    throw Object.assign(new Error('Appointment ID is required'), { status: 400 });
   }
-
   if (!newStaffId && !appointmentTime && !appointmentDate) {
-    throw Object.assign(
-      new Error('Vui lòng chọn nhân viên hoặc thời gian cần thay đổi'),
-      { status: 400 }
-    );
+    throw Object.assign(new Error('Vui lòng chọn nhân viên hoặc thời gian hẹn cần thay đổi'), { status: 400 });
   }
-
-  return appointmentRepo.reassignStaff(id, {
-    newStaffId,
-    appointmentTime,
-    appointmentDate,
-    changedBy,
-    changedById,
-  });
+  return appointmentRepo.reassignStaff(id, { newStaffId, appointmentTime, appointmentDate, changedBy, changedById });
 }
 
 async function getActiveStaff() {
@@ -574,6 +340,8 @@ module.exports = {
   reassignStaff,
   getActiveStaff,
   cleanupExpiredHolds: appointmentRepo.cleanupExpiredHolds,
+  isValidEmail,
   cleanPhoneNumber,
   PHONE_REGEX,
+  EMAIL_REGEX,
 };

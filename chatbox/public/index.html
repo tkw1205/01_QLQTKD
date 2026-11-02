@@ -17,12 +17,13 @@
         <span class="brand-logo-pill">M</span>
         <span id="site-name">Mây Hair Studio</span>
       </a>
-      <button class="navbar-toggle" id="nav-toggle" aria-label="Menu">☰</button>
+      <button class="navbar-toggle" id="nav-toggle" aria-label="Menu" aria-expanded="false">☰</button>
       <ul class="navbar-nav" id="nav-menu">
-        <li><a href="#hero">Trang Chủ</a></li>
-        <li><a href="#dich-vu">Tất Cả Dịch Vụ</a></li>
-        <li><a href="#danh-gia">Đánh Giá</a></li>
-        <li><a href="#lien-he">Liên Hệ</a></li>
+        <li><a href="/">Trang chủ</a></li>
+        <li><a href="/products.html">Tất cả dịch vụ</a></li>
+        <li><a href="/#danh-gia">Đánh giá</a></li>
+        <li><a href="/#lien-he">Liên hệ</a></li>
+        <li><a href="/account.html">Đăng ký/Đăng nhập</a></li>
       </ul>
     </div>
   </header>
@@ -37,8 +38,7 @@
       </p>
       <div class="hero-btns">
         <a href="/products.html" class="btn btn-lg btn-primary" style="background: var(--primary-light); color: var(--primary-dark); font-weight: 700; border: none;">Bảng giá & Dịch vụ</a>
-        <a href="/appointments.html" class="btn btn-lg btn-outline" style="border-color: #fff; color: #fff;">Đặt lịch hẹn ngay</a>
-        <button class="btn btn-lg btn-outline" onclick="window.chatWidget.openChat()" style="border-color: rgba(255,255,255,0.6); color: #fff;">💬 Trợ lý AI tư vấn</button>
+        <button class="btn btn-lg btn-outline" data-open-chat style="border-color: rgba(255,255,255,0.6); color: #fff;">💬 Trợ lý AI tư vấn</button>
       </div>
     </div>
   </section>
@@ -323,8 +323,7 @@
           <h4>Liên kết nhanh</h4>
           <ul style="list-style: none; line-height: 2;">
             <li><a href="/products.html">Dịch vụ & Bảng giá</a></li>
-            <li><a href="/appointments.html">Đặt lịch / Tra cứu lịch hẹn</a></li>
-            <li><a href="/chat.html">Tư vấn trực tiếp cùng Stylist</a></li>
+            <li><a href="/chat.html">Chat với chuyên viên tư vấn</a></li>
           </ul>
         </div>
         <div>
@@ -362,7 +361,7 @@
     </div>
     <div id="chat-input-area">
       <div id="chat-actions">
-        <button id="btn-switch-agent">👨‍💼 Chat với Stylist</button>
+        <button id="btn-switch-agent">👨‍💼 Chat với chuyên viên tư vấn</button>
         <button id="btn-switch-ai" style="display: none;">🤖 Quay lại Trợ lý Mây</button>
       </div>
       <div id="chat-input-row">
@@ -428,11 +427,11 @@
               <div class="card-body">
                 <div class="badge badge-info mb-1">${p.category_name || 'Dịch vụ'}</div>
                 <h3>${p.name}</h3>
-                <div class="price">${API.formatCurrency(p.price)}</div>
+                <div class="price">${API.formatProductPrice(p)}</div>
                 <p class="desc">${p.description || 'Chưa có mô tả chi tiết.'}</p>
                 <div class="flex gap-1 mt-2">
-                  <a href="/product-detail.html?id=${p.id}" class="btn btn-sm btn-outline" style="flex: 1; justify-content: center;">Chi tiết</a>
-                  <button class="btn btn-sm btn-primary" onclick="window.chatWidget.openChat(); window.chatWidget.setProductContext('${p.id}', '${p.name}')">Tư vấn ngay</button>
+                  <button class="btn btn-sm btn-primary" data-chat-product-id="${p.id}" style="flex: 1; justify-content: center;">Tư vấn ngay</button>
+                  <a href="/product-detail.html?id=${encodeURIComponent(p.id)}" class="btn btn-sm btn-outline" style="flex: 1; justify-content: center;">Chi tiết</a>
                 </div>
               </div>
             </div>
@@ -444,19 +443,6 @@
         console.error('Failed to load featured services', e);
       }
 
-      // Mobile Navigation Menu Toggle & Auto Close
-      const navToggle = document.getElementById('nav-toggle');
-      const navMenu = document.getElementById('nav-menu');
-      if (navToggle && navMenu) {
-        navToggle.addEventListener('click', () => {
-          navMenu.classList.toggle('open');
-        });
-        navMenu.querySelectorAll('a').forEach(link => {
-          link.addEventListener('click', () => {
-            navMenu.classList.remove('open');
-          });
-        });
-      }
     }
 
     document.addEventListener('DOMContentLoaded', initHomePage);

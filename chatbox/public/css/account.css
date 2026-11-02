@@ -1,0 +1,109 @@
+.account-main {
+  max-width: 600px;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.account-card {
+  padding: clamp(1.25rem, 5vw, 2rem);
+}
+
+.account-heading {
+  margin-bottom: 1.5rem;
+}
+
+.account-tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  margin-bottom: 1.5rem;
+  background: var(--primary-light);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.account-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 0.7rem 1rem;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 2px);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: background var(--transition), color var(--transition), box-shadow var(--transition);
+}
+
+.account-tab:hover {
+  color: var(--primary-dark);
+}
+
+.account-tab.active {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--primary-dark);
+  box-shadow: var(--shadow);
+}
+
+.account-tab:focus-visible,
+.account-submit:focus-visible {
+  outline: 3px solid rgba(53, 116, 97, 0.3);
+  outline-offset: 2px;
+}
+
+.account-form[hidden],
+.field-error:empty {
+  display: none;
+}
+
+.account-status[hidden] {
+  display: none !important;
+}
+
+.account-field {
+  margin-bottom: 1rem;
+}
+
+.account-field .form-control[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.field-error {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--danger);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.account-status {
+  margin-bottom: 1rem;
+}
+
+.account-submit {
+  min-height: 2.9rem;
+}
+
+.account-submit[aria-busy="true"] {
+  cursor: wait;
+}
+
+@media (max-width: 480px) {
+  .account-main {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .account-card {
+    padding: 1.1rem;
+  }
+
+  .account-heading {
+    margin-bottom: 1.25rem;
+  }
+
+  .account-tabs {
+    margin-bottom: 1.25rem;
+  }
+}

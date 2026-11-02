@@ -8,13 +8,23 @@ const convRepo = require('../repositories/conversationRepository');
 const messageRepo = require('../repositories/messageRepository');
 const orchestrator = require('../ai/orchestrator');
 const jsonStore = require('../config/jsonStore');
+const settingsRepo = require('../repositories/settingsRepository');
 const sessionTimeoutService = require('../services/sessionTimeoutService');
 
 // GET /api/conversations/current - Get or create conversation for guest
 router.get('/current', asyncHandler(async (req, res) => {
   const { productId } = req.query;
   const conv = await conversationService.getOrCreate(req.guestSessionId, productId || null);
-  const messages = await messageRepo.findByConversation(conv.id);
+  let messages = await messageRepo.findByConversation(conv.id);
+  if (conv.mode === 'ai' && messages.length === 0) {
+    const welcomeMessage = await settingsRepo.get('ai_welcome_message');
+    const greeting = await messageRepo.create({
+      conversationId: conv.id,
+      senderType: 'assistant',
+      content: welcomeMessage || 'Dạ, em là AI tư vấn của salon. Em có thể hỗ trợ mình tìm hiểu dịch vụ, giá và thời gian thực hiện hoặc hướng dẫn đặt lịch. Mình cần tư vấn nội dung nào ạ?',
+    });
+    messages = [greeting];
+  }
   res.json({ success: true, data: { conversation: conv, messages } });
 }));
 

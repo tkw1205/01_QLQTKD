@@ -2,6 +2,11 @@
 
 const { v4: uuidv4 } = require('uuid');
 const jsonStore = require('../config/jsonStore');
+const {
+  assertAppointmentIsFuture,
+  getDayOfWeek,
+  getLocalDateTimeParts,
+} = require('../utils/appointmentDateTime');
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HOLD_DURATION_MS = 5 * 60 * 1000; // 5 minutes TTL
@@ -74,7 +79,7 @@ function generateBookingCode(date) {
 async function findAvailableSlots(date, durationMinutes = 30) {
   cleanupExpiredHolds();
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const dayName = dayNames[new Date(date).getDay()];
+  const dayName = dayNames[getDayOfWeek(date)];
 
   const businessSettings = jsonStore.getCollection('business_settings');
   const whSetting = businessSettings.find(s => s.key === 'working_hours');
@@ -100,9 +105,9 @@ async function findAvailableSlots(date, durationMinutes = 30) {
     return { start, end: start + (a.duration_minutes || 30) };
   });
 
-  const nowVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-  const todayVNStr = `${nowVN.getFullYear()}-${String(nowVN.getMonth() + 1).padStart(2, '0')}-${String(nowVN.getDate()).padStart(2, '0')}`;
-  const currentMinutesVN = nowVN.getHours() * 60 + nowVN.getMinutes();
+  const nowVN = getLocalDateTimeParts(now);
+  const todayVNStr = `${nowVN.year}-${String(nowVN.month).padStart(2, '0')}-${String(nowVN.day).padStart(2, '0')}`;
+  const currentMinutesVN = nowVN.hour * 60 + nowVN.minute;
 
   const slots = [];
   for (let t = openMinutes; t + durationMinutes <= closeMinutes; t += 1) {
@@ -126,8 +131,11 @@ async function hold({
   conversationId, guestSessionId, appointmentDate, appointmentTime,
   durationMinutes = 30, productId = null, productIds = null, userId = null, notes = null,
 }) {
+  const now = Date.now();
+  assertAppointmentIsFuture(appointmentDate, appointmentTime, now);
   cleanupExpiredHolds();
   const appointments = jsonStore.getCollection('appointments');
+  const businessSettings = jsonStore.getCollection('business_settings');
   const products = jsonStore.getCollection('products');
   const selectedProducts = Array.isArray(productIds) && productIds.length > 0
     ? products.filter(product => productIds.includes(product.id) && product.status === 'active')
@@ -151,7 +159,32 @@ async function hold({
   const selectedProductName = selectedProducts.length > 0
     ? selectedProducts.map(product => product.name).join(' + ')
     : null;
-  const now = Date.now();
+
+  const whSetting = businessSettings.find(setting => setting.key === 'working_hours');
+  const workingHours = whSetting
+    ? (typeof whSetting.value === 'string' ? JSON.parse(whSetting.value) : whSetting.value)
+    : {};
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const dayOfWeek = dayNames[getDayOfWeek(appointmentDate)];
+  const dayConfig = workingHours[dayOfWeek];
+  if (dayConfig && dayConfig.enabled === false) {
+    throw Object.assign(
+      new Error(`Salon không hoạt động vào ${dayOfWeek} (${appointmentDate}). Vui lòng chọn ngày làm việc khác.`),
+      { status: 400 }
+    );
+  }
+
+  const openTime = (dayConfig && dayConfig.open) ? dayConfig.open : '08:30';
+  const closeTime = (dayConfig && dayConfig.close) ? dayConfig.close : '20:30';
+  const startMinutes = timeToMinutes(appointmentTime);
+  const endMinutes = startMinutes + selectedDuration;
+  const closeMinutes = timeToMinutes(closeTime);
+  if (startMinutes < timeToMinutes(openTime) || endMinutes > closeMinutes) {
+    throw Object.assign(
+      new Error(`Lịch hẹn phải nằm trong giờ hoạt động của salon (${openTime} - ${closeTime}).`),
+      { status: 400 }
+    );
+  }
 
   // Check conflicts
   const conflict = appointments.some(a =>
@@ -264,6 +297,8 @@ async function confirmHold({
     throw Object.assign(new Error('Appointment is not in holding state'), { status: 400 });
   }
 
+  assertAppointmentIsFuture(appt.appointment_date, appt.appointment_time, now);
+
   cleanupExpiredHolds();
 
   // Double check Step 9: Re-verify conflict with other confirmed/pending appointments
@@ -306,12 +341,13 @@ async function create({
   productId, productIds, appointmentDate, appointmentTime, durationMinutes = 30, notes, userId = null,
   staffId = null, status = 'pending', createdBy = null, price = null
 }) {
+  const now = Date.now();
+  assertAppointmentIsFuture(appointmentDate, appointmentTime, now);
   cleanupExpiredHolds();
   const appointments = jsonStore.getCollection('appointments');
   const businessSettings = jsonStore.getCollection('business_settings');
   const users = jsonStore.getCollection('users');
   const products = jsonStore.getCollection('products');
-  const now = Date.now();
 
   // Multi-service support & calculate duration / price
   let selectedProducts = [];
@@ -356,7 +392,7 @@ async function create({
   }
 
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const dayOfWeek = dayNames[new Date(appointmentDate).getDay()];
+  const dayOfWeek = dayNames[getDayOfWeek(appointmentDate)];
   const dayConfig = workingHours[dayOfWeek];
 
   if (dayConfig && dayConfig.enabled === false) {
@@ -623,6 +659,7 @@ async function reschedule(id, { appointmentDate, appointmentTime, durationMinute
   if (!appt) return null;
 
   const now = Date.now();
+  assertAppointmentIsFuture(appointmentDate, appointmentTime, now);
   const conflict = appointments.some(a =>
     a.id !== id &&
     a.appointment_date === appointmentDate &&
@@ -743,12 +780,22 @@ async function reassignStaff(id, { newStaffId, appointmentTime, appointmentDate,
     throw Object.assign(new Error('Ngày hẹn không hợp lệ (định dạng YYYY-MM-DD)'), { status: 400 });
   }
 
+  if (
+    targetDate === appt.appointment_date &&
+    targetTime === appt.appointment_time &&
+    (targetStaffId || null) === (appt.staff_id || null)
+  ) {
+    return enrichAppointment(appt);
+  }
+
+  assertAppointmentIsFuture(targetDate, targetTime);
+
   // 1. Check Salon Operating Hours & Open Day Status
   const businessSettings = jsonStore.getCollection('business_settings');
   const whSetting = businessSettings.find(s => s.key === 'working_hours');
   const workingHours = whSetting ? (typeof whSetting.value === 'string' ? JSON.parse(whSetting.value) : whSetting.value) : null;
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const dayOfWeek = dayNames[new Date(targetDate + 'T00:00:00').getDay()];
+  const dayOfWeek = dayNames[getDayOfWeek(targetDate)];
   const dayConfig = workingHours ? workingHours[dayOfWeek] : null;
 
   if (dayConfig && dayConfig.enabled === false) {

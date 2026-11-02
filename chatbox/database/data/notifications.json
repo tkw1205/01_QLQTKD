@@ -1,66 +1,10 @@
 [
   {
-    "id": "153acab2-ded3-4488-a786-75ce8b2c1e85",
-    "conversation_id": "ff0c97be-4ac3-44e5-9ecf-f8edb1f420db",
-    "customer_name": "Khách hàng",
-    "last_message": "dạ em muốn làm tóc",
-    "is_read": true,
-    "created_at": "2026-11-01T11:39:45.901Z"
-  },
-  {
-    "id": "d0b1b588-7861-4d14-9508-012d812ee03f",
-    "conversation_id": "ff0c97be-4ac3-44e5-9ecf-f8edb1f420db",
-    "customer_name": "Khách hàng",
-    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
-    "is_read": true,
-    "created_at": "2026-11-01T11:39:25.120Z"
-  },
-  {
-    "id": "c1e637cb-1b25-44c4-90a9-e6cdafc04a68",
-    "conversation_id": "7ca4d25a-1999-4fa7-b434-733e469ec49e",
-    "customer_name": "Khách hàng",
-    "last_message": "oke",
-    "is_read": true,
-    "created_at": "2026-10-31T15:24:08.292Z"
-  },
-  {
-    "id": "cddddc22-46ee-4cbc-a254-44753c2cc0ee",
-    "conversation_id": "7ca4d25a-1999-4fa7-b434-733e469ec49e",
-    "customer_name": "Khách hàng",
-    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
-    "is_read": true,
-    "created_at": "2026-10-31T15:23:52.113Z"
-  },
-  {
-    "id": "a816b896-6a8c-4e78-945d-62435ef98f34",
-    "conversation_id": "9d6604ab-e119-4c13-9790-85eb8728f249",
-    "customer_name": "Khách hàng",
-    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
-    "is_read": true,
-    "created_at": "2026-10-31T14:09:08.959Z"
-  },
-  {
-    "id": "88c610fd-8e05-4831-8205-165306bfcad7",
-    "conversation_id": "615c3602-7a90-44a9-8a1a-8a99dbb002c9",
-    "customer_name": "Khách hàng",
-    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
-    "is_read": true,
-    "created_at": "2026-10-31T14:08:18.996Z"
-  },
-  {
-    "id": "a8646880-6a87-4d1c-be3d-914b06dcd47b",
-    "conversation_id": "4aaeb62b-9774-47c6-a1fb-d539f934ce9b",
-    "customer_name": "Khách hàng",
-    "last_message": "hi",
-    "is_read": true,
-    "created_at": "2026-10-31T13:37:06.178Z"
-  },
-  {
-    "id": "e94723ef-b631-41a2-9059-0090e4e4df56",
-    "conversation_id": "5f85ac7c-f8a1-481c-bcea-50da6aa6dfc4",
+    "id": "aca599ce-61ce-46ee-9bc9-a79966bd4aa5",
+    "conversation_id": "9bba6139-723f-4b80-b465-881db88438c1",
     "customer_name": "Anh Minh Test",
     "last_message": "Chào admin, em muốn đặt mua điện thoại",
     "is_read": false,
-    "created_at": "2026-10-30T10:11:21.150Z"
+    "created_at": "2026-11-01T16:27:26.804Z"
   }
 ]

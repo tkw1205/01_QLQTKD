@@ -99,6 +99,15 @@ const API = {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   },
 
+  formatProductPrice(product) {
+    if (!product?.prices_by_size) return this.formatCurrency(product?.price);
+    const unit = product.price_unit === 'per_tap' ? '/tép' : '';
+    return ['S', 'M', 'L']
+      .filter(size => product.prices_by_size[size]?.price != null)
+      .map(size => `${size}: ${this.formatCurrency(product.prices_by_size[size].price)}${unit}`)
+      .join(' · ') || 'Liên hệ';
+  },
+
   formatDate(dateStr) {
     if (!dateStr) return '';
     const d = new Date(dateStr);
@@ -136,4 +145,3 @@ const API = {
 };
 
 window.API = API;
-

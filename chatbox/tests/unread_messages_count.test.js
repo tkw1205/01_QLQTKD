@@ -157,7 +157,7 @@ describe('Unread Message Count & Status Lifecycle Test Suite', () => {
     await messageRepo.create({
       conversationId,
       senderType: 'assistant',
-      content: 'Giá uốn tóc từ 400.000đ đến 800.000đ tùy độ dài tóc bạn nhé.',
+      content: 'Dạ, em sẵn sàng hỗ trợ mình tìm hiểu các dịch vụ uốn tóc ạ.',
     });
 
     // Admin kiểm tra danh sách AI (/api/conversations/agent/ai)

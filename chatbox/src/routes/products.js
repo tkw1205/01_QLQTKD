@@ -43,10 +43,16 @@ router.get('/:id', asyncHandler(async (req, res) => {
 
 // POST /api/products - Admin only (Spec 2.2: Receptionist cannot change prices or services)
 router.post('/', authenticate, requireAdmin, asyncHandler(async (req, res) => {
-  const { name, description, price, duration, imageUrl, categoryId, status } = req.body;
+  const {
+    name, description, price, duration, imageUrl, categoryId, status,
+    pricesBySize, priceUnit, staffCount, aliases,
+  } = req.body;
   if (!name) return res.status(400).json({ success: false, error: 'name is required' });
 
-  const product = await productRepo.create({ name, description, price, duration, imageUrl, categoryId, status });
+  const product = await productRepo.create({
+    name, description, price, duration, imageUrl, categoryId, status,
+    pricesBySize, priceUnit, staffCount, aliases,
+  });
   res.status(201).json({ success: true, data: product });
 }));
 

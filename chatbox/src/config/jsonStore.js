@@ -3,6 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const APPROVED_CATEGORIES = require('../../database/data/categories.json');
+const APPROVED_PRODUCTS = require('../../database/data/products.json');
 
 const DATA_DIR = path.resolve(__dirname, '../../database/data');
 
@@ -198,8 +200,8 @@ const INITIAL_BUSINESS_SETTINGS = [
 ];
 
 const DEFAULT_MAP = {
-  categories: INITIAL_CATEGORIES,
-  products: INITIAL_PRODUCTS,
+  categories: APPROVED_CATEGORIES,
+  products: APPROVED_PRODUCTS,
   users: INITIAL_USERS,
   conversations: [],
   messages: [],

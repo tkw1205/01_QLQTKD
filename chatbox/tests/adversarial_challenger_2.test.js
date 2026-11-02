@@ -226,7 +226,7 @@ describe('Adversarial Stress Verification Suite — Challenger 2 (CR-04, CR-05, 
       assert.ok(res.newConversationId, `Result #${i} must provide newConversationId`);
       assert.notEqual(res.newConversationId, oldConv.id, `Result #${i} ID must be different from old conversation`);
       assert.ok(res.greeting, `Result #${i} must provide greeting`);
-      assert.match(res.greeting.content, /Salon Lumière/i, `Result #${i} greeting must include Salon Lumière`);
+      assert.match(res.greeting.content, /Mây Hair Studio/i, `Result #${i} greeting must include Mây Hair Studio`);
       createdConvIds.push(res.newConversationId);
     }
 

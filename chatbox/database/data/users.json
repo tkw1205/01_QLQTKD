@@ -15,7 +15,7 @@
     "id": "33333333-3333-3333-3333-333333333001",
     "email": "staff@example.com",
     "password_hash": "$2a$10$6XjFywced0rCRd1l9xxdSOnmlrcT9Xtu262qehKsTwnUD.V0tdRBS",
-    "name": "Nhân Viên Tư Vấn",
+    "name": "NhĂ¢n ViĂªn TÆ° Váº¥n",
     "role": "staff",
     "phone": "0900000002",
     "is_active": true,
@@ -27,7 +27,7 @@
     "id": "44444444-4444-4444-4444-444444444001",
     "email": "receptionist@example.com",
     "password_hash": "$2a$10$yo5T9dB7mJMnIp5d5e12WOZwjt1LlgKDEFhHye7KYlGDQZWEybC5.",
-    "name": "Nhân Viên Lễ Tân",
+    "name": "NhĂ¢n ViĂªn Lá»… TĂ¢n",
     "role": "receptionist",
     "phone": "0900000003",
     "is_active": true,
@@ -39,7 +39,7 @@
     "id": "55555555-5555-5555-5555-555555555001",
     "email": "user@example.com",
     "password_hash": "$2a$10$xLlhUQ307eTAFudzuvWuVOPssNZ5dlWMIL8KZbznL0BEM9eA03ZkS",
-    "name": "Nguyễn Văn Khách",
+    "name": "Nguyá»…n VÄƒn KhĂ¡ch",
     "role": "user",
     "phone": "0988776655",
     "is_active": true,
@@ -51,7 +51,7 @@
     "id": "89682e23-2b98-4139-b70f-0060602c4225",
     "email": "customer_1793196227388@example.com",
     "password_hash": "$2a$12$PR86xF793xLaUkJh7vc3uexSElABcsEWotevvc7ayOKFCJoGpoxgC",
-    "name": "Trần Văn Khách Hàng",
+    "name": "Tráº§n VÄƒn KhĂ¡ch HĂ ng",
     "role": "user",
     "phone": "0981112233",
     "is_active": true,
@@ -63,7 +63,7 @@
     "id": "2afbc5ae-9ec2-4caa-ad02-bba669cc1ad5",
     "email": "persistence_user_1793197708220@example.com",
     "password_hash": "$2a$12$kCsRSeI0kToHVj9L7sxqwu42.lbALPyvHcBquK2BSmZsopvruQ.Im",
-    "name": "Nguyễn Văn Kiên Định",
+    "name": "Nguyá»…n VÄƒn KiĂªn Äá»‹nh",
     "role": "user",
     "phone": "0912345678",
     "is_active": true,
@@ -135,7 +135,7 @@
     "id": "b130bf2c-7a1d-43de-a178-72cd6309685c",
     "email": "persistence_user_1793207166180@example.com",
     "password_hash": "$2a$12$jjVXCYHpDZ1ZMC1ULaOEfOxbk.h1n5Ar4/WecU2iXFt2QNnDeRkZ2",
-    "name": "Nguyễn Văn Kiên Định (Đã Sửa)",
+    "name": "Nguyá»…n VÄƒn KiĂªn Äá»‹nh (ÄĂ£ Sá»­a)",
     "role": "user",
     "phone": "0988776655",
     "is_active": true,
@@ -171,7 +171,7 @@
     "id": "a2b9617f-c19d-4585-ac53-1b72675e3a38",
     "email": "persistence_user_1793207405334@example.com",
     "password_hash": "$2a$12$om.4QobDGE/UrS6V1Awwm.8vvCiiroBwH9bzu4iePJ1WR0s43fCnO",
-    "name": "Nguyễn Văn Kiên Định (Đã Sửa)",
+    "name": "Nguyá»…n VÄƒn KiĂªn Äá»‹nh (ÄĂ£ Sá»­a)",
     "role": "user",
     "phone": "0988776655",
     "is_active": true,
@@ -243,7 +243,7 @@
     "id": "2fc64ff1-9da5-404b-9f3d-cbfaa3beda50",
     "email": "persistence_user_1793209158359@example.com",
     "password_hash": "$2a$12$tkHABk/WqHBR51KJlry61ucB5hSiWaiUt4OXkor1ELfC97xTNf5.W",
-    "name": "Nguyễn Văn Kiên Định (Đã Sửa)",
+    "name": "Nguyá»…n VÄƒn KiĂªn Äá»‹nh (ÄĂ£ Sá»­a)",
     "role": "user",
     "phone": "0988776655",
     "is_active": true,
@@ -303,7 +303,7 @@
     "id": "0a795552-fd28-45cf-be2d-b50328ac7f32",
     "email": "persistence_user_1793300849746@example.com",
     "password_hash": "$2a$12$WwQxswe3dcEH7iMLrVhCMekORvLzRRY4YPApAc5OT8bTo6l1hskgu",
-    "name": "Nguyễn Văn Kiên Định (Đã Sửa)",
+    "name": "Nguyá»…n VÄƒn KiĂªn Äá»‹nh (ÄĂ£ Sá»­a)",
     "role": "user",
     "phone": "0988776655",
     "is_active": true,
@@ -327,7 +327,7 @@
     "id": "5228786f-4b66-47e0-b510-15d1e02bbd14",
     "email": "persistence_user_1793326487689@example.com",
     "password_hash": "$2a$12$uDjXNTm2pSGWVwDhGVgVwuBh9JQjWLFt92D1b9w1st8AtuptmJ9IS",
-    "name": "Nguyễn Văn Kiên Định (Đã Sửa)",
+    "name": "Nguyá»…n VÄƒn KiĂªn Äá»‹nh (ÄĂ£ Sá»­a)",
     "role": "user",
     "phone": "0988776655",
     "is_active": true,
@@ -351,7 +351,7 @@
     "id": "0f394afe-850f-4922-aba9-48da2631a290",
     "email": "persistence_user_1793342546288@example.com",
     "password_hash": "$2a$12$yewnGcYf.qdT2ZEfghiPsenNnPUu1nQWYAWyu6mEsuO8W0BFgOlZ2",
-    "name": "Nguyễn Văn Kiên Định (Đã Sửa)",
+    "name": "Nguyá»…n VÄƒn KiĂªn Äá»‹nh (ÄĂ£ Sá»­a)",
     "role": "user",
     "phone": "0988776655",
     "is_active": true,
@@ -387,7 +387,7 @@
     "id": "53ec1128-c60a-4dd8-b90f-cdd2214dcb59",
     "email": "persistence_user_1793343994420@example.com",
     "password_hash": "$2a$12$7GPre/mVZLQp9UOG4zONOe5qElTBOPnm7eHhbboefmJDAbSfq1z1G",
-    "name": "Nguyễn Văn Kiên Định (Đã Sửa)",
+    "name": "Nguyá»…n VÄƒn KiĂªn Äá»‹nh (ÄĂ£ Sá»­a)",
     "role": "user",
     "phone": "0988776655",
     "is_active": true,
@@ -411,7 +411,7 @@
     "id": "fa438e91-ef57-4377-970a-4460facc9815",
     "email": "persistence_user_1793344159647@example.com",
     "password_hash": "$2a$12$enf9gJoDmClgvR74FMgyleY4jYq4RTDh/TkCuRaw7ubk36HBghgWe",
-    "name": "Nguyễn Văn Kiên Định (Đã Sửa)",
+    "name": "Nguyá»…n VÄƒn KiĂªn Äá»‹nh (ÄĂ£ Sá»­a)",
     "role": "user",
     "phone": "0988776655",
     "is_active": true,
@@ -471,7 +471,7 @@
     "id": "76f1af5e-2a00-4685-90f1-f728e58f3a60",
     "email": "persistence_user_1793345126696@example.com",
     "password_hash": "$2a$12$M2/Md/tTO4qRh7D03CP/E.kJqmPmmrm6xFXBVBExuyHZNuNy3qTLm",
-    "name": "Nguyễn Văn Kiên Định (Đã Sửa)",
+    "name": "Nguyá»…n VÄƒn KiĂªn Äá»‹nh (ÄĂ£ Sá»­a)",
     "role": "user",
     "phone": "0988776655",
     "is_active": true,
@@ -687,7 +687,7 @@
     "id": "33333333-3333-3333-3333-333333333002",
     "email": "hoangnam@example.com",
     "password_hash": "$2a$10$5kNHJsWqUD8X0rQCvu1MC.z7ggjtse.xIL857c64L2/rOi6EWz8KO",
-    "name": "Hoàng Nam (Master Stylist)",
+    "name": "HoĂ ng Nam (Master Stylist)",
     "role": "staff",
     "phone": "0912345601",
     "is_active": true,
@@ -699,7 +699,7 @@
     "id": "33333333-3333-3333-3333-333333333003",
     "email": "thuha@example.com",
     "password_hash": "$2a$10$5kNHJsWqUD8X0rQCvu1MC.z7ggjtse.xIL857c64L2/rOi6EWz8KO",
-    "name": "Thu Hà (Colorist / Nhuộm)",
+    "name": "Thu HĂ  (Colorist / Nhuá»™m)",
     "role": "staff",
     "phone": "0912345602",
     "is_active": true,
@@ -711,7 +711,7 @@
     "id": "33333333-3333-3333-3333-333333333004",
     "email": "minhanh@example.com",
     "password_hash": "$2a$10$5kNHJsWqUD8X0rQCvu1MC.z7ggjtse.xIL857c64L2/rOi6EWz8KO",
-    "name": "Minh Anh (Stylist / Uốn duỗi)",
+    "name": "Minh Anh (Stylist / Uá»‘n duá»—i)",
     "role": "staff",
     "phone": "0912345603",
     "is_active": true,
@@ -723,7 +723,7 @@
     "id": "5695806d-f39c-4980-921d-685304ccd441",
     "email": "test_user_1793351056246@example.com",
     "password_hash": "$2a$12$tRqtb9B4qfwVU60EAwC2V.Iwc7RVBlWJsq/YMDLetcJd7lSQ/3QQK",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
@@ -732,32 +732,16 @@
     "updated_at": "2026-10-30T09:04:16.526Z"
   },
   {
-    "id": "99999999-0003-0000-0000-000000000003",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T09:04:16.655Z"
-  },
-  {
     "id": "b9cb8e97-7a5e-433a-9b38-2f4ee0cc3601",
     "email": "test_user_1793351096844@example.com",
     "password_hash": "$2a$12$YCeizuakBPxrmBkHP6ZwQ.gfBSNvDCqRsOeqadwJ1gtoX7fEG/XZq",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
     "is_available": false,
     "created_at": "2026-10-30T09:04:57.116Z",
     "updated_at": "2026-10-30T09:04:57.116Z"
-  },
-  {
-    "id": "373780ac-8346-4e9c-b56e-a026f7a2eee4",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T09:04:57.224Z"
   },
   {
     "id": "a6fab20d-d1db-43fa-a52b-4b51d84abccf",
@@ -775,21 +759,13 @@
     "id": "cabada59-f970-4ceb-94f8-b8f2484b75e8",
     "email": "test_user_1793351840358@example.com",
     "password_hash": "$2a$12$e/SPqElH8xtdss9C5.3FYOw.v9J4HmRNC6ZFqAzzdnG5G4VLSB9TO",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
     "is_available": false,
     "created_at": "2026-10-30T09:17:20.634Z",
     "updated_at": "2026-10-30T09:17:20.634Z"
-  },
-  {
-    "id": "67f7b07a-f69f-4e3c-95a4-7e193da688bd",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T09:17:20.795Z"
   },
   {
     "id": "6fc36adf-a523-49a3-b788-10fcbe727d3f",
@@ -807,7 +783,7 @@
     "id": "57b8a890-619c-4206-a2ce-9315f953fcb2",
     "email": "test_user_1793352545002@example.com",
     "password_hash": "$2a$12$xSsSeqd7cwrLTVLEeMO3aeGME4LE6p8ZckLHNaQItjIXKY2S67N.W",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
@@ -816,18 +792,10 @@
     "updated_at": "2026-10-30T09:29:05.293Z"
   },
   {
-    "id": "0ba6b4eb-9dd3-42e6-95bd-0285904fa7b5",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T09:29:05.424Z"
-  },
-  {
     "id": "84d6b98e-eb7f-4d0d-bc92-60ca4ac6884b",
     "email": "test_user_1793352562318@example.com",
     "password_hash": "$2a$12$m4sKbyqEOkJ2c7ij0shEW.2kULW5wwL3uijO4Ear4pGcpadgzfusi",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
@@ -836,18 +804,10 @@
     "updated_at": "2026-10-30T09:29:22.597Z"
   },
   {
-    "id": "3b2c0c05-64b1-4aba-83c7-a7decf5c4581",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T09:29:22.713Z"
-  },
-  {
     "id": "3aba1445-3620-4572-b58f-23ef01cddc51",
     "email": "test_user_1793352681371@example.com",
     "password_hash": "$2a$12$2nDywjLzwUvQ2222CaHdWuKOoDpoTVMueylw6h3J4H0WFXZ7vbXRK",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
@@ -856,18 +816,10 @@
     "updated_at": "2026-10-30T09:31:21.718Z"
   },
   {
-    "id": "ffbf54fc-b865-403d-94b9-38f65ced537d",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T09:31:21.890Z"
-  },
-  {
     "id": "e4cbc377-a42e-48ab-b9d0-4ee9f6c3564c",
     "email": "test_user_1793352746608@example.com",
     "password_hash": "$2a$12$7RwXbPJX4PgjJkOu0U2yKeZZ.WLnXlqy17yyw1vGGlvpPFviZ3HLe",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
@@ -876,32 +828,16 @@
     "updated_at": "2026-10-30T09:32:26.880Z"
   },
   {
-    "id": "838f17e2-b913-456d-85f8-fa8dd4b13ece",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T09:32:27.049Z"
-  },
-  {
     "id": "5b022fa7-fd35-4405-b9b4-4aaecde84dc3",
     "email": "test_user_1793352803614@example.com",
     "password_hash": "$2a$12$sXiPS3ABo76AWzL601temenjVQseOF6G1/oxvdluf9Hge.87mVpSe",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
     "is_available": false,
     "created_at": "2026-10-30T09:33:23.910Z",
     "updated_at": "2026-10-30T09:33:23.910Z"
-  },
-  {
-    "id": "c464a857-7acd-4514-ba55-934b9c3c6cd1",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T09:33:24.028Z"
   },
   {
     "id": "a7ca6d1f-ff68-454d-8c15-3eedbec02601",
@@ -919,7 +855,7 @@
     "id": "139f5adc-9bb0-4306-82f1-cf2a64971f67",
     "email": "test_user_1793353779471@example.com",
     "password_hash": "$2a$12$1r/6zpZrLn/D.Fx3HcnVg.e81XeYAmAL9mUYnR8r67Zk.SN1BQ53a",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
@@ -928,32 +864,16 @@
     "updated_at": "2026-10-30T09:49:39.745Z"
   },
   {
-    "id": "e95ef695-707d-4b4e-9e20-630f9d27bee0",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T09:49:39.866Z"
-  },
-  {
     "id": "ddc279eb-b6b7-4faa-beb9-f1200cabd7ff",
     "email": "test_user_1793353796537@example.com",
     "password_hash": "$2a$12$BitapxtFxSKndK44Bc39Nu/YMkwP1rdJR8dupcLUsfbHy187CkecW",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
     "is_available": false,
     "created_at": "2026-10-30T09:49:56.814Z",
     "updated_at": "2026-10-30T09:49:56.814Z"
-  },
-  {
-    "id": "cdc5f86c-37f1-4737-aec2-b7f1c254d0f1",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T09:49:56.959Z"
   },
   {
     "id": "ad8e1ff9-790e-40c6-9c81-87979cc64a43",
@@ -971,7 +891,7 @@
     "id": "6357939a-7820-4f6a-9573-4caac429aeac",
     "email": "test_user_1793354968565@example.com",
     "password_hash": "$2a$12$UBV7Dl9mCkdiafEQbW5U6uALZ3fNhnIKoCK5mfRaJNV6xffQNyx9K",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
@@ -980,18 +900,10 @@
     "updated_at": "2026-10-30T10:09:28.877Z"
   },
   {
-    "id": "2edbd438-4d5e-435b-8be1-c3c7f2780d77",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T10:09:29.008Z"
-  },
-  {
     "id": "d9e9250c-9267-4cdc-adc7-c1ad9ba06649",
     "email": "test_user_1793354991772@example.com",
     "password_hash": "$2a$12$fqH7o3MIwYJkv5IC/FtI6O/f55FOrvIsG6mZsNqRgbAcAFnAYIYzW",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
@@ -1000,18 +912,10 @@
     "updated_at": "2026-10-30T10:09:52.044Z"
   },
   {
-    "id": "ff049a2b-04d4-41d6-b9b7-9f99aedf6a4e",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T10:09:52.179Z"
-  },
-  {
     "id": "ac385e7f-73b5-471a-bd43-52b20a59421b",
     "email": "test_user_1793355011188@example.com",
     "password_hash": "$2a$12$NJ7OazAxh086j5MI2lMcG.c8ggIfg5B5zl2E1J.Or3kqIikvyrUW.",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
@@ -1020,18 +924,10 @@
     "updated_at": "2026-10-30T10:10:11.462Z"
   },
   {
-    "id": "5737a9e4-2744-49c1-aee8-3b0060b71dda",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T10:10:11.572Z"
-  },
-  {
     "id": "7931ef80-aba2-400b-8f1f-ece542bed5a9",
     "email": "test_user_1793355085422@example.com",
     "password_hash": "$2a$12$uOmDvT31NXuPuOjeaRDyS.p777DrNtKwMYwqr4EHx1x5YOldE03JS",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
@@ -1040,32 +936,16 @@
     "updated_at": "2026-10-30T10:11:25.697Z"
   },
   {
-    "id": "2174ad80-41c8-4d86-9a94-de5721b7a8d9",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T10:11:25.816Z"
-  },
-  {
     "id": "4157c6d6-251a-429c-972e-0ae0538cffdf",
     "email": "test_user_1793355089305@example.com",
     "password_hash": "$2a$12$nMeoQtPDS8NKBi0b7tQ1bu6ueW.Z5b302hG3.wY2ezDxrxz4WST9K",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
     "is_available": false,
     "created_at": "2026-10-30T10:11:29.575Z",
     "updated_at": "2026-10-30T10:11:29.575Z"
-  },
-  {
-    "id": "056d9eb6-5a97-4c63-88a1-5229e2206190",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T10:11:29.689Z"
   },
   {
     "id": "4ea9735b-4c0e-497f-a2fe-2db34feed3b6",
@@ -1095,21 +975,13 @@
     "id": "00206701-13d1-4148-b5c4-aad1542e8161",
     "email": "test_user_1793355545303@example.com",
     "password_hash": "$2a$12$yAkvERuub0hDXrLpqPQYleV87hkTH.PMGTrawg5GLWUhV.zPDGgty",
-    "name": "Khách Test RBAC",
+    "name": "KhĂ¡ch Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
     "is_available": true,
     "created_at": "2026-10-30T10:19:05.581Z",
     "updated_at": "2026-10-30T10:19:05.581Z"
-  },
-  {
-    "id": "423960ae-eb77-46fe-a5bb-1b024ea34940",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-10-30T10:19:05.688Z"
   },
   {
     "id": "494d819e-82d1-4b10-a856-0c95bbf9cd63",
@@ -1124,10 +996,34 @@
     "updated_at": "2026-10-30T10:20:51.828Z"
   },
   {
+    "id": "86230fa6-370c-4c2d-81ae-e8959e4b7240",
+    "email": "test_user_1793453073554@example.com",
+    "password_hash": "$2a$12$IYfVlK9/1yk4Jf55rQVXY.pz0hIpOT0f4yuZLGJqbvzW30GAUPfMy",
+    "name": "KhĂ¡ch Test RBAC",
+    "role": "user",
+    "phone": "0901234567",
+    "is_active": true,
+    "is_available": true,
+    "created_at": "2026-10-31T13:24:33.969Z",
+    "updated_at": "2026-10-31T13:24:33.969Z"
+  },
+  {
+    "id": "6e2aaaa9-ede2-4e40-89cb-c159774e28c5",
+    "email": "test_user_1793453352104@example.com",
+    "password_hash": "$2a$12$3RmAs6T9xRCLds2Qz26k0eDPuUqad9yS1NHl2dKb6LVnQgjAICFGS",
+    "name": "KhĂ¡ch Test RBAC",
+    "role": "user",
+    "phone": "0901234567",
+    "is_active": true,
+    "is_available": true,
+    "created_at": "2026-10-31T13:29:12.492Z",
+    "updated_at": "2026-10-31T13:29:12.492Z"
+  },
+  {
     "id": "355761e4-e9ff-43dd-af0c-553b9444227f",
     "email": "phamphuong20032005@gmail.com",
     "password_hash": "$2a$12$9HQQlGLkUdMLK56eA/8dYe0M9vW8LmKvqPNlwzS0f4DLv7fl.NEAO",
-    "name": "Phương Phạm",
+    "name": "PhÆ°Æ¡ng Pháº¡m",
     "role": "user",
     "phone": "+84827967995",
     "is_active": true,
@@ -1139,7 +1035,7 @@
     "id": "fdbe356d-656e-47ea-b98a-769f932e69be",
     "email": "phamphuong20032005@gmail",
     "password_hash": "$2a$12$h1lsNVI5SAsNgcxhzhK19ea8nSWxz6X4PVNnkgFqH6FihzA50hHZu",
-    "name": "Phương Phạm",
+    "name": "PhÆ°Æ¡ng Pháº¡m",
     "role": "user",
     "phone": "+84827967995",
     "is_active": true,
@@ -1148,63 +1044,83 @@
     "updated_at": "2026-10-31T11:04:21.158Z"
   },
   {
-    "id": "45b76134-7f48-48bc-b555-7ad350157c9f",
-    "email": "test_user_1793460543779@example.com",
-    "password_hash": "$2a$12$yHyj.Wr9QW9J8x1/BA0w..OJJbeS9ZfCG6lklwuE8MrCpXbshamou",
+    "id": "b5b30346-1411-4f0a-bd9f-cbaa7722c252",
+    "email": "test_user_1793546217876@example.com",
+    "password_hash": "$2a$12$kGilsG7NAvrjDqbXGd.KQOkv.4MG7L1wHyw5xGJIpIOdDO2nYgGFW",
     "name": "Khách Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
     "is_available": true,
-    "created_at": "2026-10-31T15:29:04.280Z",
-    "updated_at": "2026-10-31T15:29:04.280Z"
+    "created_at": "2026-11-01T15:16:58.158Z",
+    "updated_at": "2026-11-01T15:16:58.158Z"
   },
   {
-    "id": "724c6f9d-01a3-4179-abaf-af984e32c644",
+    "id": "a1f869e4-237f-45c5-995d-189fe05c4da4",
+    "name": "Hoàng Nam (Master Stylist)",
+    "email": "hoangnam_test@example.com",
+    "role": "staff",
+    "is_active": true,
+    "created_at": "2026-11-01T15:16:58.161Z"
+  },
+  {
+    "id": "e23c135a-d452-433e-be56-6364a7244668",
+    "name": "Thu Hà (Colorist / Nhuộm)",
+    "email": "thuha_test@example.com",
+    "role": "staff",
+    "is_active": true,
+    "created_at": "2026-11-01T15:16:58.161Z"
+  },
+  {
+    "id": "d91d6034-876c-4fe4-8ba2-b3e3e64f1d0c",
     "name": "Nhân Viên Đã Nghỉ Việc",
     "email": "inactive_staff@example.com",
     "role": "staff",
     "is_active": false,
-    "created_at": "2026-10-31T15:29:04.506Z"
+    "created_at": "2026-11-01T15:16:58.275Z"
   },
   {
-    "id": "0bca97b1-de61-4dfd-84db-d6c24dc84a6b",
-    "email": "test_user_1793611391844@example.com",
-    "password_hash": "$2a$12$cBMhSjunQZxDgPJpdiypF.P41jLOnakrkVni3cvryFHfBIrxo3tp.",
+    "id": "f160c28c-fb69-486b-9019-0342f2d5306d",
+    "email": "test_customer_1793546297058@example.com",
+    "password_hash": "$2a$12$2BOc2TbKfFblXkMCb8Kh.OA2.K/R/ZDqUPZkkKjSIYjmsu5GrEL4a",
+    "name": "Nguyen Van Khach",
+    "role": "user",
+    "phone": "0987654321",
+    "is_active": true,
+    "is_available": true,
+    "created_at": "2026-11-01T15:18:17.372Z",
+    "updated_at": "2026-11-01T15:18:17.372Z"
+  },
+  {
+    "id": "c484c56d-0a5e-40dc-a470-76038c4d73c2",
+    "email": "test_user_1793550453179@example.com",
+    "password_hash": "$2a$12$ixs.ML9JyvY5LgBbgeqrLubPJ2eGv1JWxvmB/nf0GhD97XWNoR2Nm",
     "name": "Khách Test RBAC",
     "role": "user",
     "phone": "0901234567",
     "is_active": true,
     "is_available": true,
-    "created_at": "2026-11-02T09:23:12.139Z",
-    "updated_at": "2026-11-02T09:23:12.139Z"
+    "created_at": "2026-11-01T16:27:33.603Z",
+    "updated_at": "2026-11-01T16:27:33.603Z"
   },
   {
-    "id": "0ae07413-729d-4c9c-a2b0-f92f3975c8ec",
+    "id": "038013e4-4ecc-4a8c-b91e-2055b89cc73a",
     "name": "Nhân Viên Đã Nghỉ Việc",
     "email": "inactive_staff@example.com",
     "role": "staff",
     "is_active": false,
-    "created_at": "2026-11-02T09:23:12.289Z"
+    "created_at": "2026-11-01T16:27:33.772Z"
   },
   {
-    "id": "eef0b504-5d01-4670-b38c-92b701447fd8",
-    "email": "test_user_1793612737565@example.com",
-    "password_hash": "$2a$12$Xcz53DlGrgi1rP94F4SJDOWoD9czFFRPeiy.1TS3EdxNoWXBjyrhC",
-    "name": "Khách Test RBAC",
+    "id": "aa31619c-c38e-4bd2-acda-50d199104e05",
+    "email": "test_customer_1793550696495@example.com",
+    "password_hash": "$2a$12$1aN/JVCctAx.QgShHQzFqeZOv12EaCuMjJ2DepHB2Dr1m1yBJETFi",
+    "name": "Nguyen Van Khach",
     "role": "user",
-    "phone": "0901234567",
+    "phone": "0987654321",
     "is_active": true,
     "is_available": true,
-    "created_at": "2026-11-02T09:45:37.822Z",
-    "updated_at": "2026-11-02T09:45:37.822Z"
-  },
-  {
-    "id": "d6131c2f-8f05-4001-9645-2b9377615e1a",
-    "name": "Nhân Viên Đã Nghỉ Việc",
-    "email": "inactive_staff@example.com",
-    "role": "staff",
-    "is_active": false,
-    "created_at": "2026-11-02T09:45:37.939Z"
+    "created_at": "2026-11-01T16:31:36.928Z",
+    "updated_at": "2026-11-01T16:31:36.928Z"
   }
 ]

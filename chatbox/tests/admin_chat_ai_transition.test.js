@@ -177,21 +177,27 @@ describe('Admin Chat - AI Transition & List Display Test Suite', () => {
   });
 
   test('7. Khách tiếp tục nhắn tin với AI -> Cuộc hội thoại vẫn hoạt động và cập nhật tin nhắn mới', async () => {
+    const cutStyleService = jsonStore.getCollection('products').find(product =>
+      product.status === 'active' && product.slug === 'cat-tao-kieu'
+    );
+    assert.ok(cutStyleService, 'Dịch vụ cắt tạo kiểu phải tồn tại trong catalog');
+    const sizeSPrice = cutStyleService.prices_by_size.S.price;
+
     await messageRepo.create({
       conversationId,
       senderType: 'user',
-      content: 'Cho mình xin bảng giá uốn setting với AI nhé'
+      content: `Cho mình xin giá ${cutStyleService.name} size S với AI nhé`
     });
 
     await messageRepo.create({
       conversationId,
       senderType: 'assistant',
-      content: 'Dạ giá uốn setting từ 800.000đ đến 1.500.000đ tùy độ dài tóc bạn nhé!'
+      content: `Dạ, giá ${cutStyleService.name} size S là ${sizeSPrice.toLocaleString('vi-VN')} VNĐ ạ.`
     });
 
     const convDetail = await conversationRepo.findById(conversationId);
     assert.equal(convDetail.mode, 'ai');
-    assert.ok(convDetail.last_message.includes('800.000đ'));
+    assert.ok(convDetail.last_message.includes(sizeSPrice.toLocaleString('vi-VN')));
     assert.equal(convDetail.last_message_sender, 'assistant');
   });
 

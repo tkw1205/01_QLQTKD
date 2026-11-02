@@ -57,6 +57,7 @@ async function create({ guestSessionId, productContextId = null }) {
     mode: 'ai',
     assigned_to: null,
     product_context_id: productContextId,
+    chat_context: {},
     customer_name: null,
     customer_phone: null,
     customer_email: null,
@@ -148,6 +149,19 @@ async function updateCustomerInfo(id, { customerName, customerPhone, customerEma
   if (cName) conv.customer_name = cName;
   if (cPhone) conv.customer_phone = cPhone;
   if (cEmail) conv.customer_email = cEmail;
+  conv.updated_at = new Date().toISOString();
+  jsonStore.saveCollection('conversations', conversations);
+  return enrichConversation(conv);
+}
+
+async function updateChatContext(id, context) {
+  const conversations = jsonStore.getCollection('conversations');
+  const conv = conversations.find(c => c.id === id);
+  if (!conv) return null;
+  conv.chat_context = {
+    ...(conv.chat_context || {}),
+    ...context,
+  };
   conv.updated_at = new Date().toISOString();
   jsonStore.saveCollection('conversations', conversations);
   return enrichConversation(conv);
@@ -255,6 +269,7 @@ module.exports = {
   updateMode,
   closeAsLead,
   updateCustomerInfo,
+  updateChatContext,
   claimConversation,
   markAsRead,
   findWaiting,

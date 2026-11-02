@@ -17,7 +17,7 @@ function slugify(text) {
 async function findAll({ search, categoryId, status, page = 1, limit = 12 } = {}) {
   const products = jsonStore.getCollection('products');
   const categories = jsonStore.getCollection('categories');
-  const catMap = new Map(categories.map(c => [c.id, c.name]));
+  const catMap = new Map(categories.map(category => [category.id, category]));
 
   let filtered = [...products];
 
@@ -56,7 +56,12 @@ async function findAll({ search, categoryId, status, page = 1, limit = 12 } = {}
     created_at: p.created_at,
     updated_at: p.updated_at,
     category_id: p.category_id,
-    category_name: catMap.get(p.category_id) || null,
+    category_name: catMap.get(p.category_id)?.name || null,
+    category_description: catMap.get(p.category_id)?.description || null,
+    prices_by_size: p.prices_by_size || null,
+    price_unit: p.price_unit || null,
+    staff_count: p.staff_count ?? null,
+    aliases: p.aliases || [],
   }));
 
   return { rows, total };
@@ -77,6 +82,11 @@ async function findById(id) {
     duration: p.duration !== null && p.duration !== undefined ? parseInt(p.duration, 10) : 45,
     category_id: p.category_id,
     category_name: cat ? cat.name : null,
+    category_description: cat ? cat.description : null,
+    prices_by_size: p.prices_by_size || null,
+    price_unit: p.price_unit || null,
+    staff_count: p.staff_count ?? null,
+    aliases: p.aliases || [],
   };
 }
 
@@ -94,10 +104,18 @@ async function findBySlug(slug) {
     price: p.price !== null && p.price !== undefined ? parseFloat(p.price) : null,
     duration: p.duration !== null && p.duration !== undefined ? parseInt(p.duration, 10) : 45,
     category_name: cat ? cat.name : null,
+    category_description: cat ? cat.description : null,
+    prices_by_size: p.prices_by_size || null,
+    price_unit: p.price_unit || null,
+    staff_count: p.staff_count ?? null,
+    aliases: p.aliases || [],
   };
 }
 
-async function create({ name, description, price, duration, imageUrl, categoryId, status = 'active' }) {
+async function create({
+  name, description, price, duration, imageUrl, categoryId, status = 'active',
+  pricesBySize, priceUnit, staffCount, aliases,
+}) {
   const products = jsonStore.getCollection('products');
   const now = new Date().toISOString();
   const slug = slugify(name);
@@ -109,7 +127,11 @@ async function create({ name, description, price, duration, imageUrl, categoryId
     slug,
     description: description || null,
     price: price !== null && price !== undefined ? parseFloat(price) : null,
+    prices_by_size: pricesBySize || null,
+    price_unit: priceUnit || null,
     duration: duration !== null && duration !== undefined ? parseInt(duration, 10) : 45,
+    staff_count: staffCount !== null && staffCount !== undefined ? parseInt(staffCount, 10) : null,
+    aliases: Array.isArray(aliases) ? aliases : [],
     image_url: imageUrl || null,
     status,
     created_at: now,
@@ -126,7 +148,10 @@ async function update(id, fields) {
   const p = products.find(x => x.id === id);
   if (!p) return null;
 
-  const allowed = ['name', 'description', 'price', 'duration', 'image_url', 'category_id', 'status'];
+  const allowed = [
+    'name', 'description', 'price', 'duration', 'image_url', 'category_id', 'status',
+    'prices_by_size', 'price_unit', 'staff_count', 'aliases',
+  ];
   let hasUpdate = false;
 
   for (const [k, v] of Object.entries(fields)) {
@@ -135,6 +160,8 @@ async function update(id, fields) {
       if (col === 'price') {
         p[col] = v !== null && v !== undefined ? parseFloat(v) : v;
       } else if (col === 'duration') {
+        p[col] = v !== null && v !== undefined ? parseInt(v, 10) : v;
+      } else if (col === 'staff_count') {
         p[col] = v !== null && v !== undefined ? parseInt(v, 10) : v;
       } else {
         p[col] = v;

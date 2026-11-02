@@ -564,6 +564,11 @@ async function executeTool(toolName, rawArgs, context = {}) {
               phone: appt.customer_phone,
               email: appt.customer_email,
             });
+            await conversationRepo.updateChatContext(conversationId, {
+              booking_confirmation_pending: false,
+              booking_started: false,
+              booking_intent_pending: false,
+            });
           }
 
           return JSON.stringify({
@@ -594,6 +599,14 @@ async function executeTool(toolName, rawArgs, context = {}) {
           });
         }
 
+        if (conversationId) {
+          await conversationRepo.updateCustomerInfo(conversationId, {
+            name,
+            phone: cleanPhone,
+            email: customerEmail,
+          });
+        }
+
         const appointment = await appointmentService.createAppointment({
           conversationId,
           guestSessionId,
@@ -606,6 +619,7 @@ async function executeTool(toolName, rawArgs, context = {}) {
           appointmentDate: apptDate,
           appointmentTime: apptTime,
           notes: args.notes || null,
+          status: 'confirmed',
         });
 
         if (conversationId) {
@@ -613,6 +627,11 @@ async function executeTool(toolName, rawArgs, context = {}) {
             name: appointment.customer_name,
             phone: appointment.customer_phone,
             email: appointment.customer_email,
+          });
+          await conversationRepo.updateChatContext(conversationId, {
+            booking_confirmation_pending: false,
+            booking_started: false,
+            booking_intent_pending: false,
           });
         }
 
@@ -630,10 +649,30 @@ async function executeTool(toolName, rawArgs, context = {}) {
           message: `ĐÃ ĐẶT LỊCH THÀNH CÔNG VÀO HỆ THỐNG! Mã đặt lịch chính thức là ${appointment.booking_code}. Khách hàng: ${appointment.customer_name}, SĐT: ${appointment.customer_phone}${appointment.customer_email ? `, Email: ${appointment.customer_email}` : ''}, Thời gian: ${appointment.appointment_time} ngày ${appointment.appointment_date}. Hãy thông báo mã booking này và gửi lời cảm ơn đến khách hàng!`
         });
       } catch (err) {
+        let conflictDetails = {};
+        if (['SLOT_CONFLICT', 'SLOT_CAPACITY_EXCEEDED'].includes(err.code) && conversationId) {
+          const date = normalizeDateInput(args.appointment_date || args.date);
+          const time = args.appointment_time || args.time;
+          if (date) {
+            const availability = JSON.parse(await executeTool('check_available_slots', {
+              date,
+              product_ids: args.product_ids,
+            }, context));
+            conflictDetails = {
+              appointment_date: date,
+              appointment_time: time,
+              available_slots: (availability.slots || []).filter(slot => slot !== time),
+            };
+          }
+          await conversationRepo.updateChatContext(conversationId, {
+            booking_confirmation_pending: false,
+          });
+        }
         return JSON.stringify({
           success: false,
           error: err.message || 'Lỗi xác nhận lịch hẹn',
           code: err.code || 'CONFIRM_FAILED',
+          ...conflictDetails,
         });
       }
     }

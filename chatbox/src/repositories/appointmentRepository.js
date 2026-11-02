@@ -110,7 +110,7 @@ async function findAvailableSlots(date, durationMinutes = 30) {
   const currentMinutesVN = nowVN.hour * 60 + nowVN.minute;
 
   const slots = [];
-  for (let t = openMinutes; t + durationMinutes <= closeMinutes; t += durationMinutes) {
+  for (let t = openMinutes; t + durationMinutes <= closeMinutes; t += 1) {
     // If checking today, ignore past time slots
     if (date === todayVNStr && t <= currentMinutesVN) {
       continue;

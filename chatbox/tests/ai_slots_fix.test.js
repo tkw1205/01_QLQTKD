@@ -43,6 +43,15 @@ describe('AI check_available_slots Bug Fix Test Suite', () => {
     assert.ok(res.slots.length > 0);
   });
 
+  test('2.1 Giờ bắt đầu có thể chọn theo từng phút, vẫn xét đủ thời lượng dịch vụ', async () => {
+    const slots = await appointmentRepo.findAvailableSlots('2099-01-05', 45);
+
+    assert.ok(slots.includes('14:00'));
+    assert.ok(slots.includes('14:01'));
+    assert.ok(slots.includes('19:45'));
+    assert.ok(!slots.includes('19:46'), 'Không xếp lịch nếu thời lượng 45 phút vượt giờ đóng cửa');
+  });
+
   test('3. Định dạng ngày kiểu Việt Nam: DD/MM/YYYY', async () => {
     const rawArgs = { date: futureDateVN };
     const context = { conversationId: 'test-conv-1', guestSessionId: 'test-guest-1' };

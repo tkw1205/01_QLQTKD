@@ -146,7 +146,7 @@
               <div class="card-body">
                 <div class="badge badge-info mb-1">${p.category_name || 'Dịch vụ tóc'}</div>
                 <h3 style="font-size: 1.15rem;">${p.name}</h3>
-                <div class="price">${API.formatCurrency(p.price)}</div>
+                <div class="price">${API.formatProductPrice(p)}</div>
                 <p class="desc">${p.description || 'Chưa có mô tả chi tiết.'}</p>
                 <div class="flex gap-1 mt-2">
                   <button class="btn btn-sm btn-primary flex-1" data-chat-product-id="${p.id}" style="justify-content: center;">Tư vấn ngay</button>

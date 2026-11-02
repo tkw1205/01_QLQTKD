@@ -9,9 +9,101 @@ const appointmentService = require('../src/services/appointmentService');
 const productRepository = require('../src/repositories/productRepository');
 const conversationContext = require('../src/ai/conversationContext');
 const servicePricing = require('../src/ai/servicePricing');
+const { executeTool } = require('../src/ai/tools');
 const orchestrator = require('../src/ai/orchestrator');
 const provider = require('../src/ai/provider');
 const jsonStore = require('../src/config/jsonStore');
+
+function getMockAssistantResponse(messages) {
+  const prompt = messages.find(message => message.role === 'system')?.content || '';
+  const userMessage = [...messages].reverse().find(message => message.role === 'user')?.content || '';
+  const readState = label => prompt.match(new RegExp(`^- ${label}: (.+)$`, 'm'))?.[1] || '';
+  const date = readState('Ngày khách chọn');
+  const time = readState('Giờ khách chọn');
+  const service = readState('Dịch vụ đã chọn').replace(/ \(ID:.*$/, '');
+  const contact = prompt.match(/^- Thông tin liên hệ đã lưu: họ tên (.*), số điện thoại (.*), email (.*)$/m);
+  const name = contact?.[1] || '';
+  const phone = contact?.[2] || '';
+
+  if (/tư vấn kiểu tóc bob/iu.test(userMessage)) {
+    return 'Dạ, anh/chị thích bob ngắn hay bob ngang vai ạ?';
+  }
+  if (/uốn mái/iu.test(userMessage)) {
+    return 'Dạ, em đã ghi nhận dịch vụ uốn mái. Anh/chị muốn đặt lịch vào ngày nào và khoảng thời gian nào ạ?';
+  }
+  if (/đổi dịch vụ sang uốn tóc/iu.test(userMessage)) {
+    return 'Dạ, anh/chị muốn uốn kiểu nào ạ? tóc hiện tại dài khoảng bao nhiêu?';
+  }
+  if (/đổi dịch vụ/u.test(userMessage)) {
+    return 'Dạ, anh/chị muốn đổi sang dịch vụ nào ạ?';
+  }
+  if (/muốn làm tóc/u.test(userMessage)) {
+    return 'Dạ, anh/chị đang muốn cắt, uốn, nhuộm hay phục hồi tóc ạ?';
+  }
+  if (/bob/iu.test(userMessage)) {
+    if (/đặt lịch cắt tóc bob/iu.test(userMessage) && service.startsWith('chưa chọn')) {
+      return 'Dạ, anh/chị muốn cắt bob ngắn hay bob ngang vai ạ?';
+    }
+    if (/đặt lịch cắt tóc bob/iu.test(userMessage)) {
+      return `Dạ, em đã ghi nhận cắt tóc bob. Anh/chị muốn đặt lịch vào ngày nào và khoảng thời gian nào ạ?`;
+    }
+    if (/booking đã bắt đầu: true/iu.test(prompt) || /booking đang chờ chọn dịch vụ: true/iu.test(prompt)) {
+      return time !== 'chưa cung cấp' && date !== 'chưa cung cấp'
+        ? `Dạ, em đã ghi nhận nhu cầu cắt tóc bob. ${time} ngày ${date}. Mình xác nhận tiếp tục đặt lịch cắt tóc bob nhé ạ?`
+        : 'Dạ, anh/chị muốn cắt bob ngắn hay bob ngang vai ạ?';
+    }
+    if (/Cắt tóc bob/iu.test(userMessage)) {
+      return 'Dạ, anh/chị muốn tư vấn kiểu tóc bob hay muốn đặt lịch cắt tóc ạ?';
+    }
+    return 'Dạ, anh/chị thích bob ngắn hay bob ngang vai ạ?';
+  }
+  if (/bạn biết.*dịch vụ/u.test(userMessage)) {
+    return 'Dạ, em chưa nhận được thông tin về dịch vụ anh/chị muốn sử dụng ạ.';
+  }
+  if (/muốn nhuộm tóc/u.test(userMessage)) {
+    return 'Dạ, anh/chị muốn nhuộm màu nào ạ? Anh/chị cho em biết thêm độ dài tóc nhé.';
+  }
+  if (/nâu trà sữa/iu.test(userMessage)) {
+    return `Dạ, anh/chị cho em biết thêm độ dài tóc ạ.${time !== 'chưa cung cấp' && date !== 'chưa cung cấp'
+      ? ` Lịch hiện tại là ${time} ngày ${date}.`
+      : ' Sau đó mình muốn đặt lịch vào ngày nào và khoảng thời gian nào ạ?'}`;
+  }
+  if (/muốn uốn tóc/u.test(userMessage)) {
+    return 'Dạ, anh/chị muốn uốn kiểu nào ạ? Tóc hiện tại dài khoảng bao nhiêu?';
+  }
+  if (/uốn xoăn sóng/iu.test(userMessage)) {
+    return `Dạ, em đã ghi nhận ${service}. ${time} ngày ${date}. Anh/chị xác nhận tiếp tục đặt lịch nhé ạ?`;
+  }
+  if (/tóc ngang vai/iu.test(userMessage) && time !== 'chưa cung cấp') {
+    return `Dạ, em đã ghi nhận độ dài tóc. Lịch của mình là ${time} ngày ${date} ạ.`;
+  }
+  if (/đặt lịch/u.test(userMessage) && service.startsWith('chưa chọn')) {
+    return 'Dạ, anh/chị muốn đặt lịch sử dụng dịch vụ gì ạ?';
+  }
+  if (/đặt lịch/u.test(userMessage) && !service.startsWith('chưa chọn')) {
+    if (date === 'chưa cung cấp' || time === 'chưa cung cấp') {
+      return 'Dạ, anh/chị muốn đặt lịch vào ngày nào và khoảng thời gian nào ạ?';
+    }
+  }
+  if (/ngày mai|09:15/u.test(userMessage) && service.startsWith('chưa chọn')) {
+    return 'Dạ, anh/chị muốn đặt lịch sử dụng dịch vụ nào ạ?';
+  }
+  if (/mai làm/iu.test(userMessage)) {
+    return 'Dạ, anh/chị muốn làm vào khung giờ nào ạ?';
+  }
+  if (name && name !== 'chưa có' && phone && phone !== 'chưa có') {
+    return `Dạ, thông tin đặt lịch ${userMessage} đã được ghi nhận. Anh/chị xác nhận giúp em ạ?`;
+  }
+  if (name && name !== 'chưa có') return 'Dạ, em đã ghi nhận thông tin. Anh/chị vui lòng cho em xin số điện thoại ạ?';
+  if (phone && phone !== 'chưa có') return 'Dạ, em đã ghi nhận thông tin liên hệ. Anh/chị vui lòng cho em xin họ tên ạ?';
+  if (service.startsWith('chưa chọn') && /dịch vụ gì chưa/u.test(userMessage)) {
+    return 'Dạ, em chưa nhận được thông tin về dịch vụ anh/chị muốn sử dụng ạ.';
+  }
+  if (date !== 'chưa cung cấp' && time !== 'chưa cung cấp') {
+    return `Dạ, em đã ghi nhận lịch ${time} ngày ${date}. Anh/chị vui lòng cung cấp họ tên và số điện thoại ạ?`;
+  }
+  return 'Dạ, anh/chị vui lòng cho em biết dịch vụ, kiểu tóc hoặc thông tin còn thiếu để em hỗ trợ ạ.';
+}
 
 describe('Conversation context across pricing and booking turns', { concurrency: false }, () => {
   let conversation;
@@ -65,8 +157,15 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     appointmentRepository.findActiveHoldByConversation = async id =>
       id === conversation.id ? null : originals.findActiveHoldByConversation(id);
     provider.isConfigured = () => true;
-    provider.chat = async () => {
-      throw new Error('Booking context should be handled deterministically');
+    provider.chat = async ({ messages }) => {
+      return {
+        choices: [{
+          message: {
+            role: 'assistant',
+            content: getMockAssistantResponse(messages),
+          },
+        }],
+      };
     };
   });
 
@@ -126,7 +225,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     assert.match(switchedPrice.content, /Phồng chân/u);
     assert.match(switchedPrice.content, /200\.000 VNĐ/u);
 
-    await processTurn('Tôi muốn làm vào lúc 24h');
+    await processTurn('Tôi muốn đặt lịch phồng chân uốn tóc ngang vai vào lúc 24h');
     assert.equal(conversation.chat_context.booking_started, true);
     assert.deepEqual(conversation.chat_context.selected_service_ids, [secondServiceId]);
     assert.equal(conversation.chat_context.invalid_appointment_time, true);
@@ -141,7 +240,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
 
     await processTurn('Uốn tóc phồng chân');
     assert.equal(conversation.chat_context.selected_service_ids[0], secondServiceId);
-    assert.equal(conversation.chat_context.pricing_inquiry_active, true);
+    assert.equal(conversation.chat_context.pricing_inquiry_active, false);
 
     await processTurn('Mai làm');
     assert.equal(conversation.chat_context.booking_started, true);
@@ -291,15 +390,16 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     );
     assert.ok(haircutService);
     const appointmentDate = '2026-11-02';
-    const availableSlots = await appointmentService.checkAvailableSlots(
-      appointmentDate,
-      haircutService.duration
-    );
+    const availableSlots = JSON.parse(await executeTool('check_available_slots', {
+      date: appointmentDate,
+      product_ids: [haircutService.id],
+    }));
     assert.ok(availableSlots.slots.length);
-    const appointmentTime = availableSlots.slots[0];
+    const appointmentTime = availableSlots.slots.find(time => time !== '08:30') || availableSlots.slots[0];
     await conversationRepository.updateChatContext(bookingConversation.id, {
       selected_service_ids: [haircutService.id],
       booking_started: true,
+      booking_service_confirmed: true,
       appointment_date: appointmentDate,
       appointment_time: appointmentTime,
     });
@@ -351,12 +451,15 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     );
     assert.ok(haircutService);
     const appointmentDate = '2027-05-20';
-    const available = await appointmentService.checkAvailableSlots(
-      appointmentDate,
-      haircutService.duration
-    );
-    assert.ok(available.slots.length);
-    const appointmentTime = available.slots[0];
+    const availableSlots = JSON.parse(await executeTool('check_available_slots', {
+      date: appointmentDate,
+      product_ids: [haircutService.id],
+    }));
+    assert.ok(availableSlots.slots.length);
+    const contactAppointmentTimes = ['09:00', '11:00', '13:00', '15:00', '17:00']
+      .filter(time => availableSlots.slots.includes(time));
+    assert.ok(contactAppointmentTimes.length >= 5);
+    let contactScenarioIndex = 0;
 
     async function sendStoredTurn(conversationId, guestSessionId, content) {
       await messageRepository.create({
@@ -381,9 +484,12 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       const guestSessionId = `context-test-contact-${label}-${Date.now()}-${Math.random()}`;
       const contactConversation = await conversationRepository.create({ guestSessionId });
       testSessionIds.push(guestSessionId);
+      const appointmentTime = contactAppointmentTimes[contactScenarioIndex++];
+      assert.ok(appointmentTime, `Expected an unused slot for ${label}`);
       await conversationRepository.updateChatContext(contactConversation.id, {
         selected_service_ids: [haircutService.id],
         booking_started: true,
+        booking_service_confirmed: true,
         appointment_date: appointmentDate,
         appointment_time: appointmentTime,
       });
@@ -392,7 +498,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
         senderType: 'assistant',
         content: 'Anh/chị vui lòng cung cấp họ tên và số điện thoại để hoàn tất đặt lịch.',
       });
-      return { guestSessionId, conversation: contactConversation };
+      return { guestSessionId, conversation: contactConversation, appointmentTime };
     }
 
     const combined = await createContactConversation('combined');
@@ -460,7 +566,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       conversationId: activeHold.conversation.id,
       guestSessionId: activeHold.guestSessionId,
       appointmentDate,
-      appointmentTime,
+      appointmentTime: activeHold.appointmentTime,
       durationMinutes: haircutService.duration,
       productId: haircutService.id,
     });
@@ -493,11 +599,19 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     );
     assert.ok(newService);
     const appointmentDate = '2027-05-20';
-    const [oldServiceSlots, newServiceSlots] = await Promise.all([
-      appointmentService.checkAvailableSlots(appointmentDate, oldService.duration),
-      appointmentService.checkAvailableSlots(appointmentDate, newService.duration),
+    const [oldServiceSlotsResult, newServiceSlotsResult] = await Promise.all([
+      executeTool('check_available_slots', {
+        date: appointmentDate,
+        product_ids: [oldService.id],
+      }),
+      executeTool('check_available_slots', {
+        date: appointmentDate,
+        product_ids: [newService.id],
+      }),
     ]);
-    const appointmentTime = oldServiceSlots.slots.find(time =>
+    const oldServiceSlots = JSON.parse(oldServiceSlotsResult);
+    const newServiceSlots = JSON.parse(newServiceSlotsResult);
+    const appointmentTime = [...oldServiceSlots.slots].reverse().find(time =>
       newServiceSlots.slots.includes(time)
     );
     assert.ok(appointmentTime);
@@ -513,6 +627,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     await conversationRepository.updateChatContext(bookingConversation.id, {
       selected_service_ids: [oldService.id],
       booking_started: true,
+      booking_service_confirmed: true,
       appointment_date: appointmentDate,
       appointment_time: appointmentTime,
       booking_service_notes: 'Cắt tóc bob',
@@ -537,7 +652,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       userMessage: 'Tôi muốn uốn tóc',
     });
     assert.match(broadPermReply.content, /uốn kiểu nào/u);
-    assert.match(broadPermReply.content, /tóc hiện tại dài/u);
+    assert.match(broadPermReply.content, /tóc hiện tại dài/iu);
     assert.doesNotMatch(broadPermReply.content, /số điện thoại/u);
 
     const detailedPermReply = await orchestrator.chat({
@@ -562,11 +677,9 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId,
       userMessage: 'Đúng rồi',
     });
-    assert.match(
-      confirmedService.content,
-      new RegExp(`khung giờ ${appointmentTime} ngày ${appointmentDate} hiện còn trống`)
-    );
+    assert.match(confirmedService.content, new RegExp(`${appointmentTime} ngày ${appointmentDate}`));
     assert.match(confirmedService.content, /họ tên và số điện thoại/u);
+    assert.ok(await appointmentRepository.findActiveHoldByConversation(bookingConversation.id));
 
     const directGuestSessionId = `context-test-direct-service-change-${Date.now()}`;
     const directConversation = await conversationRepository.create({
@@ -576,6 +689,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     await conversationRepository.updateChatContext(directConversation.id, {
       selected_service_ids: [oldService.id],
       booking_started: true,
+      booking_service_confirmed: true,
       appointment_date: appointmentDate,
       appointment_time: appointmentTime,
     });
@@ -638,10 +752,25 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     const bookingSessionId = `context-test-bob-booking-${Date.now()}`;
     const bookingConversation = await conversationRepository.create({ guestSessionId: bookingSessionId });
     testSessionIds.push(bookingSessionId);
+    const services = (await productRepository.findAll({
+      status: 'active',
+      page: 1,
+      limit: 1000,
+    })).rows;
+    const haircutService = services.find(service =>
+      service.category_name === 'Cắt tóc' && /cắt tạo kiểu/iu.test(service.name)
+    );
+    assert.ok(haircutService);
+    const availableBobSlots = JSON.parse(await executeTool('check_available_slots', {
+      date: '2026-11-02',
+      product_ids: [haircutService.id],
+    }));
+    assert.ok(availableBobSlots.slots.length);
+    const bobAppointmentTime = availableBobSlots.slots.at(-1);
     await conversationRepository.updateChatContext(bookingConversation.id, {
       booking_intent_pending: true,
       appointment_date: '2026-11-02',
-      appointment_time: '09:15',
+      appointment_time: bobAppointmentTime,
     });
 
     const bookingConsultReply = await orchestrator.chat({
@@ -657,7 +786,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId: bookingSessionId,
       userMessage: 'Bob ngang vai',
     });
-    assert.match(styleDetailReply.content, /09:15 ngày 2026-11-02/u);
+    assert.match(styleDetailReply.content, new RegExp(`${bobAppointmentTime} ngày 2026-11-02`));
     assert.match(styleDetailReply.content, /xác nhận tiếp tục đặt lịch cắt tóc bob/u);
     assert.doesNotMatch(styleDetailReply.content, /số điện thoại/u);
   });

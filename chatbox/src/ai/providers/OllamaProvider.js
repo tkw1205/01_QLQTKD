@@ -49,13 +49,34 @@ class OllamaProvider extends BaseProvider {
   standardizeResponse(data) {
     if (!data || !Array.isArray(data.choices) || data.choices.length === 0) {
       if (data && data.error) {
-        throw new Error(`Ollama Error: ${data.error.message || JSON.stringify(data.error)}`);
+        throw Object.assign(
+          new Error(`Ollama Error: ${data.error.message || JSON.stringify(data.error)}`),
+          { status: 502, code: 'AI_PROVIDER_ERROR_RESPONSE' }
+        );
       }
-      throw new Error('Ollama trả về kết quả rỗng hoặc không đúng định dạng');
+      throw Object.assign(new Error('Ollama returned an empty or invalid response'), {
+        status: 502,
+        code: 'AI_PROVIDER_INVALID_RESPONSE',
+      });
     }
 
     const choice = data.choices[0];
-    const message = choice.message || { role: 'assistant', content: '' };
+    if (!choice || !choice.message || typeof choice.message !== 'object') {
+      throw Object.assign(new Error('Ollama returned an invalid choice message'), {
+        status: 502,
+        code: 'AI_PROVIDER_INVALID_RESPONSE',
+      });
+    }
+    const message = choice.message;
+    if (
+      (message.content !== null && message.content !== undefined && typeof message.content !== 'string') ||
+      (message.content == null && (!Array.isArray(message.tool_calls) || message.tool_calls.length === 0))
+    ) {
+      throw Object.assign(new Error('Ollama returned an invalid choice message'), {
+        status: 502,
+        code: 'AI_PROVIDER_INVALID_RESPONSE',
+      });
+    }
 
     return {
       choices: [
@@ -116,7 +137,11 @@ class OllamaProvider extends BaseProvider {
           const errText = await res.text().catch(() => '');
           throw Object.assign(
             new Error(`Ollama API responded with ${res.status}: ${errText.substring(0, 300)}`),
-            { status: 502 }
+            {
+              status: 502,
+              upstreamStatus: res.status,
+              code: 'AI_PROVIDER_HTTP_ERROR',
+            }
           );
         }
 
@@ -128,15 +153,24 @@ class OllamaProvider extends BaseProvider {
         if (err.name === 'AbortError') {
           lastError = Object.assign(
             new Error(`Ollama request timed out after ${this.timeout}ms`),
-            { status: 504 }
+            { status: 504, code: 'AI_PROVIDER_TIMEOUT' }
           );
+        } else if (err.name === 'SyntaxError') {
+          lastError = Object.assign(new Error('Ollama API returned invalid JSON'), {
+            status: 502,
+            code: 'AI_PROVIDER_INVALID_JSON',
+            cause: err,
+          });
         } else if (err.code === 'ECONNREFUSED' || (err.message && err.message.includes('fetch failed'))) {
           lastError = Object.assign(
             new Error(`Không thể kết nối tới máy chủ Ollama tại ${this.apiUrl}. Vui lòng kiểm tra Ollama đã được khởi động chưa.`),
-            { status: 503 }
+            { status: 503, code: 'AI_PROVIDER_CONNECTION_ERROR' }
           );
+        } else if (!err.code) {
+          lastError = Object.assign(err, { code: 'AI_PROVIDER_NETWORK_ERROR' });
         }
 
+        lastError.attempts = attempt + 1;
         if (attempt < this.maxRetries) {
           await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
           continue;

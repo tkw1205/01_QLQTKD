@@ -1,26 +1,10 @@
 [
   {
-    "id": "15ceaf85-f7a7-4d78-829a-0ce8e21cc159",
-    "conversation_id": "09d8eb29-86a5-4e79-ae08-b733d97bb227",
-    "customer_name": "lịch trống ngày mai",
-    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
-    "is_read": false,
-    "created_at": "2026-10-31T17:08:41.718Z"
-  },
-  {
-    "id": "c624dc40-0e32-43a2-a260-3571b7920382",
-    "conversation_id": "f9ab4da5-da1f-4881-b6f4-ab0132bfc6bd",
-    "customer_name": "Khách hàng",
-    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
-    "is_read": false,
-    "created_at": "2026-10-31T14:06:37.533Z"
-  },
-  {
-    "id": "198e99a6-1834-4d39-bb2f-20fc4b4a4083",
-    "conversation_id": "7c24fcce-4f23-46a7-8546-416606abc988",
+    "id": "aca599ce-61ce-46ee-9bc9-a79966bd4aa5",
+    "conversation_id": "9bba6139-723f-4b80-b465-881db88438c1",
     "customer_name": "Anh Minh Test",
     "last_message": "Chào admin, em muốn đặt mua điện thoại",
     "is_read": false,
-    "created_at": "2026-10-31T13:24:25.098Z"
+    "created_at": "2026-11-01T16:27:26.804Z"
   }
 ]

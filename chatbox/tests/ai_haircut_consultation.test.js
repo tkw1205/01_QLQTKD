@@ -35,11 +35,13 @@ after(() => {
   );
 });
 
-test('generic haircut request returns a concise consultation without calling the LLM', async () => {
+test('generic haircut consultation is handled by the LLM', async () => {
   let providerCalls = 0;
   provider.chat = async () => {
     providerCalls++;
-    throw new Error('The generic haircut path should not call the LLM');
+    return {
+      choices: [{ message: { role: 'assistant', content: 'Provider consultation response' } }],
+    };
   };
 
   const result = await orchestrator.chat({
@@ -49,17 +51,17 @@ test('generic haircut request returns a concise consultation without calling the
   });
 
   assert.equal(result.aiConfigured, true);
-  assert.match(result.content, /dịch vụ cắt và tạo kiểu/i);
-  assert.match(result.content, /tỉa gọn, cắt ngắn hay thử kiểu mới/i);
-  assert.doesNotMatch(result.content, /cả đầu và cổ|stylist/i);
-  assert.equal(providerCalls, 0);
+  assert.equal(result.content, 'Provider consultation response');
+  assert.equal(providerCalls, 1);
 });
 
-test('generic request wording and polite suffixes are recognized', async () => {
+test('generic request wording and polite suffixes use the LLM', async () => {
   let providerCalls = 0;
   provider.chat = async () => {
     providerCalls++;
-    throw new Error('Generic haircut wording should not call the LLM');
+    return {
+      choices: [{ message: { role: 'assistant', content: 'Provider consultation response' } }],
+    };
   };
 
   for (const userMessage of ['Mình muốn cắt tóc ạ.', 'Em cần đi cắt tóc nhé']) {
@@ -69,13 +71,13 @@ test('generic request wording and polite suffixes are recognized', async () => {
       userMessage,
     });
 
-    assert.match(result.content, /tỉa gọn, cắt ngắn hay thử kiểu mới/i);
+    assert.equal(result.content, 'Provider consultation response');
   }
 
-  assert.equal(providerCalls, 0);
+  assert.equal(providerCalls, 2);
 });
 
-test('price inquiries are deterministic while booking and specific-style requests remain on the LLM path', async () => {
+test('price inquiries are deterministic while generic style consultations remain on the LLM path', async () => {
   const providerResponse = 'Đây là phản hồi thử từ provider.';
   let providerCalls = 0;
   provider.chat = async () => {
@@ -95,10 +97,12 @@ test('price inquiries are deterministic while booking and specific-style request
   assert.match(priceResult.content, /size S, M hay L/i);
   assert.equal(providerCalls, 0);
 
-  for (const userMessage of [
-    'Tôi muốn đặt lịch cắt tóc',
+  const llmRequests = [
     'Tôi muốn cắt tóc layer',
-  ]) {
+    'Tôi muốn uốn tóc',
+    'Tôi muốn nhuộm tóc',
+  ];
+  for (const userMessage of llmRequests) {
     const result = await orchestrator.chat({
       conversationId,
       guestSessionId,
@@ -108,5 +112,5 @@ test('price inquiries are deterministic while booking and specific-style request
     assert.equal(result.content, providerResponse, userMessage);
   }
 
-  assert.equal(providerCalls, 2);
+  assert.equal(providerCalls, llmRequests.length);
 });

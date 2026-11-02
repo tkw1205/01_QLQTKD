@@ -1042,5 +1042,85 @@
     "is_available": true,
     "created_at": "2026-10-31T11:04:21.158Z",
     "updated_at": "2026-10-31T11:04:21.158Z"
+  },
+  {
+    "id": "b5b30346-1411-4f0a-bd9f-cbaa7722c252",
+    "email": "test_user_1793546217876@example.com",
+    "password_hash": "$2a$12$kGilsG7NAvrjDqbXGd.KQOkv.4MG7L1wHyw5xGJIpIOdDO2nYgGFW",
+    "name": "Khách Test RBAC",
+    "role": "user",
+    "phone": "0901234567",
+    "is_active": true,
+    "is_available": true,
+    "created_at": "2026-11-01T15:16:58.158Z",
+    "updated_at": "2026-11-01T15:16:58.158Z"
+  },
+  {
+    "id": "a1f869e4-237f-45c5-995d-189fe05c4da4",
+    "name": "Hoàng Nam (Master Stylist)",
+    "email": "hoangnam_test@example.com",
+    "role": "staff",
+    "is_active": true,
+    "created_at": "2026-11-01T15:16:58.161Z"
+  },
+  {
+    "id": "e23c135a-d452-433e-be56-6364a7244668",
+    "name": "Thu Hà (Colorist / Nhuộm)",
+    "email": "thuha_test@example.com",
+    "role": "staff",
+    "is_active": true,
+    "created_at": "2026-11-01T15:16:58.161Z"
+  },
+  {
+    "id": "d91d6034-876c-4fe4-8ba2-b3e3e64f1d0c",
+    "name": "Nhân Viên Đã Nghỉ Việc",
+    "email": "inactive_staff@example.com",
+    "role": "staff",
+    "is_active": false,
+    "created_at": "2026-11-01T15:16:58.275Z"
+  },
+  {
+    "id": "f160c28c-fb69-486b-9019-0342f2d5306d",
+    "email": "test_customer_1793546297058@example.com",
+    "password_hash": "$2a$12$2BOc2TbKfFblXkMCb8Kh.OA2.K/R/ZDqUPZkkKjSIYjmsu5GrEL4a",
+    "name": "Nguyen Van Khach",
+    "role": "user",
+    "phone": "0987654321",
+    "is_active": true,
+    "is_available": true,
+    "created_at": "2026-11-01T15:18:17.372Z",
+    "updated_at": "2026-11-01T15:18:17.372Z"
+  },
+  {
+    "id": "c484c56d-0a5e-40dc-a470-76038c4d73c2",
+    "email": "test_user_1793550453179@example.com",
+    "password_hash": "$2a$12$ixs.ML9JyvY5LgBbgeqrLubPJ2eGv1JWxvmB/nf0GhD97XWNoR2Nm",
+    "name": "Khách Test RBAC",
+    "role": "user",
+    "phone": "0901234567",
+    "is_active": true,
+    "is_available": true,
+    "created_at": "2026-11-01T16:27:33.603Z",
+    "updated_at": "2026-11-01T16:27:33.603Z"
+  },
+  {
+    "id": "038013e4-4ecc-4a8c-b91e-2055b89cc73a",
+    "name": "Nhân Viên Đã Nghỉ Việc",
+    "email": "inactive_staff@example.com",
+    "role": "staff",
+    "is_active": false,
+    "created_at": "2026-11-01T16:27:33.772Z"
+  },
+  {
+    "id": "aa31619c-c38e-4bd2-acda-50d199104e05",
+    "email": "test_customer_1793550696495@example.com",
+    "password_hash": "$2a$12$1aN/JVCctAx.QgShHQzFqeZOv12EaCuMjJ2DepHB2Dr1m1yBJETFi",
+    "name": "Nguyen Van Khach",
+    "role": "user",
+    "phone": "0987654321",
+    "is_active": true,
+    "is_available": true,
+    "created_at": "2026-11-01T16:31:36.928Z",
+    "updated_at": "2026-11-01T16:31:36.928Z"
   }
 ]

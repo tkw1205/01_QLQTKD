@@ -149,7 +149,7 @@ describe('Session Lifecycle & Inactivity Timeout Suite (CR-04, CR-05, CR-06)', (
     assert.equal(checkedHold.status, 'cancelled', 'Holding slot phải tự động chuyển thành cancelled để nhả slot');
   });
 
-  test('4. CR-05 Khách nhắn lại vào phiên đã CLOSED: Phiên cũ chuyển read-only, tự động mở phiên mới và bot gửi lời chào Salon Lumière', async () => {
+  test('4. CR-05 Khách nhắn lại vào phiên đã CLOSED: Phiên cũ chuyển read-only, tự động mở phiên mới và bot gửi lời chào Mây Hair Studio', async () => {
     const guestSessionId = uuidv4();
     // 4.1 Tạo một conversation và chuyển sang CLOSED
     const oldConv = await conversationRepo.create({ guestSessionId });
@@ -185,16 +185,16 @@ describe('Session Lifecycle & Inactivity Timeout Suite (CR-04, CR-05, CR-06)', (
     const oldMsgs = await messageRepo.findByConversation(oldConv.id);
     assert.ok(oldMsgs.some(m => m.content === 'Tin nhắn từ phiên trước'), 'Lịch sử phiên cũ được bảo toàn');
 
-    // 4.4 Kiểm tra phiên mới có mode 'ai', bảo lưu thông tin khách hàng, và chứa lời chào Salon Lumière
+    // 4.4 Kiểm tra phiên mới có mode 'ai', bảo lưu thông tin khách hàng, và chứa lời chào Mây Hair Studio
     const newConv = await conversationRepo.findById(result.newConversationId);
     assert.equal(newConv.mode, 'ai');
     assert.equal(newConv.customer_name, 'Hoàng Yến');
     assert.equal(newConv.customer_phone, '0912999888');
 
     const newMsgs = await messageRepo.findByConversation(result.newConversationId);
-    const greetingMsg = newMsgs.find(m => m.sender_type === 'assistant' && m.content.includes('Salon Lumière'));
-    assert.ok(greetingMsg, 'Phiên mới phải có lời chào mừng trở lại từ Salon Lumière');
-    assert.match(greetingMsg.content, /Salon Lumière/i);
+    const greetingMsg = newMsgs.find(m => m.sender_type === 'assistant' && m.content.includes('Mây Hair Studio'));
+    assert.ok(greetingMsg, 'Phiên mới phải có lời chào mừng trở lại từ Mây Hair Studio');
+    assert.match(greetingMsg.content, /Mây Hair Studio/i);
 
     // Tin nhắn của khách cũng được lưu vào phiên mới
     const userMsgInNew = newMsgs.find(m => m.sender_type === 'user' && m.content.includes('nhuộm tóc'));
@@ -224,7 +224,7 @@ describe('Session Lifecycle & Inactivity Timeout Suite (CR-04, CR-05, CR-06)', (
     assert.ok(chatRes.body.data.newConversationId, 'API phải trả về newConversationId');
     assert.notEqual(chatRes.body.data.newConversationId, convId, 'Phiên mới phải có ID mới');
     assert.ok(chatRes.body.data.greeting, 'API phải đính kèm greeting');
-    assert.match(chatRes.body.data.greeting.content, /Salon Lumière/i);
+    assert.match(chatRes.body.data.greeting.content, /Mây Hair Studio/i);
   });
 
   test('6. CR-06 Chuyển giao tiếp nhân viên thật (Human Handover): Timeout kéo dài lên 60 phút, không đóng ở mốc 5m hay 10m', async () => {

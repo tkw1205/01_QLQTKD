@@ -199,7 +199,31 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
     }
   });
 
-  test('4. Khách chọn giờ còn trống -> AI yêu cầu thông tin nhưng không giữ chỗ tạm thời', async () => {
+  test('4. Khách chọn giờ còn trống -> backend giữ giờ trước khi AI thu thập thông tin', async t => {
+    const originalChat = provider.chat;
+    const originalIsConfigured = provider.isConfigured;
+    t.after(() => {
+      provider.chat = originalChat;
+      provider.isConfigured = originalIsConfigured;
+    });
+    provider.isConfigured = () => true;
+    provider.chat = async ({ messages }) => {
+      const prompt = messages.find(message => message.role === 'system')?.content || '';
+      const latestUserMessage = [...messages].reverse()
+        .find(message => message.role === 'user')?.content || '';
+      const time = latestUserMessage.match(/\b\d{2}:\d{2}\b/u)?.[0] ||
+        prompt.match(/^- Giờ khách chọn: (.+)$/m)?.[1];
+      const date = prompt.match(/^- Ngày khách chọn: (.+)$/m)?.[1];
+      return {
+        choices: [{
+          message: {
+            role: 'assistant',
+            content: `Dạ, ${time} ngày ${date} đã được hệ thống giữ. Anh/chị vui lòng cung cấp họ tên và số điện thoại ạ.`,
+          },
+        }],
+      };
+    };
+
     const guestSessionId = `guest-test-alternate-selection-${Date.now()}`;
     const conversation = await conversationService.getOrCreate({ guestSessionId });
     isolatedBookingSessions.push({ guestSessionId, conversationId: conversation.id });
@@ -227,7 +251,8 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
     assert.match(res.content, new RegExp(selectedTime));
     assert.match(res.content, /họ tên|số điện thoại/i, 'Tiếp tục thu thập thông tin cá nhân khách');
     assert.doesNotMatch(res.content, /giữ chỗ tạm thời/i);
-    assert.equal(await appointmentRepo.findActiveHoldByConversation(conversation.id), null);
+    const activeHold = await appointmentRepo.findActiveHoldByConversation(conversation.id);
+    assert.equal(activeHold.appointment_time, selectedTime);
   });
 
   test('5. Tình huống 4: Ngày đó kín toàn bộ lịch -> AI thông báo kín và chủ động đề xuất kiểm tra ngày tiếp theo', async () => {

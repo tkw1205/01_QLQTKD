@@ -129,12 +129,24 @@ class GeminiProvider extends BaseProvider {
     const candidate = geminiData.candidates?.[0];
     if (!candidate) {
       if (geminiData.error) {
-        throw new Error(`Gemini API Error: ${geminiData.error.message || JSON.stringify(geminiData.error)}`);
+        throw Object.assign(
+          new Error(`Gemini API Error: ${geminiData.error.message || JSON.stringify(geminiData.error)}`),
+          { status: 502, code: 'AI_PROVIDER_ERROR_RESPONSE' }
+        );
       }
-      throw new Error('No candidate returned from Gemini');
+      throw Object.assign(new Error('No candidate returned from Gemini'), {
+        status: 502,
+        code: 'AI_PROVIDER_INVALID_RESPONSE',
+      });
     }
 
     const parts = candidate.content?.parts || [];
+    if (!Array.isArray(parts) || parts.length === 0) {
+      throw Object.assign(new Error('Gemini returned a candidate without content parts'), {
+        status: 502,
+        code: 'AI_PROVIDER_INVALID_RESPONSE',
+      });
+    }
     let text = '';
     const toolCalls = [];
 
@@ -222,7 +234,11 @@ class GeminiProvider extends BaseProvider {
           const errText = await res.text().catch(() => '');
           throw Object.assign(
             new Error(`Gemini API responded with ${res.status}: ${errText.substring(0, 300)}`),
-            { status: res.status === 401 || res.status === 403 ? 401 : 502 }
+            {
+              status: res.status === 401 || res.status === 403 ? 401 : 502,
+              upstreamStatus: res.status,
+              code: 'AI_PROVIDER_HTTP_ERROR',
+            }
           );
         }
 
@@ -232,8 +248,20 @@ class GeminiProvider extends BaseProvider {
         clearTimeout(timeout);
         lastError = err;
         if (err.name === 'AbortError') {
-          lastError = Object.assign(new Error(`Gemini API request timed out after ${this.timeout}ms`), { status: 504 });
+          lastError = Object.assign(
+            new Error(`Gemini API request timed out after ${this.timeout}ms`),
+            { status: 504, code: 'AI_PROVIDER_TIMEOUT' }
+          );
+        } else if (err.name === 'SyntaxError') {
+          lastError = Object.assign(new Error('Gemini API returned invalid JSON'), {
+            status: 502,
+            code: 'AI_PROVIDER_INVALID_JSON',
+            cause: err,
+          });
+        } else if (!err.code) {
+          lastError = Object.assign(err, { code: 'AI_PROVIDER_NETWORK_ERROR' });
         }
+        lastError.attempts = attempt + 1;
         // Don't retry on client authentication or validation errors (401, 403, 400)
         if (err.status === 401 || err.status === 403 || err.status === 400) {
           throw err;
@@ -249,4 +277,3 @@ class GeminiProvider extends BaseProvider {
 }
 
 module.exports = GeminiProvider;
-

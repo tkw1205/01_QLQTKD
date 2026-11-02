@@ -58,6 +58,8 @@ describe('Deterministic salon service pricing', () => {
     assert.deepEqual(servicePricing.parseHairSize('Tóc dài ngang vai'), { size: 'M' });
     assert.deepEqual(servicePricing.parseHairSize('Tóc ngắn trên cằm'), { size: 'S' });
     assert.deepEqual(servicePricing.parseHairSize('Tóc dài ngang ngực'), { size: 'L' });
+    assert.deepEqual(servicePricing.parseHairSize('Tóc tôi dài tới ngang hông'), { size: 'L' });
+    assert.deepEqual(servicePricing.parseHairSize('Hơn ngực'), { size: 'L' });
     assert.equal(servicePricing.parseHairSize('Tóc ngang cằm').ambiguous, true);
     assert.equal(servicePricing.parseHairSize('Tóc qua vai nhưng chưa đến ngực').ambiguous, true);
   });

@@ -37,9 +37,17 @@ async function updateConversationContext(conversationId, conversation, userMessa
   const normalizedMessage = normalizeText(message);
   const isPriceRequest = isPriceQuestion(message);
   const bookingServiceWasRequested = context.booking_intent_pending === true;
+  const bookingServiceWasConfirmed = context.booking_service_confirmed === true;
   context.booking_service_just_selected = false;
 
   if (isPriceRequest) context.pricing_inquiry_active = true;
+  else if (
+    hasBookingLanguage(message) ||
+    /(?:muốn|cần|định|tư vấn)\s+(?:đi\s*)?(?:đặt lịch|cắt|uốn|nhuộm|làm tóc|thay đổi kiểu tóc|kiểu tóc)/iu
+      .test(message)
+  ) {
+    context.pricing_inquiry_active = false;
+  }
 
   const { rows: services } = await productRepository.findAll({ status: 'active', page: 1, limit: 1000 });
   const currentServiceMatches = findDirectMatches(message, services);
@@ -66,9 +74,6 @@ async function updateConversationContext(conversationId, conversation, userMessa
       : null;
   if (currentServiceMatches.length) {
     context.selected_service_ids = currentServiceMatches.map(service => service.id);
-    if (context.pricing_inquiry_active || context.booking_started) {
-      context.pricing_inquiry_active = true;
-    }
   } else if (categoryService) {
     context.selected_service_ids = [categoryService.id];
   } else if (categoryMatches.length && (hasBookingLanguage(message) || bookingServiceWasRequested)) {
@@ -97,6 +102,7 @@ async function updateConversationContext(conversationId, conversation, userMessa
   const hasSelectedService = Array.isArray(context.selected_service_ids) &&
     context.selected_service_ids.length > 0;
   const serviceWasMentioned = currentServiceMatches.length > 0 || Boolean(categoryService);
+  const bookingServiceWasMentioned = serviceWasMentioned && !isPriceRequest;
   const mentionsContact = /(?:\+?84|0)\d(?:[\s().-]?\d){8,10}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(message);
   if (
     hasSelectedService &&
@@ -112,29 +118,41 @@ async function updateConversationContext(conversationId, conversation, userMessa
       .filter((note, index, notes) => notes.indexOf(note) === index)
       .join(' | ');
   }
-  if (bookingServiceWasRequested && (currentServiceMatches.length > 0 || categoryService)) {
+  if (bookingServiceWasRequested && bookingServiceWasMentioned) {
     context.booking_started = true;
     context.booking_intent_pending = false;
+    context.booking_service_confirmed = true;
     context.booking_service_just_selected = true;
     context.booking_requested_category = null;
     context.booking_service_notes = message;
     context.pricing_inquiry_active = false;
-  } else if (context.booking_started && serviceWasMentioned) {
+  } else if (context.booking_started && bookingServiceWasMentioned) {
+    context.booking_service_confirmed = true;
     context.booking_service_just_selected = true;
     context.booking_service_notes = message;
     context.booking_confirmation_pending = false;
     context.booking_service_confirmation_pending = false;
-  } else if (hasBookingLanguage(message) && !hasSelectedService) {
-    context.booking_intent_pending = true;
+  }
+  if (hasBookingLanguage(message)) {
+    if (bookingServiceWasMentioned) context.booking_service_confirmed = true;
+    if (
+      bookingServiceWasMentioned ||
+      (bookingServiceWasConfirmed && hasSelectedService)
+    ) {
+      context.booking_started = true;
+      context.booking_intent_pending = false;
+    } else {
+      context.booking_started = false;
+      context.booking_intent_pending = true;
+    }
   }
   const priorAssistantAskedBookingDetails = [...history]
     .reverse()
     .find(item => item.sender_type === 'assistant');
   const assistantAskedBookingDetails = /(?:ngày|giờ|khung giờ|đặt lịch)/iu
     .test(priorAssistantAskedBookingDetails?.content || '');
-  if (hasSelectedService && (
+  if (context.booking_service_confirmed && hasSelectedService && (
     hasBookingLanguage(message) ||
-    (context.pricing_inquiry_active && (date || timeMentioned)) ||
     (context.booking_started && (date || timeMentioned)) ||
     (assistantAskedBookingDetails && (date || timeMentioned))
   )) {

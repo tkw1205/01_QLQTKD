@@ -30,14 +30,17 @@ function parseHairSize(value) {
   if (explicitSize) return { size: explicitSize[1].toUpperCase() };
   if (/^[sml]$/u.test(text)) return { size: text.toUpperCase() };
 
+  if (/\b(?:qua|duoi)\s+vai\b.*\b(?:chua\s+(?:den|toi|ngang))\s+nguc\b/u.test(text)) {
+    return { ambiguous: true, reason: 'Quy ước chưa phân loại rõ độ dài sau vai nhưng chưa đến ngực.' };
+  }
+  if (/\b(?:ngang\s+hong|toi\s+ngang\s+hong|den\s+ngang\s+hong|cham\s+hong|qua\s+hong|duoi\s+hong|hon\s+nguc|qua\s+nguc|duoi\s+nguc|ngang\s+nguc|cham\s+nguc|den\s+nguc|toi\s+nguc|tu\s+nguc\s+tro\s+xuong)\b/u.test(text)) {
+    return { size: 'L' };
+  }
   if (/\b(?:ngang|toi|den|cham)\s+cam\b|\btu cam tro len\b/u.test(text)) {
     return { ambiguous: true, reason: 'Mốc cằm được bao gồm trong cả quy ước size S và M.' };
   }
   if (/\b(?:qua vai|duoi vai|ngang lung|toi lung|duoi lung|den lung)\b/u.test(text)) {
     return { ambiguous: true, reason: 'Quy ước chưa phân loại rõ độ dài sau vai nhưng chưa đến ngực.' };
-  }
-  if (/\b(?:ngang nguc|qua nguc|duoi nguc|cham nguc|den nguc|toi nguc|tu nguc tro xuong)\b/u.test(text)) {
-    return { size: 'L' };
   }
   if (/\b(?:toc lo|toc ngang vai|ngang vai|den vai|toi vai|cham vai|tu cam den vai|tu cam toi vai)\b/u.test(text)) {
     return { size: 'M' };
@@ -176,6 +179,39 @@ function buildAmbiguousServiceReply(services, query) {
   return `${lead}: ${names.join('; ')}. Mình muốn hỏi giá dịch vụ nào ạ?`;
 }
 
+async function resolveServiceInquiry({ userMessage, conversation = null }) {
+  const chatContext = conversation?.chat_context || {};
+  if (
+    isPriceQuestion(userMessage) ||
+    chatContext.pricing_inquiry_active ||
+    chatContext.booking_intent_pending ||
+    chatContext.booking_started
+  ) return null;
+
+  const normalizedMessage = normalizeText(userMessage);
+  if (/\b(?:muon\s+)?lam\s+toc\b/u.test(normalizedMessage)) {
+    return {
+      handled: true,
+      content: 'Dạ, anh/chị đang muốn cắt, uốn, nhuộm hay phục hồi tóc ạ?',
+    };
+  }
+
+  if (/\bbob\b/u.test(normalizedMessage)) {
+    if (/\b(?:tu van|tham khao|tim hieu)\b/u.test(normalizedMessage)) {
+      return {
+        handled: true,
+        content: 'Dạ, em có thể hỗ trợ anh/chị tư vấn kiểu tóc bob. Anh/chị muốn kiểu bob ngắn hay bob ngang vai ạ?',
+      };
+    }
+    return {
+      handled: true,
+      content: 'Dạ, anh/chị muốn cắt kiểu tóc bob ạ. Anh/chị muốn tư vấn thêm về kiểu tóc bob hay muốn đặt lịch cắt tóc ạ?',
+    };
+  }
+
+  return null;
+}
+
 async function resolvePriceInquiry({ userMessage, history = [], conversation = null }) {
   const pending = findPendingPriceQuestion(history, userMessage);
   const currentIsPriceQuestion = isPriceQuestion(userMessage);
@@ -261,5 +297,6 @@ module.exports = {
   parseHairSize,
   findDirectMatches,
   findCategoryMatches,
+  resolveServiceInquiry,
   resolvePriceInquiry,
 };

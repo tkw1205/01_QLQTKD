@@ -1,6 +1,11 @@
 'use strict';
 const appointmentRepo = require('../repositories/appointmentRepository');
 const settingsRepo = require('../repositories/settingsRepository');
+const {
+  assertAppointmentIsFuture,
+  getLocalDateTimeParts,
+  parseDate,
+} = require('../utils/appointmentDateTime');
 
 const PHONE_REGEX = /^(0[3|5|7|8|9])[0-9]{8}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -28,15 +33,9 @@ async function checkAvailableSlots(date, requestedDuration) {
   const durationSetting = parseInt(await settingsRepo.get('appointment_duration')) || 30;
   const duration = requestedDuration || durationSetting;
 
-  // Validate date
-  const d = new Date(date);
-  if (isNaN(d.getTime())) {
-    throw Object.assign(new Error('Invalid date'), { status: 400 });
-  }
-
-  // Don't allow past dates (using Asia/Ho_Chi_Minh timezone)
-  const nowVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-  const todayStr = `${nowVN.getFullYear()}-${String(nowVN.getMonth() + 1).padStart(2, '0')}-${String(nowVN.getDate()).padStart(2, '0')}`;
+  parseDate(date);
+  const nowVN = getLocalDateTimeParts();
+  const todayStr = `${nowVN.year}-${String(nowVN.month).padStart(2, '0')}-${String(nowVN.day).padStart(2, '0')}`;
   if (date < todayStr) {
     throw Object.assign(new Error('Cannot book appointments in the past'), { status: 400 });
   }
@@ -53,16 +52,7 @@ async function holdSlot({
     throw Object.assign(new Error('Missing required date or time for holding slot'), { status: 400 });
   }
 
-  const d = new Date(appointmentDate);
-  if (isNaN(d.getTime())) {
-    throw Object.assign(new Error('Invalid appointment date'), { status: 400 });
-  }
-
-  const nowVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-  const todayStr = `${nowVN.getFullYear()}-${String(nowVN.getMonth() + 1).padStart(2, '0')}-${String(nowVN.getDate()).padStart(2, '0')}`;
-  if (appointmentDate < todayStr) {
-    throw Object.assign(new Error('Cannot book appointments in the past'), { status: 400 });
-  }
+  assertAppointmentIsFuture(appointmentDate, appointmentTime);
 
   const duration = durationMinutes || parseInt(await settingsRepo.get('appointment_duration')) || 30;
 
@@ -148,6 +138,8 @@ async function createAppointment({
   if (!customerName || !customerPhone || !appointmentDate || !appointmentTime) {
     throw Object.assign(new Error('Missing required appointment fields'), { status: 400 });
   }
+
+  assertAppointmentIsFuture(appointmentDate, appointmentTime);
 
   const cleanPhone = cleanPhoneNumber(customerPhone);
   if (!PHONE_REGEX.test(cleanPhone)) {

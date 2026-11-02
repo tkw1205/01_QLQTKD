@@ -87,7 +87,7 @@ module.exports = {
 
   port: Number(process.env.PORT) || 3000,
 
-  timezone: process.env.TZ || 'Asia/Ho_Chi_Minh',
+  timezone: 'Asia/Ho_Chi_Minh',
 
   ai: activeConfig,
 

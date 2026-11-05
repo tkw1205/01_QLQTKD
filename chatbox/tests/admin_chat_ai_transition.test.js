@@ -134,8 +134,14 @@ describe('Admin Chat - AI Transition & List Display Test Suite', () => {
 
   test('5. Khách hàng chuyển về chat AI (switch-to-ai) -> HỘI THOẠI VẪN NẰM TRONG DANH SÁCH ADMIN ACTIVE', async () => {
     // Khách hàng bấm chuyển về AI
+    await conversationRepo.updateChatContext(conversationId, {
+      hair_size_clarification_attempts: 2,
+      service_selection_clarification_attempts: 2,
+    });
     const switched = await conversationService.switchBackToAI(conversationId, testGuestSession, null);
     assert.equal(switched.mode, 'ai', 'Trạng thái chuyển về mode: ai');
+    assert.equal(switched.chat_context.hair_size_clarification_attempts, 0);
+    assert.equal(switched.chat_context.service_selection_clarification_attempts, 0);
 
     // QUAN TRỌNG: Gọi API danh sách active của Admin (/api/conversations/agent/active)
     const fetchRes = await fetch(`${serverUrl}/api/conversations/agent/active`, {

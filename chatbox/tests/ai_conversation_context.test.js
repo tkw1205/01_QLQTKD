@@ -9,7 +9,7 @@ const appointmentService = require('../src/services/appointmentService');
 const productRepository = require('../src/repositories/productRepository');
 const conversationContext = require('../src/ai/conversationContext');
 const servicePricing = require('../src/ai/servicePricing');
-const { executeTool } = require('../src/ai/tools');
+const { executeTool, getVietnamDate } = require('../src/ai/tools');
 const orchestrator = require('../src/ai/orchestrator');
 const provider = require('../src/ai/provider');
 const jsonStore = require('../src/config/jsonStore');
@@ -253,7 +253,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       conversationId: conversation.id,
       userMessage: 'Mai làm',
     });
-    assert.match(dateReply.content, /muốn làm vào khung giờ nào/u);
+    assert.match(dateReply.content, /khung giờ nào/u);
 
     const newConversation = await conversationRepository.create({
       guestSessionId: `context-test-new-${Date.now()}`,
@@ -285,7 +285,13 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId: bookingConversation.guest_session_id,
       userMessage: 'Uốn mái',
     });
-    assert.match(serviceReply.content, /ngày nào và khoảng thời gian nào/u);
+    assert.match(serviceReply.content, /độ dài tóc/u);
+    const sizeReply = await orchestrator.chat({
+      conversationId: bookingConversation.id,
+      guestSessionId: bookingConversation.guest_session_id,
+      userMessage: 'Tóc ngang vai',
+    });
+    assert.match(sizeReply.content, /ngày nào/u);
     const updated = await conversationRepository.findById(bookingConversation.id);
     assert.equal(updated.chat_context.booking_started, true);
     assert.equal(updated.chat_context.booking_intent_pending, false);
@@ -323,25 +329,24 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId,
       userMessage: 'Tôi muốn nhuộm tóc',
     });
-    assert.match(dyeReply.content, /màu nào/u);
-    assert.match(dyeReply.content, /độ dài tóc/u);
+    assert.match(dyeReply.content, /Nhuộm \(sản phẩm ART\)/u);
+    assert.match(dyeReply.content, /Chấm chân/u);
     assert.doesNotMatch(dyeReply.content, /họ tên|số điện thoại/u);
+
+    const serviceSelectionReply = await orchestrator.chat({
+      conversationId: bookingConversation.id,
+      guestSessionId,
+      userMessage: 'Nhuộm (sản phẩm ART), tóc ngang vai',
+    });
+    assert.match(serviceSelectionReply.content, /màu nào/u);
 
     const colorReply = await orchestrator.chat({
       conversationId: bookingConversation.id,
       guestSessionId,
       userMessage: 'Nâu trà sữa',
     });
-    assert.match(colorReply.content, /độ dài tóc/u);
-    assert.doesNotMatch(colorReply.content, /họ tên|số điện thoại/u);
-
-    const lengthReply = await orchestrator.chat({
-      conversationId: bookingConversation.id,
-      guestSessionId,
-      userMessage: 'Tóc ngang vai',
-    });
-    assert.match(lengthReply.content, /09:15/u);
-    assert.doesNotMatch(lengthReply.content, /họ tên|số điện thoại/u);
+    assert.match(colorReply.content, /09:15/u);
+    assert.match(colorReply.content, /họ tên và số điện thoại|chưa còn chỗ/u);
 
     updated = await conversationRepository.findById(bookingConversation.id);
     assert.equal(updated.chat_context.appointment_date, requestedDate);
@@ -389,10 +394,11 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       service.category_name === 'Cắt tóc' && /cắt tạo kiểu/iu.test(service.name)
     );
     assert.ok(haircutService);
-    const appointmentDate = '2026-11-02';
+    const appointmentDate = getVietnamDate(1);
     const availableSlots = JSON.parse(await executeTool('check_available_slots', {
       date: appointmentDate,
       product_ids: [haircutService.id],
+      hair_size: 'M',
     }));
     assert.ok(availableSlots.slots.length);
     const appointmentTime = availableSlots.slots.find(time => time !== '08:30') || availableSlots.slots[0];
@@ -400,6 +406,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       selected_service_ids: [haircutService.id],
       booking_started: true,
       booking_service_confirmed: true,
+      hair_size: 'M',
       appointment_date: appointmentDate,
       appointment_time: appointmentTime,
     });
@@ -421,15 +428,21 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId,
       userMessage: 'Cắt tóc bob',
     });
-    assert.match(bobRequest.content, /ghi nhận nhu cầu cắt tóc bob/u);
-    assert.match(bobRequest.content, new RegExp(`${appointmentTime} ngày ${appointmentDate}`));
-    assert.match(bobRequest.content, /xác nhận tiếp tục đặt lịch/u);
+    assert.match(bobRequest.content, /độ dài tóc/u);
     assert.doesNotMatch(bobRequest.content, /số điện thoại/u);
 
     updated = await conversationRepository.findById(bookingConversation.id);
     assert.equal(updated.chat_context.appointment_date, appointmentDate);
     assert.equal(updated.chat_context.appointment_time, appointmentTime);
     assert.equal(updated.chat_context.booking_service_confirmation_pending, true);
+
+    const sizeReply = await orchestrator.chat({
+      conversationId: bookingConversation.id,
+      guestSessionId,
+      userMessage: 'Tóc ngang vai',
+    });
+    assert.match(sizeReply.content, new RegExp(`${appointmentTime} ngày ${appointmentDate}`));
+    assert.match(sizeReply.content, /họ tên và số điện thoại/u);
 
     const confirmedService = await orchestrator.chat({
       conversationId: bookingConversation.id,
@@ -454,6 +467,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     const availableSlots = JSON.parse(await executeTool('check_available_slots', {
       date: appointmentDate,
       product_ids: [haircutService.id],
+      hair_size: 'M',
     }));
     assert.ok(availableSlots.slots.length);
     const contactAppointmentTimes = ['09:00', '11:00', '13:00', '15:00', '17:00']
@@ -490,6 +504,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
         selected_service_ids: [haircutService.id],
         booking_started: true,
         booking_service_confirmed: true,
+        hair_size: 'M',
         appointment_date: appointmentDate,
         appointment_time: appointmentTime,
       });
@@ -567,8 +582,9 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId: activeHold.guestSessionId,
       appointmentDate,
       appointmentTime: activeHold.appointmentTime,
-      durationMinutes: haircutService.duration,
+      durationMinutes: haircutService.prices_by_size.M.duration,
       productId: haircutService.id,
+      hairSize: 'M',
     });
     assert.ok(hold.holding_token);
     const invalidHeldPhone = await sendStoredTurn(
@@ -603,10 +619,12 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       executeTool('check_available_slots', {
         date: appointmentDate,
         product_ids: [oldService.id],
+        hair_size: 'M',
       }),
       executeTool('check_available_slots', {
         date: appointmentDate,
         product_ids: [newService.id],
+        hair_size: 'M',
       }),
     ]);
     const oldServiceSlots = JSON.parse(oldServiceSlotsResult);
@@ -620,8 +638,9 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId,
       appointmentDate,
       appointmentTime,
-      durationMinutes: oldService.duration,
+      durationMinutes: oldService.prices_by_size.M.duration,
       productId: oldService.id,
+      hairSize: 'M',
     });
     assert.ok(hold.holding_token);
     await conversationRepository.updateChatContext(bookingConversation.id, {
@@ -651,26 +670,35 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId,
       userMessage: 'Tôi muốn uốn tóc',
     });
-    assert.match(broadPermReply.content, /uốn kiểu nào/u);
-    assert.match(broadPermReply.content, /tóc hiện tại dài/iu);
+    assert.match(broadPermReply.content, /Uốn mái \/ phồng mái/u);
+    assert.match(broadPermReply.content, /Phồng chân/u);
     assert.doesNotMatch(broadPermReply.content, /số điện thoại/u);
 
-    const detailedPermReply = await orchestrator.chat({
+    const unclearPermReply = await orchestrator.chat({
       conversationId: bookingConversation.id,
       guestSessionId,
       userMessage: 'Uốn xoăn sóng, tóc ngang vai',
     });
+    assert.match(unclearPermReply.content, /Uốn mái \/ phồng mái/u);
+    assert.match(unclearPermReply.content, /Phồng chân/u);
+    updated = await conversationRepository.findById(bookingConversation.id);
+    assert.deepEqual(updated.chat_context.selected_service_ids, []);
+
+    const detailedPermReply = await orchestrator.chat({
+      conversationId: bookingConversation.id,
+      guestSessionId,
+      userMessage: 'Uốn (sản phẩm ART), tóc ngang vai, kiểu xoăn sóng',
+    });
     assert.match(detailedPermReply.content, /Uốn \(sản phẩm ART\)/u);
     assert.match(detailedPermReply.content, new RegExp(`${appointmentTime} ngày ${appointmentDate}`));
-    assert.match(detailedPermReply.content, /xác nhận tiếp tục đặt lịch/u);
-    assert.doesNotMatch(detailedPermReply.content, /số điện thoại/u);
+    assert.match(detailedPermReply.content, /họ tên và số điện thoại/u);
 
     updated = await conversationRepository.findById(bookingConversation.id);
     assert.equal(updated.chat_context.appointment_date, appointmentDate);
     assert.equal(updated.chat_context.appointment_time, appointmentTime);
     assert.equal(updated.chat_context.selected_service_ids.length, 1);
     assert.notEqual(updated.chat_context.selected_service_ids[0], oldService.id);
-    assert.match(updated.chat_context.booking_service_notes, /Uốn xoăn sóng/u);
+    assert.match(updated.chat_context.booking_service_notes, /xoăn sóng/u);
 
     const confirmedService = await orchestrator.chat({
       conversationId: bookingConversation.id,
@@ -698,8 +726,8 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId: directGuestSessionId,
       userMessage: 'Tôi muốn đổi dịch vụ sang uốn tóc',
     });
-    assert.match(directChange.content, /uốn kiểu nào/u);
-    assert.match(directChange.content, /tóc hiện tại dài/u);
+    assert.match(directChange.content, /Uốn mái \/ phồng mái/u);
+    assert.match(directChange.content, /Phồng chân/u);
     assert.doesNotMatch(directChange.content, /số điện thoại/u);
     updated = await conversationRepository.findById(directConversation.id);
     assert.deepEqual(updated.chat_context.selected_service_ids, []);
@@ -746,7 +774,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId: appointmentSessionId,
       userMessage: 'Tôi muốn đặt lịch cắt tóc bob',
     });
-    assert.match(appointmentReply.content, /ngày nào và khoảng thời gian nào/u);
+    assert.match(appointmentReply.content, /độ dài tóc/u);
     assert.doesNotMatch(appointmentReply.content, /số điện thoại/u);
 
     const bookingSessionId = `context-test-bob-booking-${Date.now()}`;
@@ -761,15 +789,17 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       service.category_name === 'Cắt tóc' && /cắt tạo kiểu/iu.test(service.name)
     );
     assert.ok(haircutService);
+    const appointmentDate = getVietnamDate(1);
     const availableBobSlots = JSON.parse(await executeTool('check_available_slots', {
-      date: '2026-11-02',
+      date: appointmentDate,
       product_ids: [haircutService.id],
+      hair_size: 'M',
     }));
     assert.ok(availableBobSlots.slots.length);
     const bobAppointmentTime = availableBobSlots.slots.at(-1);
     await conversationRepository.updateChatContext(bookingConversation.id, {
       booking_intent_pending: true,
-      appointment_date: '2026-11-02',
+      appointment_date: appointmentDate,
       appointment_time: bobAppointmentTime,
     });
 
@@ -786,12 +816,11 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId: bookingSessionId,
       userMessage: 'Bob ngang vai',
     });
-    assert.match(styleDetailReply.content, new RegExp(`${bobAppointmentTime} ngày 2026-11-02`));
-    assert.match(styleDetailReply.content, /xác nhận tiếp tục đặt lịch cắt tóc bob/u);
-    assert.doesNotMatch(styleDetailReply.content, /số điện thoại/u);
+    assert.match(styleDetailReply.content, new RegExp(`${bobAppointmentTime} ngày ${appointmentDate}`));
+    assert.match(styleDetailReply.content, /họ tên và số điện thoại/u);
   });
 
-  test('clarifies a broad coloring request, then continues with the selected color service', async () => {
+  test('lists catalog services for a broad coloring request before booking the selected service', async () => {
     const bookingConversation = await conversationRepository.create({
       guestSessionId: `context-test-coloring-${Date.now()}`,
     });
@@ -807,16 +836,29 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId: bookingConversation.guest_session_id,
       userMessage: 'Tôi muốn nhuộm tóc',
     });
-    assert.match(serviceReply.content, /màu nào/u);
-    assert.match(serviceReply.content, /độ dài tóc/u);
+    assert.match(serviceReply.content, /Nhuộm \(sản phẩm ART\)/u);
+    assert.match(serviceReply.content, /Chấm chân/u);
+    let updated = await conversationRepository.findById(bookingConversation.id);
+    assert.deepEqual(updated.chat_context.selected_service_ids, []);
+    assert.equal(updated.chat_context.service_interest_category, 'Nhuộm tóc');
 
     const detailsReply = await orchestrator.chat({
       conversationId: bookingConversation.id,
       guestSessionId: bookingConversation.guest_session_id,
+      userMessage: 'Nhuộm (sản phẩm ART)',
+    });
+    assert.match(detailsReply.content, /độ dài tóc/u);
+    updated = await conversationRepository.findById(bookingConversation.id);
+    assert.equal(updated.chat_context.selected_service_ids.length, 1);
+    assert.equal(updated.chat_context.booking_started, true);
+
+    const colorAndLengthReply = await orchestrator.chat({
+      conversationId: bookingConversation.id,
+      guestSessionId: bookingConversation.guest_session_id,
       userMessage: 'Nhuộm màu nâu trà sữa, tóc ngang vai',
     });
-    assert.match(detailsReply.content, /ngày nào và khoảng thời gian nào/u);
-    const updated = await conversationRepository.findById(bookingConversation.id);
+    assert.match(colorAndLengthReply.content, /ngày nào/u);
+    updated = await conversationRepository.findById(bookingConversation.id);
     assert.equal(updated.chat_context.booking_started, true);
     assert.equal(updated.chat_context.selected_service_ids.length, 1);
     assert.equal(updated.chat_context.hair_size, 'M');

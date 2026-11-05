@@ -7,7 +7,6 @@ const orchestrator = require('../src/ai/orchestrator');
 const { executeTool, getVietnamDate, getNextDate, detectAvailableSlotsQuery, extractTimeFromText } = require('../src/ai/tools');
 const conversationService = require('../src/services/conversationService');
 const conversationRepo = require('../src/repositories/conversationRepository');
-const messageRepo = require('../src/repositories/messageRepository');
 const appointmentRepo = require('../src/repositories/appointmentRepository');
 const productRepository = require('../src/repositories/productRepository');
 const jsonStore = require('../src/config/jsonStore');
@@ -35,6 +34,24 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
       booking_confirmation_pending: false,
     });
   });
+
+  async function setAvailabilityContext(date = tomorrow) {
+    const service = (await productRepository.findAll({
+      status: 'active',
+      page: 1,
+      limit: 1000,
+    })).rows.find(item => item.name === 'Cắt tạo kiểu');
+    assert.ok(service);
+    await conversationRepo.updateChatContext(testConvId, {
+      selected_service_ids: [service.id],
+      selected_service_source: 'service_consultation',
+      hair_size: 'M',
+      appointment_date: date,
+      availability_query_pending: false,
+      availability_query_date: null,
+    });
+    return service;
+  }
 
   after(async () => {
     // Clean up test appointments
@@ -75,7 +92,7 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
     const res = await orchestrator.chat({
       conversationId: conversation.id,
       guestSessionId,
-      userMessage: 'Tôi muốn đặt lịch Uốn mái / phồng mái lúc 10:30 ngày mai'
+      userMessage: 'Tôi muốn đặt lịch Uốn mái / phồng mái tóc ngang vai lúc 10:30 ngày mai'
     });
 
     assert.match(res.content, /10:30|đã có khách đặt|không còn trống|đã kín/i, 'Phải thông báo rõ khung giờ đó đã kín');
@@ -83,120 +100,29 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
     assert.equal(await appointmentRepo.findActiveHoldByConversation(conversation.id), null);
   });
 
-  test('2. Tình huống 2: Khách hỏi "Còn trống khung giờ khác không?" -> AI tự gọi check_available_slots và trả về danh sách giờ trống', async () => {
-    const originalChat = provider.chat;
-    let toolCalledName = null;
-    let toolArgs = null;
+  test('2. Availability query checks the selected service and returns actual backend slots', async () => {
+    await setAvailabilityContext();
+    const res = await orchestrator.chat({
+      conversationId: testConvId,
+      guestSessionId: testGuestId,
+      userMessage: 'Còn trống khung giờ khác không?',
+    });
 
-    // Giả lập LLM phản hồi tự nhiên sau khi nhận kết quả tool
-    provider.chat = async ({ messages }) => {
-      const lastMsg = messages[messages.length - 1];
-      if (lastMsg.role === 'tool') {
-        const toolData = JSON.parse(lastMsg.content);
-        assert.equal(toolData.success, true);
-        assert.ok(toolData.slots.length > 0);
-        assert.ok(!toolData.slots.includes('10:30'), 'Giờ 10:30 đã kín không được xuất hiện');
-
-        return {
-          choices: [{
-            finish_reason: 'stop',
-            message: {
-              role: 'assistant',
-              content: `Dạ, trong ngày mai (${toolData.date}), salon còn các khung giờ trống sau ạ:\n\n${toolData.slots.slice(0, 8).join(', ')}\n\nBạn thuận tiện chọn khung giờ nào để em hỗ trợ giữ chỗ cho bạn ạ?`
-            }
-          }]
-        };
-      }
-
-      // Lần đầu: LLM tự quyết định gọi tool check_available_slots
-      return {
-        choices: [{
-          finish_reason: 'stop',
-          message: {
-            role: 'assistant',
-            content: null,
-            tool_calls: [{
-              id: 'call_check_slots_2',
-              type: 'function',
-              function: {
-                name: 'check_available_slots',
-                arguments: JSON.stringify({ date: tomorrow })
-              }
-            }]
-          }
-        }]
-      };
-    };
-
-    try {
-      const res = await orchestrator.chat({
-        conversationId: testConvId,
-        guestSessionId: testGuestId,
-        userMessage: 'Còn trống khung giờ khác không?'
-      });
-
-      assert.equal(res.aiConfigured, true);
-      assert.match(res.content, /khung giờ trống|khung giờ còn trống/i);
-      assert.ok(res.content.includes('08:30') || res.content.includes('09:00') || res.content.includes('11:00'), 'Phải chứa giờ trống thực tế');
-      assert.doesNotMatch(res.content, /10:30/, 'Không được chứa giờ 10:30 đã kín');
-
-      await messageRepo.create({ conversationId: testConvId, senderType: 'user', content: 'Còn trống khung giờ khác không?' });
-      await messageRepo.create({ conversationId: testConvId, senderType: 'assistant', content: res.content });
-    } finally {
-      provider.chat = originalChat;
-    }
+    assert.match(res.content, /khung giờ trống|khung giờ còn trống/i);
+    assert.match(res.content, /\b\d{2}:\d{2}\b/u, 'Phải chứa khung giờ thực tế từ backend');
+    assert.doesNotMatch(res.content, /10:30/, 'Không được chứa giờ 10:30 đã kín');
   });
 
-  test('3. Tình huống 2b (Chặn lỗi LLM lười): LLM trả lời chay mà KHÔNG gọi tool -> Orchestrator tự động bắt và ép gọi check_available_slots', async () => {
-    const originalChat = provider.chat;
-    let callCount = 0;
+  test('3. Tình huống 2b: Availability query uses the backend directly without relying on the LLM', async () => {
+    await setAvailabilityContext();
+    const res = await orchestrator.chat({
+      conversationId: testConvId,
+      guestSessionId: testGuestId,
+      userMessage: 'Có giờ khác không bạn?',
+    });
 
-    provider.chat = async ({ messages }) => {
-      callCount++;
-      if (callCount === 1) {
-        // LLM lười: chỉ trả lời bằng text mà không gọi tool
-        return {
-          choices: [{
-            finish_reason: 'stop',
-            message: {
-              role: 'assistant',
-              content: 'Dạ bạn muốn đặt vào khung giờ nào ạ?'
-            }
-          }]
-        };
-      } else {
-        // Lần 2: Sau khi orchestrator ép gọi tool check_available_slots, LLM nhận dữ liệu slots thật
-        const toolMsg = messages.find(m => m.role === 'tool');
-        assert.ok(toolMsg, 'Phải có tool message được chèn bởi interceptor');
-        const toolData = JSON.parse(toolMsg.content);
-        assert.equal(toolData.success, true);
-
-        return {
-          choices: [{
-            finish_reason: 'stop',
-            message: {
-              role: 'assistant',
-              content: `Dạ, salon đã kiểm tra lịch ngày mai (${toolData.date}), hiện còn các khung giờ: ${toolData.slots.slice(0, 5).join(', ')}. Bạn chọn khung giờ nào ạ?`
-            }
-          }]
-        };
-      }
-    };
-
-    try {
-      const res = await orchestrator.chat({
-        conversationId: testConvId,
-        guestSessionId: testGuestId,
-        userMessage: 'Có giờ khác không bạn?'
-      });
-
-      assert.equal(res.aiConfigured, true);
-      assert.ok(callCount >= 2, 'Orchestrator phải ép gọi thêm turn với tool result');
-      assert.match(res.content, /khung giờ/i);
-      assert.doesNotMatch(res.content, /^Dạ bạn muốn đặt vào khung giờ nào ạ\?$/, 'Không được để nguyên câu hỏi chay của AI');
-    } finally {
-      provider.chat = originalChat;
-    }
+    assert.match(res.content, /khung giờ/i);
+    assert.match(res.content, /\b\d{2}:\d{2}\b/u);
   });
 
   test('4. Khách chọn giờ còn trống -> backend giữ giờ trước khi AI thu thập thông tin', async t => {
@@ -233,6 +159,7 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
     const available = JSON.parse(await executeTool('check_available_slots', {
       date: tomorrow,
       product_ids: [service.id],
+      hair_size: 'M',
     }, { conversationId: conversation.id, guestSessionId }));
     assert.ok(available.slots.length > 0);
     const selectedTime = available.slots[0];
@@ -241,6 +168,11 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
       conversationId: conversation.id,
       guestSessionId,
       userMessage: 'Tôi muốn đặt lịch Uốn mái / phồng mái ngày mai'
+    });
+    await orchestrator.chat({
+      conversationId: conversation.id,
+      guestSessionId,
+      userMessage: 'Tóc ngang vai'
     });
     const res = await orchestrator.chat({
       conversationId: conversation.id,
@@ -257,6 +189,7 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
 
   test('5. Tình huống 4: Ngày đó kín toàn bộ lịch -> AI thông báo kín và chủ động đề xuất kiểm tra ngày tiếp theo', async () => {
     const fullDate = '2026-11-20';
+    await setAvailabilityContext(fullDate);
     // Lấy tất cả ca mở cửa của fullDate và chiếm chỗ toàn bộ
     const allSlots = await appointmentRepo.findAvailableSlots(fullDate, 30);
     assert.ok(allSlots.length > 0);
@@ -329,7 +262,7 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
         userMessage: `Còn trống khung giờ nào vào ngày ${fullDate} không?`
       });
 
-      assert.match(res.content, /kín/i, 'Phải thông báo ngày đã kín lịch');
+      assert.match(res.content, /không có khung giờ|không còn/iu, 'Phải thông báo ngày đã kín lịch');
       assert.match(res.content, /ngày tiếp theo|ngày mai|ngày khác|kiểm tra/i, 'Phải chủ động đề xuất kiểm tra ngày khác');
     } finally {
       provider.chat = originalChat;
@@ -341,6 +274,7 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
   });
 
   test('6. Tình huống 5: Công cụ gặp lỗi hoặc không có dữ liệu -> AI thông báo rõ và đề xuất phương án tiếp theo', async () => {
+    await setAvailabilityContext();
     // Gọi tool với ngày không hợp lệ hoặc giả lập lỗi
     const errorToolRes = await executeTool('check_available_slots', { date: 'invalid-date-format' }, { conversationId: testConvId, guestSessionId: testGuestId });
     const parsed = JSON.parse(errorToolRes);

@@ -45,6 +45,7 @@ describe('Booking Flow Optional Email & Lookup Suite (CR-01, AC-17)', () => {
     const resNull = await apiRequest('/api/appointments', {
       method: 'POST',
       body: {
+        confirmedBySystem: true,
         customerName: 'Trần Văn Nam',
         customerPhone: '0901111222',
         customerEmail: null,
@@ -67,6 +68,7 @@ describe('Booking Flow Optional Email & Lookup Suite (CR-01, AC-17)', () => {
     const resEmpty = await apiRequest('/api/appointments', {
       method: 'POST',
       body: {
+        confirmedBySystem: true,
         customerName: 'Lê Thị Hoa',
         customerPhone: '0902222333',
         customerEmail: '',
@@ -84,6 +86,7 @@ describe('Booking Flow Optional Email & Lookup Suite (CR-01, AC-17)', () => {
     const resWhitespace = await apiRequest('/api/appointments', {
       method: 'POST',
       body: {
+        confirmedBySystem: true,
         customerName: 'Phạm Minh Quân',
         customerPhone: '0903333444',
         customerEmail: '   ',
@@ -101,6 +104,7 @@ describe('Booking Flow Optional Email & Lookup Suite (CR-01, AC-17)', () => {
     const resInvalid = await apiRequest('/api/appointments', {
       method: 'POST',
       body: {
+        confirmedBySystem: true,
         customerName: 'Nguyễn Văn Sai',
         customerPhone: '0904444555',
         customerEmail: 'email-sai-dinh-dang',
@@ -199,6 +203,7 @@ describe('Booking Flow Optional Email & Lookup Suite (CR-01, AC-17)', () => {
     const createRes = await apiRequest('/api/appointments', {
       method: 'POST',
       body: {
+        confirmedBySystem: true,
         customerName: 'Võ Thị Sáu',
         customerPhone: '0908888999',
         customerEmail: null,
@@ -241,6 +246,7 @@ describe('Booking Flow Optional Email & Lookup Suite (CR-01, AC-17)', () => {
     const createRes = await apiRequest('/api/appointments', {
       method: 'POST',
       body: {
+        confirmedBySystem: true,
         customerName: 'Khách Tra Cứu Bảo Mật',
         customerPhone: '0909999000',
         customerEmail: null,

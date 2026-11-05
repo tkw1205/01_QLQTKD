@@ -1530,39 +1530,6 @@
     "updated_at": "2026-11-04T16:34:07.350Z"
   },
   {
-    "id": "66f53e56-3293-4268-907d-944ba51365c2",
-    "user_id": null,
-    "conversation_id": null,
-    "guest_session_id": "6976955e-c212-49ca-910a-5072a60b10cb",
-    "confirmation_token": "bac87cc8-1662-4d23-9aa4-28e4c11f7444",
-    "holding_token": null,
-    "booking_code": "BK-20261111-E0HH",
-    "customer_name": "Khách kiểm tra ngày giờ",
-    "customer_phone": "0901234567",
-    "customer_email": null,
-    "staff_id": null,
-    "staff_name": null,
-    "product_id": null,
-    "product_ids": [],
-    "product_name": null,
-    "price": null,
-    "appointment_date": "2026-11-11",
-    "appointment_time": "10:30",
-    "duration_minutes": 30,
-    "status": "pending",
-    "notes": null,
-    "history": [
-      {
-        "action": "create",
-        "changed_by": "Khách kiểm tra ngày giờ",
-        "changed_at": "2026-11-04T16:34:07.297Z",
-        "notes": "Tạo lịch hẹn mới"
-      }
-    ],
-    "created_at": "2026-11-04T16:34:07.297Z",
-    "updated_at": "2026-11-04T16:34:07.297Z"
-  },
-  {
     "id": "ad66b64c-1134-4022-b3a2-2cbb5f99c7e7",
     "user_id": null,
     "conversation_id": null,
@@ -2020,5 +1987,33 @@
     ],
     "created_at": "2026-11-05T14:12:58.258Z",
     "updated_at": "2026-11-05T15:08:58.448Z"
+  },
+  {
+    "id": "8145ca26-2dc2-47b9-922a-7d8385ffccf3",
+    "user_id": null,
+    "conversation_id": "003c1e1e-9507-4795-a5e7-74c8eb11bce3",
+    "guest_session_id": "guest-test-alternate-selection-1793900091472",
+    "holding_token": "d1743fbf-853d-48f5-9b62-353a03eb149c",
+    "confirmation_token": "b005bd3c-03b4-4c99-9a38-6c6761071edf",
+    "booking_code": null,
+    "customer_name": null,
+    "customer_phone": null,
+    "customer_email": null,
+    "product_id": "22222222-2222-2222-2222-222222223005",
+    "product_ids": [
+      "22222222-2222-2222-2222-222222223005"
+    ],
+    "hair_size": "M",
+    "product_name": "Uốn mái / phồng mái",
+    "price": 100000,
+    "appointment_date": "2026-11-07",
+    "appointment_time": "08:30",
+    "duration_minutes": 60,
+    "staff_count": 1,
+    "status": "holding",
+    "hold_expires_at": "2026-11-05T17:39:51.536Z",
+    "notes": "Tôi muốn đặt lịch Uốn mái / phồng mái ngày mai | Tóc ngang vai | Tóc ngang vai",
+    "created_at": "2026-11-05T17:34:51.538Z",
+    "updated_at": "2026-11-05T17:34:51.538Z"
   }
 ]

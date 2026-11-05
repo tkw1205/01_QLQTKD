@@ -1,10 +1,66 @@
 [
   {
-    "id": "aca599ce-61ce-46ee-9bc9-a79966bd4aa5",
-    "conversation_id": "9bba6139-723f-4b80-b465-881db88438c1",
+    "id": "7ee976c1-b446-4936-874c-a429aed67fe2",
+    "conversation_id": "5ed69445-2423-471e-9359-7316fe71bbf1",
+    "customer_name": "Khách hàng",
+    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
+    "is_read": false,
+    "created_at": "2026-11-05T17:35:02.931Z"
+  },
+  {
+    "id": "3d1700a9-6970-4ba6-bf09-948ca08f24dd",
+    "conversation_id": "570d80ff-a653-4a31-8051-fea791201f99",
+    "customer_name": "Khách hàng",
+    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
+    "is_read": false,
+    "created_at": "2026-11-05T15:35:50.626Z"
+  },
+  {
+    "id": "5a06430b-6775-404b-a364-faecacb299a7",
+    "conversation_id": "6e179d07-29a6-449a-8d46-1a6f202b14d0",
+    "customer_name": "Khách hàng",
+    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
+    "is_read": false,
+    "created_at": "2026-11-05T15:24:20.561Z"
+  },
+  {
+    "id": "3e0747b5-a930-4a25-9fb7-65b2da38de3f",
+    "conversation_id": "b55442dc-1a7b-458a-abb7-bf01bedf975f",
+    "customer_name": "Khách hàng",
+    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
+    "is_read": false,
+    "created_at": "2026-11-05T15:02:59.967Z"
+  },
+  {
+    "id": "0c110718-b635-4315-803d-d7d8eee3a588",
+    "conversation_id": "c07cbbe4-538b-4139-a56f-56d0a0a04ccf",
+    "customer_name": "Khách hàng",
+    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
+    "is_read": false,
+    "created_at": "2026-11-05T14:24:53.480Z"
+  },
+  {
+    "id": "7a7df064-0af9-46be-92ee-cff414c1c4f1",
+    "conversation_id": "b69553fb-77cd-432b-94fe-709c4ececa53",
+    "customer_name": "Khách hàng",
+    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
+    "is_read": false,
+    "created_at": "2026-11-05T14:21:14.536Z"
+  },
+  {
+    "id": "7b8f371b-3b7a-4005-a578-9f6e28c1a21b",
+    "conversation_id": "dc4a1daa-24ab-44d8-967b-9ee4ed274761",
+    "customer_name": "Khách hàng",
+    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
+    "is_read": false,
+    "created_at": "2026-11-05T14:20:19.972Z"
+  },
+  {
+    "id": "87c30485-1084-4fb8-8d4b-8c2381135f22",
+    "conversation_id": "ad6e6ea6-2a9c-4b41-833e-30760911cbf0",
     "customer_name": "Anh Minh Test",
     "last_message": "Chào admin, em muốn đặt mua điện thoại",
     "is_read": false,
-    "created_at": "2026-11-01T16:27:26.804Z"
+    "created_at": "2026-11-05T14:16:54.157Z"
   }
 ]

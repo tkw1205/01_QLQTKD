@@ -30,29 +30,156 @@ function enrichAppointment(appt) {
   };
 }
 
-function getProductTier(product, size) {
-  if (!['S', 'M', 'L'].includes(size)) {
-    throw Object.assign(new Error(`Vui lòng chọn size cho dịch vụ ${product.name}.`), {
-      status: 400,
-      code: 'INVALID_SERVICE_SIZE',
-    });
+function getAppointmentDurationMinutes(appointment) {
+  const savedDuration = Number(appointment?.duration_minutes);
+  if (Number.isFinite(savedDuration) && savedDuration > 0) return savedDuration;
+
+  const productIds = Array.isArray(appointment?.product_ids) && appointment.product_ids.length
+    ? appointment.product_ids
+    : appointment?.product_id
+      ? [appointment.product_id]
+      : [];
+  if (productIds.length) {
+    const products = jsonStore.getCollection('products')
+      .filter(product => productIds.includes(product.id));
+    if (products.length !== productIds.length) return null;
+    try {
+      return products.reduce((total, product) =>
+        total + getServiceRequirements(
+          product,
+          appointment.product_sizes?.[product.id] ||
+            appointment.hair_size ||
+            appointment.size ||
+            null
+        ).durationMinutes, 0
+      );
+    } catch (error) {
+      if (error.code !== 'HAIR_SIZE_REQUIRED' &&
+          error.code !== 'SERVICE_SIZE_UNAVAILABLE') {
+        throw error;
+      }
+      return null;
+    }
   }
-  const tier = product.prices_by_size?.[size];
-  if (!tier || tier.price == null || !Number.isFinite(Number(tier.price)) || Number(tier.price) <= 0) {
-    throw Object.assign(new Error(`Dịch vụ ${product.name} không có giá hợp lệ cho lựa chọn "${size}".`), {
-      status: 400,
-      code: 'INVALID_SERVICE_SIZE',
-    });
-  }
-  return tier;
+
+  const configuredDuration = Number(
+    jsonStore.getCollection('system_settings')
+      .find(setting => setting.key === 'appointment_duration')?.value
+  );
+  return Number.isFinite(configuredDuration) && configuredDuration > 0
+    ? configuredDuration
+    : null;
 }
 
-function hasTimeOverlap(timeA, durationA, timeB, durationB) {
-  const startA = timeToMinutes(timeA);
-  const endA = startA + durationA;
-  const startB = timeToMinutes(timeB);
-  const endB = startB + durationB;
-  return startA < endB && endA > startB;
+function appointmentOverlapsWindow(appointment, targetStart, targetEnd, closingTime = Infinity) {
+  const existingStart = timeToMinutes(appointment.appointment_time);
+  const duration = getAppointmentDurationMinutes(appointment);
+  const existingEnd = duration ? existingStart + duration : closingTime;
+  return existingStart < targetEnd && existingEnd > targetStart;
+}
+
+function getServiceRequirements(product, hairSize) {
+  const tiers = product.prices_by_size;
+  const hasSizeTiers = tiers && Object.keys(tiers).length > 0;
+  if (hasSizeTiers && !hairSize) {
+    throw Object.assign(new Error(`Cần xác định size tóc cho dịch vụ ${product.name}.`), {
+      status: 400,
+      code: 'HAIR_SIZE_REQUIRED',
+    });
+  }
+
+  const tier = hasSizeTiers ? tiers[hairSize] : null;
+  if (hasSizeTiers && !tier) {
+    throw Object.assign(new Error(`Dịch vụ ${product.name} không hỗ trợ size ${hairSize}.`), {
+      status: 400,
+      code: 'SERVICE_SIZE_UNAVAILABLE',
+    });
+  }
+
+  const durationMinutes = Number(tier?.duration ?? product.duration_minutes ?? product.duration);
+  const staffCount = Number(tier?.staff_count ?? product.staff_count);
+  const price = Number(tier?.price ?? product.price);
+  if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
+    throw Object.assign(new Error(`Danh mục thiếu thời lượng hợp lệ cho dịch vụ ${product.name}.`), {
+      status: 503,
+      code: 'SERVICE_DURATION_MISSING',
+    });
+  }
+  if (!Number.isInteger(staffCount) || staffCount <= 0) {
+    throw Object.assign(new Error(`Danh mục thiếu số nhân viên hợp lệ cho dịch vụ ${product.name}.`), {
+      status: 503,
+      code: 'SERVICE_STAFF_COUNT_MISSING',
+    });
+  }
+  if (!Number.isFinite(price) || price < 0) {
+    throw Object.assign(new Error(`Danh mục thiếu giá hợp lệ cho dịch vụ ${product.name}.`), {
+      status: 503,
+      code: 'SERVICE_PRICE_MISSING',
+    });
+  }
+  return { durationMinutes, staffCount, price };
+}
+
+function getServiceSize(product, productSizes = {}, hairSize = null) {
+  return productSizes[product.id] || hairSize || null;
+}
+
+function getSelectedServiceRequirements(products, productSizes = {}, hairSize = null) {
+  return products.map(product =>
+    getServiceRequirements(product, getServiceSize(product, productSizes, hairSize))
+  );
+}
+
+function getWorkingHoursForDate(businessSettings, date) {
+  const setting = businessSettings.find(item => item.key === 'working_hours');
+  if (!setting?.value) {
+    throw Object.assign(new Error('Salon working hours are not configured'), {
+      status: 503,
+      code: 'BUSINESS_HOURS_UNAVAILABLE',
+    });
+  }
+
+  let workingHours;
+  try {
+    workingHours = typeof setting.value === 'string'
+      ? JSON.parse(setting.value)
+      : setting.value;
+  } catch (error) {
+    throw Object.assign(new Error('Salon working hours configuration is invalid'), {
+      status: 503,
+      code: 'BUSINESS_HOURS_INVALID',
+      cause: error,
+    });
+  }
+
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const dayConfig = workingHours?.[dayNames[getDayOfWeek(date)]];
+  if (!dayConfig) {
+    throw Object.assign(new Error('Working hours are missing for the requested day'), {
+      status: 503,
+      code: 'BUSINESS_HOURS_UNAVAILABLE',
+    });
+  }
+  if (dayConfig.enabled === false) return { closed: true };
+
+  const isValidTime = value => typeof value === 'string' &&
+    /^(?:[01]\d|2[0-3]):[0-5]\d$/u.test(value);
+  if (!isValidTime(dayConfig.open) || !isValidTime(dayConfig.close) ||
+      timeToMinutes(dayConfig.close) <= timeToMinutes(dayConfig.open)) {
+    throw Object.assign(new Error('Working hours for the requested day are invalid'), {
+      status: 503,
+      code: 'BUSINESS_HOURS_INVALID',
+    });
+  }
+  return dayConfig;
+}
+
+function getActiveStaffCount(users) {
+  return users.filter(user =>
+    user.is_active !== false &&
+    user.is_available !== false &&
+    ['staff', 'admin', 'receptionist'].includes(user.role)
+  ).length;
 }
 
 function isSlotOccupiedByAppt(appt, now = Date.now()) {
@@ -93,20 +220,37 @@ function generateBookingCode(date) {
   return `BK-${cleanDate}-${rand}`;
 }
 
-async function findAvailableSlots(date, durationMinutes = 30) {
+async function findAvailableSlots(date, durationMinutes, { requiredStaff = 1 } = {}) {
+  if (!Number.isFinite(Number(durationMinutes)) || Number(durationMinutes) <= 0) {
+    throw Object.assign(new Error('A valid service duration is required'), {
+      status: 400,
+      code: 'SERVICE_DURATION_REQUIRED',
+    });
+  }
+  if (!Number.isInteger(Number(requiredStaff)) || Number(requiredStaff) <= 0) {
+    throw Object.assign(new Error('A valid service staff requirement is required'), {
+      status: 400,
+      code: 'SERVICE_STAFF_COUNT_MISSING',
+    });
+  }
   cleanupExpiredHolds();
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const dayName = dayNames[getDayOfWeek(date)];
-
   const businessSettings = jsonStore.getCollection('business_settings');
-  const whSetting = businessSettings.find(s => s.key === 'working_hours');
-  if (!whSetting || !whSetting.value) return [];
-
-  const wh = typeof whSetting.value === 'string' ? JSON.parse(whSetting.value) : whSetting.value;
-  const dayConfig = wh[dayName];
-  if (!dayConfig || !dayConfig.enabled) return [];
+  const dayConfig = getWorkingHoursForDate(businessSettings, date);
+  if (dayConfig.closed) return [];
 
   const appointments = jsonStore.getCollection('appointments');
+  const users = jsonStore.getCollection('users');
+  const slotCapacitySetting = businessSettings.find(setting => setting.key === 'slot_capacity');
+  const activeStaffCount = getActiveStaffCount(users);
+  const staffCapacity = slotCapacitySetting
+    ? Number(slotCapacitySetting.value)
+    : activeStaffCount;
+  if (!Number.isFinite(staffCapacity) || staffCapacity < Number(requiredStaff)) {
+    throw Object.assign(new Error('Not enough active staff for the selected service'), {
+      status: 409,
+      code: 'INSUFFICIENT_STAFF',
+    });
+  }
   const now = Date.now();
   const dayAppointments = appointments.filter(
     a => a.appointment_date === date && isSlotOccupiedByAppt(a, now)
@@ -116,11 +260,6 @@ async function findAvailableSlots(date, durationMinutes = 30) {
   const [closeH, closeM] = dayConfig.close.split(':').map(Number);
   const openMinutes = openH * 60 + openM;
   const closeMinutes = closeH * 60 + closeM;
-
-  const occupied = dayAppointments.map(a => {
-    const start = timeToMinutes(a.appointment_time);
-    return { start, end: start + (a.duration_minutes || 30) };
-  });
 
   const nowVN = getLocalDateTimeParts(now);
   const todayVNStr = `${nowVN.year}-${String(nowVN.month).padStart(2, '0')}-${String(nowVN.day).padStart(2, '0')}`;
@@ -133,7 +272,9 @@ async function findAvailableSlots(date, durationMinutes = 30) {
       continue;
     }
     const end = t + durationMinutes;
-    const isOccupied = occupied.some(o => t < o.end && end > o.start);
+    const isOccupied = dayAppointments.some(appointment =>
+      appointmentOverlapsWindow(appointment, t, end, closeMinutes)
+    );
     if (!isOccupied) {
       const hours = Math.floor(t / 60).toString().padStart(2, '0');
       const mins = (t % 60).toString().padStart(2, '0');
@@ -146,7 +287,8 @@ async function findAvailableSlots(date, durationMinutes = 30) {
 
 async function hold({
   conversationId, guestSessionId, appointmentDate, appointmentTime,
-  durationMinutes = 30, productId = null, productIds = null, productSizes = {}, userId = null, notes = null,
+  durationMinutes = 30, productId = null, productIds = null, productSizes = {}, hairSize = null,
+  userId = null, notes = null,
 }) {
   const now = Date.now();
   assertAppointmentIsFuture(appointmentDate, appointmentTime, now);
@@ -176,37 +318,51 @@ async function hold({
       code: 'INVALID_SERVICES',
     });
   }
-  const selectedTiers = selectedProducts.map(product => getProductTier(product, productSizes[product.id]));
+  if (productId && selectedProducts.length === 0) {
+    throw Object.assign(new Error('Dịch vụ đã chọn không còn khả dụng.'), {
+      status: 400,
+      code: 'INVALID_SERVICES',
+    });
+  }
+  const serviceRequirements = getSelectedServiceRequirements(selectedProducts, productSizes, hairSize);
   const selectedDuration = selectedProducts.length > 0
-    ? selectedProducts.reduce((total, product, index) =>
-      total + (Number(selectedTiers[index]?.duration ?? product.duration_minutes ?? product.duration) || 30), 0)
-    : durationMinutes;
+    ? serviceRequirements.reduce((total, requirements) => total + requirements.durationMinutes, 0)
+    : Number(durationMinutes);
+  if (!Number.isFinite(Number(selectedDuration)) || Number(selectedDuration) <= 0) {
+    throw Object.assign(new Error('A valid service duration is required'), {
+      status: 400,
+      code: 'SERVICE_DURATION_REQUIRED',
+    });
+  }
   const selectedPrice = selectedProducts.length > 0
-    ? selectedProducts.reduce((total, product, index) =>
-      total + Number(selectedTiers[index].price), 0)
+    ? serviceRequirements.reduce((total, requirements) => total + requirements.price, 0)
     : null;
+  const requiredStaff = serviceRequirements.length
+    ? Math.max(...serviceRequirements.map(requirements => requirements.staffCount))
+    : 1;
+  const activeStaffCount = getActiveStaffCount(jsonStore.getCollection('users'));
+  if (activeStaffCount < requiredStaff) {
+    throw Object.assign(new Error('Not enough active staff for the selected service'), {
+      status: 409,
+      code: 'INSUFFICIENT_STAFF',
+    });
+  }
   const selectedProductIds = selectedProducts.map(product => product.id);
   const selectedProductId = selectedProductIds[0] || productId;
   const selectedProductName = selectedProducts.length > 0
     ? selectedProducts.map(product => product.name).join(' + ')
     : null;
 
-  const whSetting = businessSettings.find(setting => setting.key === 'working_hours');
-  const workingHours = whSetting
-    ? (typeof whSetting.value === 'string' ? JSON.parse(whSetting.value) : whSetting.value)
-    : {};
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const dayOfWeek = dayNames[getDayOfWeek(appointmentDate)];
-  const dayConfig = workingHours[dayOfWeek];
-  if (dayConfig && dayConfig.enabled === false) {
+  const dayConfig = getWorkingHoursForDate(businessSettings, appointmentDate);
+  if (dayConfig.closed) {
     throw Object.assign(
-      new Error(`Salon không hoạt động vào ${dayOfWeek} (${appointmentDate}). Vui lòng chọn ngày làm việc khác.`),
+      new Error(`Salon không hoạt động vào ngày đã chọn (${appointmentDate}). Vui lòng chọn ngày làm việc khác.`),
       { status: 400 }
     );
   }
 
-  const openTime = (dayConfig && dayConfig.open) ? dayConfig.open : '08:30';
-  const closeTime = (dayConfig && dayConfig.close) ? dayConfig.close : '20:30';
+  const openTime = dayConfig.open;
+  const closeTime = dayConfig.close;
   const startMinutes = timeToMinutes(appointmentTime);
   const endMinutes = startMinutes + selectedDuration;
   const closeMinutes = timeToMinutes(closeTime);
@@ -221,7 +377,12 @@ async function hold({
   const conflict = appointments.some(a =>
     a.appointment_date === appointmentDate &&
     isSlotOccupiedByAppt(a, now) &&
-    hasTimeOverlap(a.appointment_time, a.duration_minutes || 30, appointmentTime, selectedDuration)
+    appointmentOverlapsWindow(
+      a,
+      timeToMinutes(appointmentTime),
+      timeToMinutes(appointmentTime) + selectedDuration,
+      timeToMinutes(closeTime)
+    )
   );
 
   if (conflict) {
@@ -249,13 +410,15 @@ async function hold({
     product_id: selectedProductId || null,
     product_ids: selectedProductIds,
     product_sizes: Object.fromEntries(selectedProducts
-      .filter(product => productSizes[product.id])
-      .map(product => [product.id, productSizes[product.id]])),
+      .filter(product => getServiceSize(product, productSizes, hairSize))
+      .map(product => [product.id, getServiceSize(product, productSizes, hairSize)])),
+    hair_size: hairSize || null,
     product_name: selectedProductName,
     price: selectedPrice,
     appointment_date: appointmentDate,
     appointment_time: appointmentTime,
     duration_minutes: selectedDuration,
+    staff_count: requiredStaff,
     status: 'holding',
     hold_expires_at: expiresAt,
     notes: notes || null,
@@ -334,6 +497,19 @@ async function confirmHold({
   assertAppointmentIsFuture(appt.appointment_date, appt.appointment_time, now);
 
   cleanupExpiredHolds();
+  const dayConfig = getWorkingHoursForDate(
+    jsonStore.getCollection('business_settings'),
+    appt.appointment_date
+  );
+  const holdDuration = getAppointmentDurationMinutes(appt);
+  if (!holdDuration) {
+    throw Object.assign(new Error('A valid service duration is required'), {
+      status: 503,
+      code: 'SERVICE_DURATION_REQUIRED',
+    });
+  }
+  const closeMinutes = dayConfig.closed ? 24 * 60 : timeToMinutes(dayConfig.close);
+  const holdStart = timeToMinutes(appt.appointment_time);
 
   let confirmedDuration = Number(appt.duration_minutes) || 30;
   let confirmedPrice = appt.price;
@@ -358,11 +534,19 @@ async function confirmHold({
     }
 
     const productSizes = appt.product_sizes || {};
-    const selectedTiers = selectedProducts.map(product => getProductTier(product, productSizes[product.id]));
-    confirmedDuration = selectedProducts.reduce((total, product, index) =>
-      total + (Number(selectedTiers[index]?.duration ?? product.duration_minutes ?? product.duration) || 30), 0);
-    confirmedPrice = selectedProducts.reduce((total, product, index) =>
-      total + Number(selectedTiers[index].price), 0);
+    const serviceRequirements = getSelectedServiceRequirements(
+      selectedProducts,
+      productSizes,
+      appt.hair_size || appt.size || null
+    );
+    confirmedDuration = serviceRequirements.reduce(
+      (total, requirements) => total + requirements.durationMinutes,
+      0
+    );
+    confirmedPrice = serviceRequirements.reduce(
+      (total, requirements) => total + requirements.price,
+      0
+    );
     confirmedProductName = selectedProducts.map(product => product.name).join(' + ');
 
     const businessSettings = jsonStore.getCollection('business_settings');
@@ -389,7 +573,7 @@ async function confirmHold({
     a.id !== appt.id &&
     a.appointment_date === appt.appointment_date &&
     isSlotOccupiedByAppt(a, now) &&
-    hasTimeOverlap(a.appointment_time, a.duration_minutes || 30, appt.appointment_time, confirmedDuration)
+    appointmentOverlapsWindow(a, holdStart, holdStart + holdDuration, closeMinutes)
   );
 
   if (conflict) {
@@ -424,8 +608,8 @@ async function confirmHold({
 
 async function create({
   conversationId, guestSessionId, customerName, customerPhone, customerEmail,
-  productId, productIds, productSizes = {}, appointmentDate, appointmentTime, durationMinutes = 30, notes, userId = null,
-  staffId = null, status = 'pending', createdBy = null, price = null
+  productId, productIds, productSizes = {}, appointmentDate, appointmentTime, durationMinutes = 30, notes,
+  userId = null, hairSize = null, staffId = null, status = 'pending', createdBy = null, price = null
 }) {
   const now = Date.now();
   assertAppointmentIsFuture(appointmentDate, appointmentTime, now);
@@ -447,13 +631,13 @@ async function create({
     }
   } else if (productId) {
     const p = products.find(prod => prod.id === productId && prod.status === 'active');
-    if (!p) {
+    if (p) selectedProducts = [p];
+    else {
       throw Object.assign(new Error('Dịch vụ đã chọn không còn khả dụng.'), {
         status: 400,
         code: 'INVALID_SERVICES',
       });
     }
-    selectedProducts = [p];
   }
   if (!productSizes || typeof productSizes !== 'object' || Array.isArray(productSizes)) {
     throw Object.assign(new Error('Invalid service size selection.'), {
@@ -461,50 +645,45 @@ async function create({
       code: 'INVALID_SERVICE_SIZE',
     });
   }
-  const selectedTiers = selectedProducts.map(product => getProductTier(product, productSizes[product.id]));
-
-  let finalDuration = durationMinutes;
+  const serviceRequirements = getSelectedServiceRequirements(selectedProducts, productSizes, hairSize);
+  let finalDuration = durationMinutes === undefined || durationMinutes === null
+    ? null
+    : Number(durationMinutes);
   let finalPrice = price;
   let finalProductName = null;
   let finalProductId = productId || null;
 
   if (selectedProducts.length > 0) {
-    finalDuration = selectedProducts.reduce((sum, product, index) =>
-      sum + (Number(selectedTiers[index]?.duration ?? product.duration_minutes ?? product.duration) || 30), 0);
-    finalPrice = selectedProducts.reduce((sum, product, index) =>
-      sum + Number(selectedTiers[index].price), 0);
+    finalDuration = serviceRequirements.reduce(
+      (sum, requirements) => sum + requirements.durationMinutes,
+      0
+    );
+    finalPrice = serviceRequirements.reduce((sum, requirements) => sum + requirements.price, 0);
     finalProductName = selectedProducts.map(p => p.name).join(' + ');
     finalProductId = selectedProducts[0].id;
   } else if (productId) {
-    const p = products.find(prod => prod.id === productId);
-    if (p) {
-      finalPrice = p.price;
-      finalProductName = p.name;
-    }
+    throw Object.assign(new Error('Dịch vụ đã chọn không còn khả dụng.'), {
+      status: 400,
+      code: 'INVALID_SERVICES',
+    });
+  }
+  if (!Number.isFinite(Number(finalDuration)) || Number(finalDuration) <= 0) {
+    throw Object.assign(new Error('A valid service duration is required'), {
+      status: 400,
+      code: 'SERVICE_DURATION_REQUIRED',
+    });
   }
 
-  // 1. Check Working Hours & Operating Times
-  const whSetting = businessSettings.find(s => s.key === 'working_hours');
-  let workingHours = {};
-  if (whSetting) {
-    try {
-      workingHours = typeof whSetting.value === 'string' ? JSON.parse(whSetting.value) : whSetting.value;
-    } catch (e) {}
-  }
-
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const dayOfWeek = dayNames[getDayOfWeek(appointmentDate)];
-  const dayConfig = workingHours[dayOfWeek];
-
-  if (dayConfig && dayConfig.enabled === false) {
+  const dayConfig = getWorkingHoursForDate(businessSettings, appointmentDate);
+  if (dayConfig.closed) {
     throw Object.assign(
-      new Error(`Salon không hoạt động vào ${dayOfWeek} (${appointmentDate}). Vui lòng chọn ngày làm việc khác.`),
+      new Error(`Salon không hoạt động vào ngày đã chọn (${appointmentDate}). Vui lòng chọn ngày làm việc khác.`),
       { status: 400 }
     );
   }
 
-  const openTime = (dayConfig && dayConfig.open) ? dayConfig.open : '08:30';
-  const closeTime = (dayConfig && dayConfig.close) ? dayConfig.close : '20:30';
+  const openTime = dayConfig.open;
+  const closeTime = dayConfig.close;
   const openMinutes = timeToMinutes(openTime);
   const closeMinutes = timeToMinutes(closeTime);
   const startMinutes = timeToMinutes(appointmentTime);
@@ -548,13 +727,21 @@ async function create({
       a.appointment_date === appointmentDate &&
       a.status !== 'cancelled' &&
       isSlotOccupiedByAppt(a, now) &&
-      hasTimeOverlap(a.appointment_time, a.duration_minutes || 30, appointmentTime, finalDuration)
+      appointmentOverlapsWindow(
+        a,
+        startMinutes,
+        endMinutes,
+        closeMinutes
+      )
     );
 
     if (conflictingAppt) {
       const conflictStart = conflictingAppt.appointment_time;
       const [ch, cm] = conflictStart.split(':').map(Number);
-      const cEndMinutes = ch * 60 + cm + (conflictingAppt.duration_minutes || 30);
+      const cEndMinutes = Math.min(
+        closeMinutes,
+        ch * 60 + cm + (getAppointmentDurationMinutes(conflictingAppt) || closeMinutes)
+      );
       const cEndH = Math.floor(cEndMinutes / 60).toString().padStart(2, '0');
       const cEndM = (cEndMinutes % 60).toString().padStart(2, '0');
       const conflictEnd = `${cEndH}:${cEndM}`;
@@ -568,8 +755,17 @@ async function create({
 
   // 3. Check Slot Capacity Across All Affected 1-Hour Intervals
   const slotCapacitySetting = businessSettings.find(s => s.key === 'slot_capacity');
-  const activeStaffList = users.filter(u => u.is_active && ['staff', 'admin', 'receptionist'].includes(u.role) && u.is_available !== false);
-  const maxSlotCapacity = slotCapacitySetting ? Number(slotCapacitySetting.value) : Math.max(1, activeStaffList.length);
+  const activeStaffCount = getActiveStaffCount(users);
+  const maxSlotCapacity = slotCapacitySetting ? Number(slotCapacitySetting.value) : activeStaffCount;
+  const requiredStaffCount = serviceRequirements.length
+    ? Math.max(...serviceRequirements.map(requirements => requirements.staffCount))
+    : 1;
+  if (!Number.isFinite(maxSlotCapacity) || maxSlotCapacity < requiredStaffCount) {
+    throw Object.assign(new Error('Not enough active staff for the selected service'), {
+      status: 409,
+      code: 'INSUFFICIENT_STAFF',
+    });
+  }
 
   const startHourFloor = Math.floor(startMinutes / 60);
   const endHourCeil = Math.ceil(endMinutes / 60);
@@ -585,10 +781,19 @@ async function create({
         a.appointment_date === appointmentDate &&
         a.status !== 'cancelled' &&
         isSlotOccupiedByAppt(a, now) &&
-        hasTimeOverlap(a.appointment_time, a.duration_minutes || 30, slotHourStr, 60)
+        appointmentOverlapsWindow(
+          a,
+          slotStartMin,
+          slotEndMin,
+          closeMinutes
+        )
       );
 
-      if (slotConcurrentAppts.length + 1 > maxSlotCapacity) {
+      const occupiedStaff = slotConcurrentAppts.reduce(
+        (total, appointment) => total + (Number(appointment.staff_count) || 1),
+        0
+      );
+      if (occupiedStaff + requiredStaffCount > maxSlotCapacity) {
         throw Object.assign(
           new Error(`Khung giờ ${slotHourStr} ngày ${appointmentDate} đã kín chỗ (tối đa ${maxSlotCapacity} khách phục vụ cùng lúc).`),
           { status: 409, code: 'SLOT_CAPACITY_EXCEEDED' }
@@ -602,7 +807,12 @@ async function create({
     const conflict = appointments.some(a =>
       a.appointment_date === appointmentDate &&
       isSlotOccupiedByAppt(a, now) &&
-      hasTimeOverlap(a.appointment_time, a.duration_minutes || 30, appointmentTime, finalDuration)
+        appointmentOverlapsWindow(
+          a,
+          startMinutes,
+          endMinutes,
+          closeMinutes
+        )
     );
     if (conflict) {
       throw Object.assign(
@@ -626,11 +836,13 @@ async function create({
     customer_email: customerEmail || null,
     staff_id: staffId || null,
     staff_name: targetStaff ? targetStaff.name : null,
+    staff_count: requiredStaffCount,
     product_id: finalProductId,
     product_ids: selectedProducts.map(p => p.id),
     product_sizes: Object.fromEntries(selectedProducts
-      .filter(product => productSizes[product.id])
-      .map(product => [product.id, productSizes[product.id]])),
+      .filter(product => getServiceSize(product, productSizes, hairSize))
+      .map(product => [product.id, getServiceSize(product, productSizes, hairSize)])),
+    hair_size: hairSize || null,
     product_name: finalProductName,
     price: finalPrice,
     appointment_date: appointmentDate,
@@ -756,7 +968,7 @@ async function updateStatus(id, status, guestSessionId = null) {
   return enrichAppointment(appt);
 }
 
-async function reschedule(id, { appointmentDate, appointmentTime, durationMinutes = 30 }, guestSessionId = null) {
+async function reschedule(id, { appointmentDate, appointmentTime, durationMinutes }, guestSessionId = null) {
   cleanupExpiredHolds();
   const appointments = jsonStore.getCollection('appointments');
   const appt = appointments.find(a => a.id === id && (!guestSessionId || a.guest_session_id === guestSessionId));
@@ -764,11 +976,31 @@ async function reschedule(id, { appointmentDate, appointmentTime, durationMinute
 
   const now = Date.now();
   assertAppointmentIsFuture(appointmentDate, appointmentTime, now);
+  const targetDuration = Number(durationMinutes) > 0
+    ? Number(durationMinutes)
+    : getAppointmentDurationMinutes(appt);
+  if (!targetDuration) {
+    throw Object.assign(new Error('A valid service duration is required'), {
+      status: 503,
+      code: 'SERVICE_DURATION_REQUIRED',
+    });
+  }
+  const dayConfig = getWorkingHoursForDate(
+    jsonStore.getCollection('business_settings'),
+    appointmentDate
+  );
+  if (dayConfig.closed) {
+    throw Object.assign(new Error(`Salon không hoạt động vào ngày đã chọn (${appointmentDate}).`), {
+      status: 400,
+    });
+  }
+  const closeMinutes = timeToMinutes(dayConfig.close);
+  const start = timeToMinutes(appointmentTime);
   const conflict = appointments.some(a =>
     a.id !== id &&
     a.appointment_date === appointmentDate &&
     isSlotOccupiedByAppt(a, now) &&
-    hasTimeOverlap(a.appointment_time, a.duration_minutes || 30, appointmentTime, durationMinutes || 30)
+    appointmentOverlapsWindow(a, start, start + targetDuration, closeMinutes)
   );
 
   if (conflict) {
@@ -777,6 +1009,7 @@ async function reschedule(id, { appointmentDate, appointmentTime, durationMinute
 
   appt.appointment_date = appointmentDate;
   appt.appointment_time = appointmentTime;
+  appt.duration_minutes = targetDuration;
   appt.updated_at = new Date().toISOString();
   jsonStore.saveCollection('appointments', appointments);
   return enrichAppointment(appt);
@@ -875,7 +1108,13 @@ async function reassignStaff(id, { newStaffId, appointmentTime, appointmentDate,
   const targetDate = appointmentDate || appt.appointment_date;
   const targetTime = appointmentTime || appt.appointment_time;
   const targetStaffId = newStaffId !== undefined ? newStaffId : appt.staff_id;
-  const duration = Number(appt.duration_minutes) || 30;
+  const duration = getAppointmentDurationMinutes(appt);
+  if (!duration) {
+    throw Object.assign(new Error('A valid service duration is required'), {
+      status: 503,
+      code: 'SERVICE_DURATION_REQUIRED',
+    });
+  }
 
   if (!targetTime || !/^\d{2}:\d{2}$/.test(targetTime)) {
     throw Object.assign(new Error('Giờ hẹn không hợp lệ (định dạng HH:mm)'), { status: 400 });
@@ -896,21 +1135,16 @@ async function reassignStaff(id, { newStaffId, appointmentTime, appointmentDate,
 
   // 1. Check Salon Operating Hours & Open Day Status
   const businessSettings = jsonStore.getCollection('business_settings');
-  const whSetting = businessSettings.find(s => s.key === 'working_hours');
-  const workingHours = whSetting ? (typeof whSetting.value === 'string' ? JSON.parse(whSetting.value) : whSetting.value) : null;
-  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const dayOfWeek = dayNames[getDayOfWeek(targetDate)];
-  const dayConfig = workingHours ? workingHours[dayOfWeek] : null;
-
-  if (dayConfig && dayConfig.enabled === false) {
+  const dayConfig = getWorkingHoursForDate(businessSettings, targetDate);
+  if (dayConfig.closed) {
     throw Object.assign(
-      new Error(`Salon không hoạt động vào ${dayOfWeek} (${targetDate}). Vui lòng chọn ngày làm việc khác.`),
+      new Error(`Salon không hoạt động vào ngày đã chọn (${targetDate}). Vui lòng chọn ngày làm việc khác.`),
       { status: 400 }
     );
   }
 
-  const openTime = (dayConfig && dayConfig.open) ? dayConfig.open : '08:30';
-  const closeTime = (dayConfig && dayConfig.close) ? dayConfig.close : '20:30';
+  const openTime = dayConfig.open;
+  const closeTime = dayConfig.close;
   const openMinutes = timeToMinutes(openTime);
   const closeMinutes = timeToMinutes(closeTime);
   const startMinutes = timeToMinutes(targetTime);
@@ -958,13 +1192,21 @@ async function reassignStaff(id, { newStaffId, appointmentTime, appointmentDate,
       a.appointment_date === targetDate &&
       a.status !== 'cancelled' &&
       isSlotOccupiedByAppt(a, now) &&
-      hasTimeOverlap(a.appointment_time, a.duration_minutes || 30, targetTime, duration)
+      appointmentOverlapsWindow(
+        a,
+        startMinutes,
+        endMinutes,
+        closeMinutes
+      )
     );
 
     if (conflictingAppt) {
       const conflictStart = conflictingAppt.appointment_time;
       const [ch, cm] = conflictStart.split(':').map(Number);
-      const cEndMinutes = ch * 60 + cm + (conflictingAppt.duration_minutes || 30);
+      const cEndMinutes = Math.min(
+        closeMinutes,
+        ch * 60 + cm + (getAppointmentDurationMinutes(conflictingAppt) || closeMinutes)
+      );
       const cEndH = Math.floor(cEndMinutes / 60).toString().padStart(2, '0');
       const cEndM = (cEndMinutes % 60).toString().padStart(2, '0');
       const conflictEnd = `${cEndH}:${cEndM}`;
@@ -999,7 +1241,12 @@ async function reassignStaff(id, { newStaffId, appointmentTime, appointmentDate,
         a.appointment_date === targetDate &&
         a.status !== 'cancelled' &&
         isSlotOccupiedByAppt(a, now) &&
-        hasTimeOverlap(a.appointment_time, a.duration_minutes || 30, slotHourStr, 60)
+        appointmentOverlapsWindow(
+          a,
+          slotStartMin,
+          slotEndMin,
+          closeMinutes
+        )
       );
 
       if (slotConcurrentAppts.length + 1 > maxSlotCapacity) {
@@ -1070,6 +1317,7 @@ async function findActiveStaff() {
 
 module.exports = {
   findAvailableSlots,
+  getServiceRequirements,
   hold,
   createHoldingSlot: hold,
   releaseHold,

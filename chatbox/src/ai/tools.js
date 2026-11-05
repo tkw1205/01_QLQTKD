@@ -11,15 +11,20 @@ const TOOL_DEFINITIONS = [
     type: 'function',
     function: {
       name: 'get_business_hours',
-      description: 'Lấy thông tin giờ làm việc, ngày nghỉ và thời lượng tư vấn/dịch vụ mặc định của Salon Lumière.',
-      parameters: { type: 'object', properties: {} },
+      description: 'Lấy giờ hoạt động và ngày nghỉ theo cấu hình hiện tại của salon.',
+      parameters: {
+        type: 'object',
+        properties: {
+          date: { type: 'string', description: 'Ngày cần kiểm tra (YYYY-MM-DD, nếu có).' },
+        },
+      },
     },
   },
   {
     type: 'function',
     function: {
       name: 'check_available_slots',
-      description: 'Kiểm tra các khung giờ còn trống để đặt lịch vào một ngày cụ thể (mỗi ca chuẩn 30-45 phút). BẮT BUỘC gọi công cụ này khi khách hỏi xem giờ trống, "còn trống khung giờ khác không", "có giờ nào khác không", hoặc khi khung giờ khách chọn bị kín/trùng lịch.',
+      description: 'Kiểm tra khung giờ còn trống theo thời lượng, size và dịch vụ thực tế trong danh mục. BẮT BUỘC dùng khi khách hỏi giờ trống hoặc chọn giờ đặt lịch.',
       parameters: {
         type: 'object',
         required: ['date'],
@@ -31,13 +36,14 @@ const TOOL_DEFINITIONS = [
           product_ids: {
             type: 'array',
             items: { type: 'string' },
-            description: 'ID các dịch vụ khách đã chọn; nếu có, dùng tổng thời lượng của các dịch vụ này để kiểm tra lịch.',
+            description: 'ID dịch vụ đã được xác định từ dữ liệu hệ thống.',
           },
           product_sizes: {
             type: 'object',
             additionalProperties: { type: 'string' },
             description: 'Size đã xác nhận cho từng ID dịch vụ.',
           },
+          hair_size: { type: 'string', enum: ['S', 'M', 'L'], description: 'Size đã được xác định nếu dịch vụ yêu cầu.' },
         },
       },
     },
@@ -64,6 +70,7 @@ const TOOL_DEFINITIONS = [
             additionalProperties: { type: 'string' },
             description: 'Lựa chọn size theo từng ID dịch vụ, chỉ gửi sau khi khách xác nhận size.',
           },
+          hair_size: { type: 'string', enum: ['S', 'M', 'L'], description: 'Size dùng chung nếu chưa gửi product_sizes.' },
           notes: { type: 'string', description: 'Ghi chú thêm về dịch vụ' },
         },
       },
@@ -95,6 +102,7 @@ const TOOL_DEFINITIONS = [
             additionalProperties: { type: 'string' },
             description: 'Lựa chọn size theo từng ID dịch vụ, chỉ gửi sau khi khách xác nhận size.',
           },
+          hair_size: { type: 'string', enum: ['S', 'M', 'L'], description: 'Size dùng chung nếu chưa gửi product_sizes.' },
           notes: { type: 'string', description: 'Ghi chú thêm' },
         },
       },
@@ -357,29 +365,34 @@ function detectAvailableSlotsQuery(userMessage) {
   return false;
 }
 
+function formatTime(hour, minute, originalText) {
+  const period = originalText.match(/(?:\b(sáng|trưa|chiều|tối)\b)/iu)?.[1]?.toLocaleLowerCase('vi-VN');
+  let normalizedHour = Number(hour);
+  if (['trưa', 'chiều', 'tối'].includes(period) && normalizedHour < 12) {
+    normalizedHour += 12;
+  } else if (period === 'sáng' && normalizedHour === 12) {
+    normalizedHour = 0;
+  }
+  return `${String(normalizedHour).padStart(2, '0')}:${String(minute || 0).padStart(2, '0')}`;
+}
+
 function extractTimeFromText(text) {
   if (!text || typeof text !== 'string') return null;
   const str = text.trim();
   // Match HH:MM (e.g. 10:30, 09:00, 9:00)
   const colonMatch = str.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
   if (colonMatch) {
-    const h = colonMatch[1].padStart(2, '0');
-    const m = colonMatch[2];
-    return `${h}:${m}`;
+    return formatTime(colonMatch[1], colonMatch[2], str);
   }
   // Match HHhMM or HHh (e.g. 10h30, 11h, 8h30, 9h)
   const hMatch = str.match(/\b([01]?\d|2[0-3])h([0-5]\d)?\b/i);
   if (hMatch) {
-    const h = hMatch[1].padStart(2, '0');
-    const m = (hMatch[2] || '00').padStart(2, '0');
-    return `${h}:${m}`;
+    return formatTime(hMatch[1], hMatch[2], str);
   }
   // Match "X giờ" or "X giờ Y phút"
   const gioMatch = str.match(/\b([01]?\d|2[0-3])\s*giờ(?:\s*([0-5]?\d)(?:\s*phút)?)?/i);
   if (gioMatch) {
-    const h = gioMatch[1].padStart(2, '0');
-    const m = (gioMatch[2] || '00').padStart(2, '0');
-    return `${h}:${m}`;
+    return formatTime(gioMatch[1], gioMatch[2], str);
   }
   return null;
 }
@@ -420,38 +433,27 @@ async function executeTool(toolName, rawArgs, context = {}) {
           });
         }
 
-        let duration = parseInt(args.duration || args.duration_minutes, 10) || 30;
-        if (Array.isArray(args.product_ids) && args.product_ids.length > 0) {
-          const selectedServices = await Promise.all(args.product_ids.map(id => productRepo.findById(id)));
-          if (selectedServices.some(service => !service || service.status !== 'active')) {
-            return JSON.stringify({
-              success: false,
-              error: 'Một hoặc nhiều dịch vụ đã chọn không còn khả dụng.',
-              slots: [],
-            });
+        const productIds = Array.isArray(args.product_ids) && args.product_ids.length
+          ? args.product_ids
+          : args.product_id
+            ? [args.product_id]
+            : context.chatContext?.selected_service_ids ||
+              context.conversation?.chat_context?.selected_service_ids ||
+              [];
+        const hairSize = args.hair_size || args.size ||
+          context.chatContext?.hair_size ||
+          context.conversation?.chat_context?.hair_size ||
+          null;
+        const requestedDuration = args.duration || args.duration_minutes;
+        const result = await appointmentService.checkAvailableSlots(
+          normalizedDate,
+          requestedDuration ? Number.parseInt(requestedDuration, 10) : undefined,
+          {
+            productIds,
+            hairSize,
+            productSizes: args.product_sizes || args.productSizes || {},
           }
-          const selectedTiers = selectedServices.map(service =>
-            ['S', 'M', 'L'].includes(args.product_sizes?.[service.id])
-              ? service.prices_by_size?.[args.product_sizes[service.id]]
-              : null
-          );
-          if (selectedTiers.some(tier =>
-            !tier || !Number.isFinite(Number(tier.price)) || Number(tier.price) <= 0
-          )) {
-            return JSON.stringify({
-              success: false,
-              code: 'INVALID_SERVICE_SIZE',
-              error: 'Vui lòng chọn size có giá hợp lệ cho từng dịch vụ.',
-              slots: [],
-            });
-          }
-          duration = selectedServices.reduce(
-            (total, service, index) =>
-              total + (Number(selectedTiers[index].duration ?? service.duration) || 30),
-            0
-          );
-        }
-        const result = await appointmentService.checkAvailableSlots(normalizedDate, duration);
+        );
         const slots = result.slots || [];
 
         if (slots.length === 0) {
@@ -461,7 +463,7 @@ async function executeTool(toolName, rawArgs, context = {}) {
             date: normalizedDate,
             slots: [],
             count: 0,
-            duration: result.duration || duration,
+            duration: result.duration || requestedDuration || null,
             next_date: nextDate,
             message: `Ngày ${normalizedDate} hiện salon đã kín toàn bộ các khung giờ (không còn giờ trống). BẮT BUỘC thông báo ngày ${normalizedDate} đã kín lịch, và CHỦ ĐỘNG đề xuất kiểm tra ngày tiếp theo (${nextDate || 'ngày khác'}), hỏi khách hàng có muốn xem lịch của ngày đó không.`
           });
@@ -472,15 +474,19 @@ async function executeTool(toolName, rawArgs, context = {}) {
           date: normalizedDate,
           slots,
           count: slots.length,
-          duration: result.duration || duration,
+          duration: result.duration || requestedDuration || null,
           message: `Các khung giờ còn trống trong ngày ${normalizedDate}: ${slots.join(', ')}. Hãy giới thiệu các khung giờ này cho khách lựa chọn.`
         });
       } catch (err) {
         return JSON.stringify({
           success: false,
           error: err.message || 'Không thể kiểm tra lịch trống',
+          errorCode: err.code || 'AVAILABILITY_CHECK_FAILED',
+          code: err.code || 'AVAILABILITY_CHECK_FAILED',
+          errorName: err.name || 'Error',
+          status: Number.isInteger(err.status) ? err.status : null,
           slots: [],
-          message: `Lỗi khi kiểm tra lịch: ${err.message || 'Không thể truy cập dữ liệu lịch'}. Hãy thông báo rõ cho khách và đề xuất phương án: hỏi khung giờ mong muốn khác để kiểm tra lại hoặc gợi ý khách bấm "Chat với nhân viên" để được hỗ trợ trực tiếp.`
+          message: 'Hiện chưa thể xác nhận lịch trống từ hệ thống. Hãy thông báo trung thực và đề nghị khách thử lại hoặc kết nối với nhân viên.'
         });
       }
     }
@@ -496,7 +502,8 @@ async function executeTool(toolName, rawArgs, context = {}) {
           appointmentTime: apptTime,
           productId: args.product_id || null,
           productIds: args.product_ids || null,
-          productSizes: args.product_sizes || {},
+          productSizes: args.product_sizes || args.productSizes || {},
+          hairSize: args.hair_size || args.size || null,
           notes: args.notes || null,
         });
         return JSON.stringify({
@@ -511,15 +518,27 @@ async function executeTool(toolName, rawArgs, context = {}) {
         let alternateSlots = [];
         try {
           if (apptDate) {
-            const avail = await appointmentService.checkAvailableSlots(apptDate);
+            const avail = await appointmentService.checkAvailableSlots(apptDate, undefined, {
+              productIds: args.product_ids || (args.product_id ? [args.product_id] : []),
+              hairSize: args.hair_size || args.size || null,
+              productSizes: args.product_sizes || args.productSizes || {},
+            });
             alternateSlots = (avail.slots || []).filter(s => s !== apptTime);
           }
-        } catch {}
+        } catch (availabilityError) {
+          console.error('[AI] Could not load alternate appointment slots', {
+            conversationId,
+            errorName: availabilityError.name || 'Error',
+            errorCode: availabilityError.code || 'AVAILABILITY_CHECK_FAILED',
+          });
+        }
 
         return JSON.stringify({
           success: false,
           error: `Khung giờ ${apptTime} ngày ${apptDate} hiện đã kín hoặc đã có người đặt.`,
           code: err.code || 'SLOT_UNAVAILABLE',
+          errorName: err.name || 'Error',
+          status: Number.isInteger(err.status) ? err.status : null,
           appointment_date: apptDate,
           appointment_time: apptTime,
           available_slots: alternateSlots,
@@ -653,7 +672,8 @@ async function executeTool(toolName, rawArgs, context = {}) {
           customerEmail: customerEmail,
           productId: args.product_id || null,
           productIds: args.product_ids || null,
-          productSizes: args.product_sizes || {},
+          productSizes: args.product_sizes || args.productSizes || {},
+          hairSize: args.hair_size || args.size || null,
           appointmentDate: apptDate,
           appointmentTime: apptTime,
           notes: args.notes || null,
@@ -754,7 +774,8 @@ async function executeTool(toolName, rawArgs, context = {}) {
           customerEmail: customerEmail,
           productId: args.product_id || null,
           productIds: args.product_ids || null,
-          productSizes: args.product_sizes || {},
+          productSizes: args.product_sizes || args.productSizes || {},
+          hairSize: args.hair_size || args.size || null,
           appointmentDate: apptDate,
           appointmentTime: apptTime,
           notes: args.notes || null,

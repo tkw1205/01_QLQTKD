@@ -5,8 +5,11 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const APPROVED_CATEGORIES = require('../../database/data/categories.json');
 const APPROVED_PRODUCTS = require('../../database/data/products.json');
+const { DEFAULT_AI_SYSTEM_PROMPT } = require('../ai/systemPrompt');
 
-const DATA_DIR = path.resolve(__dirname, '../../database/data');
+const DATA_DIR = path.resolve(
+  process.env.JSON_STORE_DATA_DIR || path.resolve(__dirname, '../../database/data')
+);
 
 // Default initial dataset
 const INITIAL_CATEGORIES = [
@@ -166,7 +169,7 @@ const INITIAL_SYSTEM_SETTINGS = [
   { key: 'site_name', value: 'Mây Hair Studio', is_public: true, updated_at: new Date().toISOString() },
   { key: 'site_tagline', value: 'Tư vấn sản phẩm trực tuyến', is_public: true, updated_at: new Date().toISOString() },
   { key: 'ai_welcome_message', value: 'Xin chào quý khách! Em là AI tư vấn của salon. Em có thể hỗ trợ mình tìm hiểu dịch vụ, tham khảo giá và thời gian thực hiện hoặc hướng dẫn đặt lịch trực tuyến. Mình cần tư vấn nội dung nào ạ?', is_public: true, updated_at: new Date().toISOString() },
-  { key: 'ai_system_prompt', value: 'Bạn là AI tư vấn khách hàng salon tóc; luôn lịch sự, thân thiện, chuyên nghiệp, ngắn gọn và bằng tiếng Việt. Khi bắt đầu hội thoại, chào tự nhiên và gợi mở nhu cầu; nếu đã có lời chào của trợ lý trong lịch sử thì không lặp lại. Khi khách chào kèm câu hỏi, chào ngắn rồi ưu tiên trả lời. Nêu rõ bạn là AI, không phải nhân viên thật; không tự hỏi tên, số điện thoại hoặc email khi chưa cần. Chỉ tư vấn dịch vụ, giá và thời lượng trong danh sách dịch vụ đang hoạt động được hệ thống đưa vào prompt; không bịa dịch vụ, mức giá theo size, khuyến mãi, phụ thu hay thời lượng. Quy ước tóc: S từ cằm trở lên, M từ cằm đến ngang vai, L từ ngang ngực trở xuống; chỉ hỏi size nếu giá dịch vụ thực sự phụ thuộc size, không tự đoán và nhờ nhân viên xác nhận khi ở ranh giới hoặc vùng chưa được quy ước. Không lấy giá ví dụ làm giá thật. Thời lượng là dự kiến; chỉ cộng thời gian nhiều dịch vụ khi có đủ căn cứ. Không cam kết kết quả tóc giống ảnh, không chẩn đoán bệnh. Không hỏi lại thông tin đã có. Salon hiện chưa có địa điểm tiếp khách trực tiếp; không cung cấp địa chỉ cụ thể. Không hứa gửi email xác nhận. Khi khách hỏi giờ trống, luôn gọi công cụ kiểm tra ngay và chỉ đưa ra các giờ hệ thống trả về; nếu khách chọn giờ cụ thể thì chỉ giữ chỗ sau khi xác minh giờ đó còn trống. Chỉ nói giữ chỗ/đặt lịch thành công nếu công cụ trả về thành công; chỉ cung cấp mã thật từ hệ thống. Khi lỗi/timeout lúc đặt lịch, không khẳng định thành công hoặc gửi lại yêu cầu tạo lịch một cách mù quáng; hướng dẫn khách tra cứu nếu có mã hoặc chuyển nhân viên xác minh. Khi muốn gặp nhân viên, hướng dẫn bấm nút Chat với nhân viên; không nói đã chuyển nếu chưa có sự kiện xác nhận. Không hỏi lại thông tin đã có; khi thiếu dữ liệu, hướng dẫn khách liên hệ nhân viên.', is_public: false, updated_at: new Date().toISOString() },
+  { key: 'ai_system_prompt', value: DEFAULT_AI_SYSTEM_PROMPT, is_public: false, updated_at: new Date().toISOString() },
   { key: 'max_ai_turns', value: '10', is_public: false, updated_at: new Date().toISOString() },
   { key: 'appointment_duration', value: '30', is_public: true, updated_at: new Date().toISOString() },
   { key: 'allow_guest_chat', value: 'true', is_public: true, updated_at: new Date().toISOString() },

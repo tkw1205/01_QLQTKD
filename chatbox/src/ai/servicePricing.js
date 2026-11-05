@@ -24,16 +24,31 @@ function parseHairSize(value) {
   if (explicitSize) return { size: explicitSize[1].toUpperCase() };
   if (/^[sml]$/u.test(text)) return { size: text.toUpperCase() };
 
+  if (/\b(?:qua|duoi)\s+cam\b.*\b(?:den|toi|ngang|cham)\s+vai\b/u.test(text)) {
+    return { size: 'M' };
+  }
+  if (/\b(?:qua|duoi)\s+cam\b/u.test(text)) {
+    return { ambiguous: true, reason: 'Mình cần biết tóc đã dài đến vai chưa để phân biệt size M.' };
+  }
   if (/\b(?:qua|duoi)\s+vai\b.*\b(?:chua\s+(?:den|toi|ngang))\s+nguc\b/u.test(text)) {
     return { ambiguous: true, reason: 'Quy ước chưa phân loại rõ độ dài sau vai nhưng chưa đến ngực.' };
   }
   if (/\b(?:ngang\s+hong|toi\s+ngang\s+hong|den\s+ngang\s+hong|cham\s+hong|qua\s+hong|duoi\s+hong|hon\s+nguc|qua\s+nguc|duoi\s+nguc|ngang\s+nguc|cham\s+nguc|den\s+nguc|toi\s+nguc|tu\s+nguc\s+tro\s+xuong)\b/u.test(text)) {
     return { size: 'L' };
   }
-  if (/\b(?:ngang|toi|den|cham)\s+cam\b|\btu cam tro len\b/u.test(text)) {
-    return { ambiguous: true, reason: 'Mốc cằm được bao gồm trong cả quy ước size S và M.' };
+  if (/\b(?:chua|khong)(?:\s+(?:den|toi|ngang|qua)){1,2}\s+lung\b/u.test(text)) {
+    return { ambiguous: true, reason: 'Mình chưa xác nhận được tóc đã đến mốc lưng hay chưa.' };
   }
-  if (/\b(?:qua vai|duoi vai|ngang lung|toi lung|duoi lung|den lung)\b/u.test(text)) {
+  if (/\b(?:ngang|toi|den|cham)\s+cam\b|\btu cam tro len\b|\btren cam\b|\bcao hon cam\b/u.test(text)) {
+    return { size: 'S' };
+  }
+  if (
+    /\b(?:ngang|toi|den|cham|qua|duoi)\s+lung\b|\bgan\s+that\s+lung\b|\b(?:qua|duoi)\s+vai\s+(?:den|toi|ngang)\s+lung\b/u
+      .test(text)
+  ) {
+    return { size: 'L' };
+  }
+  if (/\b(?:qua vai|duoi vai)\b.*\b(?:chua\s+(?:den|toi|ngang))\s+nguc\b/u.test(text)) {
     return { ambiguous: true, reason: 'Quy ước chưa phân loại rõ độ dài sau vai nhưng chưa đến ngực.' };
   }
   if (/\b(?:toc lo|toc ngang vai|ngang vai|den vai|toi vai|cham vai|tu cam den vai|tu cam toi vai)\b/u.test(text)) {
@@ -110,29 +125,109 @@ function findDirectMatches(query, services) {
   return [...new Map(specificPhrases.map(match => [match.service.id, match.service])).values()];
 }
 
+const CATEGORY_ALIASES = {
+  'cắt tóc': ['cat toc'],
+  'gội đầu và tạo kiểu': ['goi dau va tao kieu', 'goi dau'],
+  'uốn tóc': ['uon toc', 'uon', 'lam toc xoan', 'toc xoan', 'lam xoan', 'xoan', 'lam toc cho phong len', 'lam toc phong len', 'lam phong len'],
+  'duỗi tóc': ['duoi toc', 'duoi', 'lam toc thang', 'duoi thang'],
+  'nhuộm tóc': ['nhuom toc', 'nhuom', 'doi mau toc', 'nhuom mau'],
+  'phục hồi và dưỡng tóc': ['phuc hoi va duong toc', 'phuc hoi toc', 'phuc hoi', 'duong toc'],
+  'nối tóc': ['noi toc', 'noi'],
+  'tẩy tóc': ['tay toc', 'tay'],
+};
+
+const CATEGORY_INTENT_FILLER_WORDS = new Set([
+  'anh', 'chi', 'co', 'dich', 'doi', 'em', 'gi', 'hien', 'khong', 'la',
+  'lam', 'minh', 'muon', 'nao', 'nhe', 'salon', 'sang', 'toi', 'tu',
+  'vu',
+  'van', 'va', 'voi',
+]);
+
+function isPermedVolumeRequest(text) {
+  return (
+    (/\buon\b/u.test(text) && /\bphong\b/u.test(text)) ||
+    /\b(?:lam toc cho phong len|lam toc phong len|lam phong len)\b/u.test(text)
+  );
+}
+
+function isCategoryOnlyInquiry(query, categoryName) {
+  const text = normalizeText(query);
+  if (
+    normalizeText(categoryName) === 'uon toc' &&
+    isPermedVolumeRequest(text)
+  ) return true;
+  const aliases = [
+    normalizeText(categoryName),
+    ...(CATEGORY_ALIASES[categoryName.toLocaleLowerCase('vi-VN')] || []),
+  ].sort((a, b) => b.length - a.length);
+  const matchedAlias = aliases.find(alias => includesPhrase(text, alias));
+  if (!matchedAlias) return false;
+
+  const remainingWords = text
+    .replace(` ${matchedAlias} `, ' ')
+    .trim()
+    .split(/\s+/u)
+    .filter(word => word && !CATEGORY_INTENT_FILLER_WORDS.has(word));
+  return remainingWords.length === 0;
+}
+
 function findCategoryMatches(query, services) {
   const text = normalizeText(query);
   const matchedCategories = new Set();
-  const categoryAliases = {
-    'cắt tóc': ['cat toc'],
-    'gội đầu và tạo kiểu': ['goi dau va tao kieu'],
-    'uốn tóc': ['uon toc', 'uon'],
-    'duỗi tóc': ['duoi toc', 'duoi'],
-    'nhuộm tóc': ['nhuom toc', 'nhuom'],
-    'phục hồi và dưỡng tóc': ['phuc hoi', 'duong toc'],
-    'nối tóc': ['noi toc', 'noi'],
-    'tẩy tóc': ['tay toc', 'tay'],
-  };
+  const asksForPermedVolume = isPermedVolumeRequest(text);
 
   for (const service of services) {
     const categoryName = service.category_name;
-    const aliases = categoryAliases[categoryName] || [categoryName];
+    const aliases = CATEGORY_ALIASES[categoryName.toLocaleLowerCase('vi-VN')] || [categoryName];
     if (aliases.some(alias => includesPhrase(text, alias))) {
       matchedCategories.add(categoryName);
     }
   }
 
-  return services.filter(service => matchedCategories.has(service.category_name));
+  const matchedServices = services.filter(service => matchedCategories.has(service.category_name));
+  if (!asksForPermedVolume) return matchedServices;
+
+  return matchedServices.filter(service =>
+    [service.name, ...(service.aliases || [])]
+      .some(phrase => includesPhrase(normalizeText(phrase), 'phong'))
+  );
+}
+
+function findPendingServiceSelection(history, userMessage, services) {
+  const previous = [...history];
+  const last = previous[previous.length - 1];
+  if (
+    last?.sender_type === 'user' &&
+    normalizeText(last.content) === normalizeText(userMessage)
+  ) {
+    previous.pop();
+  }
+
+  let assistantIndex = -1;
+  for (let i = previous.length - 1; i >= 0; i--) {
+    if (previous[i].sender_type === 'assistant') {
+      assistantIndex = i;
+      break;
+    }
+  }
+  if (assistantIndex < 0) return null;
+
+  const assistantText = normalizeText(previous[assistantIndex].content);
+  if (!/\b(?:dich vu nao|chon dich vu|dich vu cu the|ten dich vu)\b/u.test(assistantText)) {
+    return null;
+  }
+
+  for (let i = assistantIndex - 1; i >= 0; i--) {
+    if (previous[i].sender_type !== 'user') continue;
+    const categoryMatches = findCategoryMatches(previous[i].content, services);
+    if (categoryMatches.length > 1) {
+      return {
+        request: previous[i].content,
+        services: categoryMatches,
+      };
+    }
+  }
+  return null;
 }
 
 function formatPrice(price) {
@@ -148,6 +243,9 @@ function formatServicePrice(service, size) {
   const unit = service.price_unit === 'per_tap' ? '/tép' : '';
   const duration = Number(tier.duration ?? service.duration);
   const staffCount = Number(tier.staff_count ?? service.staff_count);
+  if (!Number.isFinite(duration) || !Number.isFinite(staffCount)) {
+    return `Dạ, danh mục hiện chưa đủ thông tin thời lượng hoặc nhân viên cho size ${size} của dịch vụ ${service.name}, nên em chưa thể tư vấn chính xác ạ.`;
+  }
   return `- ${service.name}: ${formatPrice(Number(tier.price))}${unit} (size ${size}), ${duration} phút, ${staffCount} nhân viên.`;
 }
 
@@ -159,7 +257,7 @@ function buildSizeQuestion(serviceNames) {
   const serviceLabel = serviceNames.length === 1
     ? `dịch vụ ${serviceNames[0]}`
     : `các dịch vụ ${serviceNames.join(', ')}`;
-  return `Dạ, giá ${serviceLabel} được tính theo size tóc. Mình cho em biết tóc thuộc size S, M hay L ạ?`;
+  return `Dạ, giá ${serviceLabel} được tính theo độ dài tóc. Mình cho em biết tóc dài đến đâu (size S, M hay L) ạ?`;
 }
 
 function buildBoundaryQuestion(reason) {
@@ -169,32 +267,27 @@ function buildBoundaryQuestion(reason) {
 function buildAmbiguousServiceReply(services, query) {
   const categoryName = services[0]?.category_name;
   const names = services.map(service => service.name);
-  const hasSpecificUnknownName = /\b(?:setting|keratin|balayage|ombre|pixie|layer|mullet|side part)\b/iu.test(query) &&
+  const hasSpecificUnknownName = /\b(?:uon phong|setting|keratin|balayage|ombre|pixie|layer|mullet|side part)\b/iu.test(query) &&
     !services.some(service => includesPhrase(normalizeText(query), service.name));
   const lead = hasSpecificUnknownName
-    ? `Dạ, em chưa thấy dịch vụ đúng tên trong danh mục. Nhóm ${categoryName} hiện có`
+    ? `Dạ, danh mục chưa có dịch vụ đúng tên “${query}”. Nhóm ${categoryName} hiện có`
     : `Dạ, nhóm ${categoryName} hiện có`;
   return `${lead}: ${names.join('; ')}. Mình muốn hỏi giá dịch vụ nào ạ?`;
 }
 
-async function resolveServiceInquiry({ userMessage, conversation = null }) {
+async function resolveServiceInquiry({ userMessage, conversation = null, history = [] }) {
   const chatContext = conversation?.chat_context || {};
   if (
     isPriceQuestion(userMessage) ||
-    chatContext.pricing_inquiry_active ||
-    chatContext.booking_intent_pending ||
-    chatContext.booking_started
+    chatContext.pricing_inquiry_active
   ) return null;
 
   const normalizedMessage = normalizeText(userMessage);
-  if (/\b(?:muon\s+)?lam\s+toc\b/u.test(normalizedMessage)) {
-    return {
-      handled: true,
-      content: 'Dạ, anh/chị đang muốn cắt, uốn, nhuộm hay phục hồi tóc ạ?',
-    };
-  }
-
-  if (/\bbob\b/u.test(normalizedMessage)) {
+  if (
+    !chatContext.booking_intent_pending &&
+    !chatContext.booking_started &&
+    /\bbob\b/u.test(normalizedMessage)
+  ) {
     if (/\b(?:tu van|tham khao|tim hieu)\b/u.test(normalizedMessage)) {
       return {
         handled: true,
@@ -204,6 +297,90 @@ async function resolveServiceInquiry({ userMessage, conversation = null }) {
     return {
       handled: true,
       content: 'Dạ, anh/chị muốn cắt kiểu tóc bob ạ. Anh/chị muốn tư vấn thêm về kiểu tóc bob hay muốn đặt lịch cắt tóc ạ?',
+    };
+  }
+
+  const services = (await productRepository.findAll({
+    status: 'active',
+    page: 1,
+    limit: 1000,
+  })).rows;
+  const directMatches = findDirectMatches(userMessage, services);
+  const categoryMatches = directMatches.length ? [] : findCategoryMatches(userMessage, services);
+  const selectedIds = Array.isArray(chatContext.selected_service_ids)
+    ? chatContext.selected_service_ids
+    : [];
+  const selectedService = services.find(service => selectedIds.includes(service.id));
+  if (
+    selectedService &&
+    categoryMatches.length &&
+    categoryMatches[0].category_name === selectedService.category_name &&
+    !isCategoryOnlyInquiry(userMessage, selectedService.category_name)
+  ) {
+    return null;
+  }
+
+  if (chatContext.booking_intent_pending || chatContext.booking_started) {
+    if (categoryMatches.length > 1) {
+      return {
+        handled: true,
+        content: buildAmbiguousServiceReply(categoryMatches, userMessage),
+      };
+    }
+    return null;
+  }
+
+  const pendingServiceSelection = findPendingServiceSelection(history, userMessage, services);
+  if (pendingServiceSelection && !directMatches.length) {
+    if (Number(chatContext.service_selection_clarification_attempts || 0) >= 2) {
+      return {
+        handled: true,
+        handoffRequired: true,
+        handoffReason: 'service_selection_unresolved',
+      };
+    }
+    if (!categoryMatches.length) {
+      return {
+        handled: true,
+        content: buildAmbiguousServiceReply(
+          pendingServiceSelection.services,
+          pendingServiceSelection.request
+        ),
+      };
+    }
+  }
+
+  if (directMatches.length === 1) {
+    return {
+      handled: true,
+      content: `Dạ, salon hiện có dịch vụ ${directMatches[0].name}. Mình muốn tìm hiểu thêm hay đặt lịch dịch vụ này ạ?`,
+    };
+  }
+  if (directMatches.length > 1) {
+    return {
+      handled: true,
+      content: `Dạ, em tìm thấy các dịch vụ ${directMatches.map(service => service.name).join('; ')}. Mình muốn tìm hiểu dịch vụ nào ạ?`,
+    };
+  }
+
+  if (categoryMatches.length > 1) {
+    return {
+      handled: true,
+      content: buildAmbiguousServiceReply(categoryMatches, userMessage),
+    };
+  }
+
+  if (categoryMatches.length === 1) {
+    return {
+      handled: true,
+      content: `Dạ, salon hiện có dịch vụ ${categoryMatches[0].name}. Mình muốn tìm hiểu thêm hay đặt lịch dịch vụ này ạ?`,
+    };
+  }
+
+  if (/\b(?:muon\s+)?lam\s+toc\b/u.test(normalizedMessage)) {
+    return {
+      handled: true,
+      content: 'Dạ, anh/chị đang muốn cắt, uốn, nhuộm hay phục hồi tóc ạ?',
     };
   }
 
@@ -222,6 +399,7 @@ async function resolvePriceInquiry({ userMessage, history = [], conversation = n
     limit: 1000,
   })).rows;
 
+  const pendingServiceSelection = findPendingServiceSelection(history, userMessage, services);
   const contextProductName = conversation?.product_name || '';
   const directCurrentMatches = findDirectMatches(userMessage, services);
   const currentCategoryMatches = directCurrentMatches.length
@@ -244,6 +422,28 @@ async function resolvePriceInquiry({ userMessage, history = [], conversation = n
       ? currentCategoryMatches
       : selectedServices;
   const matchingCategory = !directCurrentMatches.length && currentCategoryMatches.length > 0;
+  if (
+    pendingServiceSelection &&
+    !directCurrentMatches.length &&
+    !selectedServices.length
+  ) {
+    if (Number(chatContext.service_selection_clarification_attempts || 0) >= 2) {
+      return {
+        handled: true,
+        handoffRequired: true,
+        handoffReason: 'service_selection_unresolved',
+      };
+    }
+    if (!currentCategoryMatches.length) {
+      return {
+        handled: true,
+        content: buildAmbiguousServiceReply(
+          pendingServiceSelection.services,
+          pendingServiceSelection.request
+        ),
+      };
+    }
+  }
   if (!matches.length && !currentIsPriceQuestion && pending) {
     matches = findDirectMatches(query, services);
     if (!matches.length) matches = findCategoryMatches(query, services);
@@ -255,6 +455,8 @@ async function resolvePriceInquiry({ userMessage, history = [], conversation = n
       return {
         handled: true,
         content: 'Dạ, em chưa tìm thấy dịch vụ phù hợp trong danh mục nên chưa thể báo giá chính xác. Mình cho em tên dịch vụ cụ thể trên menu hoặc bấm “Chat với nhân viên” để được hỗ trợ ạ.',
+        handoffRequired: true,
+        handoffReason: 'service_not_found_in_catalog',
       };
     }
     return {
@@ -264,6 +466,15 @@ async function resolvePriceInquiry({ userMessage, history = [], conversation = n
   }
 
   if (matchingCategory && matches.length > 1) {
+    if (/\b(?:setting|keratin|balayage|ombre|pixie|layer|mullet|side part)\b/iu.test(query) &&
+      !matches.some(service => includesPhrase(normalizeText(query), service.name))) {
+      return {
+        handled: true,
+        content: buildAmbiguousServiceReply(matches, query),
+        handoffRequired: true,
+        handoffReason: 'service_not_found_in_catalog',
+      };
+    }
     return { handled: true, content: buildAmbiguousServiceReply(matches, query) };
   }
 
@@ -272,15 +483,29 @@ async function resolvePriceInquiry({ userMessage, history = [], conversation = n
   const sizeResult = parseHairSize(userMessage) ||
     (chatContext.hair_size ? { size: chatContext.hair_size } : null);
 
-  if (!sizePricedMatches.length) {
+  if (unconfiguredMatches.length) {
     return {
       handled: true,
-      content: matches.map(service =>
-        `Dạ, dịch vụ ${service.name} chưa có giá theo size được cấu hình nên em chưa thể báo giá chính xác ạ.`
+      content: unconfiguredMatches.map(service =>
+        `Dạ, dịch vụ ${service.name} chưa có bảng giá theo size được cấu hình nên em chưa thể báo giá chính xác ạ.`
       ).join('\n'),
+      handoffRequired: true,
+      handoffReason: 'service_size_pricing_missing',
+      serviceNames: unconfiguredMatches.map(service => service.name),
     };
   }
-  if (sizePricedMatches.length && sizeResult?.ambiguous) {
+  if (
+    !sizeResult?.size &&
+    Number(chatContext.hair_size_clarification_attempts || 0) >= 2
+  ) {
+    return {
+      handled: true,
+      handoffRequired: true,
+      handoffReason: 'hair_size_unresolved',
+      serviceNames: matches.map(service => service.name),
+    };
+  }
+  if (sizeResult?.ambiguous) {
     return { handled: true, content: buildBoundaryQuestion(sizeResult.reason) };
   }
   if (!sizeResult?.size && sizePricedMatches.length) {
@@ -290,6 +515,24 @@ async function resolvePriceInquiry({ userMessage, history = [], conversation = n
     return {
       handled: true,
       content: [...unavailablePrices, buildSizeQuestion(sizePricedMatches.map(service => service.name))].join('\n'),
+    };
+  }
+
+  const missingTier = matches.find(service => {
+    const tier = service.prices_by_size[sizeResult.size];
+    return !tier ||
+      tier.price === null ||
+      tier.price === undefined ||
+      !Number.isFinite(Number(tier.price)) ||
+      !Number.isFinite(Number(tier.duration ?? service.duration)) ||
+      !Number.isFinite(Number(tier.staff_count ?? service.staff_count));
+  });
+  if (missingTier) {
+    return {
+      handled: true,
+      handoffRequired: true,
+      handoffReason: 'selected_size_data_missing',
+      serviceNames: [missingTier.name],
     };
   }
 
@@ -304,8 +547,11 @@ async function resolvePriceInquiry({ userMessage, history = [], conversation = n
 module.exports = {
   isPriceQuestion,
   parseHairSize,
+  buildSizeQuestion,
+  buildBoundaryQuestion,
   findDirectMatches,
   findCategoryMatches,
+  isCategoryOnlyInquiry,
   resolveServiceInquiry,
   resolvePriceInquiry,
 };

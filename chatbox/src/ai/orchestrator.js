@@ -16,10 +16,12 @@ const messageRepo = require('../repositories/messageRepository');
 const conversationRepo = require('../repositories/conversationRepository');
 const appointmentRepo = require('../repositories/appointmentRepository');
 const appointmentService = require('../services/appointmentService');
+const conversationService = require('../services/conversationService');
 const settingsRepo = require('../repositories/settingsRepository');
 const productRepo = require('../repositories/productRepository');
 const servicePricing = require('./servicePricing');
 const conversationContextService = require('./conversationContext');
+const { DEFAULT_AI_SYSTEM_PROMPT } = require('./systemPrompt');
 
 const MAX_TOOL_CALLS = 5;
 const CONFIRMATION_KEYWORDS = [
@@ -43,13 +45,60 @@ function isGreetingOnly(userMessage) {
 }
 
 function isServiceChangeRequest(userMessage) {
-  return /(?:đổi|thay đổi|thay)\s+(?:sang\s+)?(?:dịch vụ|kiểu tóc)/iu
+  return /(?:đổi|thay đổi|thay|chuyển)\s+(?:(?:dịch vụ|kiểu tóc)(?:\s+(?:sang|qua)\b)?|(?:(?:sang|qua)\s+)?(?:cắt|uốn|nhuộm|gội|duỗi|phục hồi|nối|tẩy))/iu
     .test(userMessage || '');
 }
 
 function formatInvalidPhoneReply(phone) {
   const digits = appointmentService.cleanPhoneNumber(phone).replace(/\D/gu, '');
   return `Dạ, số điện thoại ${phone} chưa hợp lệ${digits ? ` (hiện có ${digits.length} chữ số)` : ''}. Anh/chị vui lòng nhập số di động Việt Nam đủ 10 chữ số, bắt đầu bằng 03, 05, 07, 08 hoặc 09 nhé ạ.`;
+}
+
+function buildHandoffReply(serviceNames, connected) {
+  const serviceLabel = Array.isArray(serviceNames) && serviceNames.length
+    ? ` về dịch vụ ${serviceNames.join(', ')}`
+    : '';
+  if (connected) {
+    return `Dạ, để tư vấn chính xác hơn${serviceLabel}, em xin phép kết nối mình với chuyên viên tư vấn nhé.`;
+  }
+  return `Dạ, hiện em chưa thể kết nối chuyên viên tư vấn${serviceLabel} do hệ thống gặp sự cố. Lịch sử hội thoại và thông tin mình đã cung cấp vẫn được lưu lại; mình vui lòng thử lại hoặc bấm “Chat với nhân viên” nhé ạ.`;
+}
+
+async function handoffToConsultant({ conversationId, guestSessionId, io, serviceNames, reason }) {
+  try {
+    if (!io || typeof io.to !== 'function') {
+      throw Object.assign(new Error('Socket.IO is not available for agent handoff'), {
+        code: 'AGENT_HANDOFF_UNAVAILABLE',
+      });
+    }
+    const result = await conversationService.requestAgentSwitch(
+      conversationId,
+      guestSessionId,
+      io
+    );
+    if (!['waiting', 'already_waiting'].includes(result?.status)) {
+      throw Object.assign(new Error('Agent handoff did not enter the waiting queue'), {
+        code: 'AGENT_HANDOFF_NOT_QUEUED',
+      });
+    }
+    return {
+      content: buildHandoffReply(serviceNames, true),
+      handoffAttempted: true,
+      handoffStatus: 'waiting',
+    };
+  } catch (error) {
+    console.error('[AI] Failed to hand off conversation to a consultant', {
+      conversationId,
+      reason,
+      errorName: error.name || 'Error',
+      errorCode: error.code || 'AGENT_HANDOFF_FAILED',
+    });
+    return {
+      content: buildHandoffReply(serviceNames, false),
+      handoffAttempted: true,
+      handoffStatus: 'failed',
+    };
+  }
 }
 
 function isPriceInquiry(userMessage) {
@@ -246,8 +295,8 @@ function extractToolCallsFromContent(content) {
 
 function formatSlotsReply(date, slots, nextDate) {
   if (!slots || slots.length === 0) {
-    const nextStr = nextDate ? `ngày tiếp theo (${nextDate})` : 'ngày hôm sau';
-    return `Dạ, ngày ${date} salon hiện đã kín toàn bộ các khung giờ rồi ạ. Bạn có muốn em kiểm tra lịch trống của ${nextStr} không ạ?`;
+    const nextStr = nextDate ? `ngày tiếp theo (${nextDate})` : 'ngày khác';
+    return `Dạ, ngày ${date} hiện không có khung giờ phù hợp theo lịch hệ thống. Mình có muốn em kiểm tra ${nextStr} không ạ?`;
   }
   return `Dạ, trong ngày ${date}, salon hiện còn các khung giờ trống sau:\n\n${slots.join(', ')}\n\nAnh/chị thuận tiện chọn khung giờ nào để em hỗ trợ đặt lịch ạ?`;
 }
@@ -267,6 +316,136 @@ function formatBusinessHoursForDate(workingHours, date) {
     .filter(item => item?.enabled)
     .map(item => `${item.open}–${item.close}`))];
   return uniqueHours.length ? uniqueHours.join(', ') : 'chưa có giờ hoạt động được cấu hình';
+}
+
+function logBookingStepFailure(phase, error, context) {
+  console.error('[AI] Booking step failed', {
+    phase,
+    conversationId: context.conversationId,
+    serviceIds: context.chatContext?.selected_service_ids || [],
+    errorName: error?.errorName || error?.name || 'Error',
+    errorCode: error?.errorCode || error?.code || 'BOOKING_STEP_FAILED',
+    status: Number.isInteger(error?.status) ? error.status : null,
+    upstreamStatus: Number.isInteger(error?.upstreamStatus) ? error.upstreamStatus : null,
+  });
+}
+
+function formatHeldBookingSummary(hold, state, contact, services = []) {
+  const serviceNames = services.map(service => service.name).filter(Boolean);
+  const serviceLabel = serviceNames.length
+    ? serviceNames.join(', ')
+    : hold.product_name;
+  const missingContact = [];
+  if (!contact.customer_name) missingContact.push('họ tên');
+  if (!contact.customer_phone) missingContact.push('số điện thoại');
+  if (missingContact.length > 0) {
+    return `Dạ, em đã giữ chỗ ${hold.appointment_time} ngày ${hold.appointment_date} cho dịch vụ ${serviceLabel || 'mình đã chọn'} trong 5 phút. Mình cho em xin ${missingContact.join(' và ')} để hoàn tất đặt lịch ạ.`;
+  }
+
+  const details = [
+    'Dạ, em đã giữ chỗ trong 5 phút. Mình kiểm tra lại thông tin đặt lịch nhé:',
+    serviceNames.length
+      ? `- Dịch vụ: ${serviceNames.join(', ')}`
+      : hold.product_name
+        ? `- Dịch vụ: ${hold.product_name}`
+        : null,
+    state.hair_size ? `- Size: ${state.hair_size}` : null,
+    hold.price !== null &&
+    hold.price !== undefined &&
+    Number.isFinite(Number(hold.price))
+      ? `- Giá: ${new Intl.NumberFormat('vi-VN').format(Number(hold.price))} VNĐ`
+      : null,
+    hold.duration_minutes !== null &&
+    hold.duration_minutes !== undefined &&
+    Number.isFinite(Number(hold.duration_minutes))
+      ? `- Thời gian thực hiện: ${Number(hold.duration_minutes)} phút`
+      : null,
+    `- Ngày, giờ: ${hold.appointment_date}, ${hold.appointment_time}`,
+    `- Họ tên: ${contact.customer_name}`,
+    `- Số điện thoại: ${contact.customer_phone}`,
+    'Mình xác nhận đặt lịch với thông tin trên đúng không ạ?',
+  ];
+  return details.filter(Boolean).join('\n');
+}
+
+async function executeBookingStep(toolName, args, context, phase) {
+  let rawResult;
+  try {
+    rawResult = await executeTool(toolName, args, context);
+  } catch (error) {
+    logBookingStepFailure(phase, error, context);
+    return null;
+  }
+
+  try {
+    const result = JSON.parse(rawResult);
+    if (!result || typeof result !== 'object' || Array.isArray(result)) {
+      throw new Error('Booking tool returned a non-object response');
+    }
+    return result;
+  } catch (error) {
+    logBookingStepFailure(phase, {
+      name: error.name,
+      code: 'BOOKING_TOOL_INVALID_RESPONSE',
+    }, context);
+    return null;
+  }
+}
+
+async function getAvailableSlotsReply(context, date) {
+  const serviceIds = context.chatContext?.selected_service_ids || [];
+  const result = await executeBookingStep('check_available_slots', {
+    date,
+    product_ids: serviceIds,
+    hair_size: context.chatContext?.hair_size || null,
+  }, context, 'availability_check');
+
+  if (!result) {
+    await conversationRepo.updateChatContext(context.conversationId, {
+      availability_query_pending: false,
+      availability_query_date: null,
+      availability_query_service_ids: [],
+    });
+    return 'Dạ, hiện hệ thống chưa thể kiểm tra lịch trống. Mình vui lòng thử lại sau hoặc chat với nhân viên để được hỗ trợ ạ.';
+  }
+  if (!result.success) {
+    if (result.code === 'HAIR_SIZE_REQUIRED') {
+      const updated = await conversationRepo.updateChatContext(context.conversationId, {
+        availability_query_pending: true,
+        availability_query_date: date,
+        availability_query_service_ids: serviceIds,
+      });
+      context.chatContext = updated.chat_context;
+      context.conversation.chat_context = updated.chat_context;
+      const services = await Promise.all(serviceIds.map(id => productRepo.findById(id)));
+      return servicePricing.buildSizeQuestion(
+        services.filter(Boolean).map(service => service.name)
+      );
+    }
+    if (result.code === 'INSUFFICIENT_STAFF') {
+      await conversationRepo.updateChatContext(context.conversationId, {
+        availability_query_pending: false,
+        availability_query_date: null,
+        availability_query_service_ids: [],
+      });
+      return 'Dạ, hiện salon chưa đủ nhân viên phù hợp để nhận dịch vụ này vào thời điểm cần kiểm tra. Mình vui lòng chọn ngày khác hoặc chat với nhân viên để được hỗ trợ ạ.';
+    }
+    logBookingStepFailure('availability_check', result, context);
+    await conversationRepo.updateChatContext(context.conversationId, {
+      availability_query_pending: false,
+      availability_query_date: null,
+      availability_query_service_ids: [],
+    });
+    return 'Dạ, hiện hệ thống chưa thể xác nhận lịch trống. Mình vui lòng thử lại sau hoặc chat với nhân viên để được hỗ trợ ạ.';
+  }
+  const updated = await conversationRepo.updateChatContext(context.conversationId, {
+    availability_query_pending: result.slots.length > 0,
+    availability_query_date: result.slots.length > 0 ? date : null,
+    availability_query_service_ids: result.slots.length > 0 ? serviceIds : [],
+  });
+  context.chatContext = updated.chat_context;
+  context.conversation.chat_context = updated.chat_context;
+  return formatSlotsReply(result.date, result.slots, result.next_date);
 }
 
 async function handleBookingContinuation(userMessage, context) {
@@ -303,45 +482,77 @@ async function handleBookingContinuation(userMessage, context) {
       });
     }
   }
-  const selectedServices = await Promise.all(state.selected_service_ids.map(id =>
-    productRepo.findById(id)
-  ));
+  let selectedServices;
+  try {
+    selectedServices = await Promise.all(state.selected_service_ids.map(id =>
+      productRepo.findById(id)
+    ));
+  } catch (error) {
+    logBookingStepFailure('service_lookup', error, context);
+    return await handoffToConsultant({
+      ...context,
+      reason: 'booking_service_lookup_failed',
+    });
+  }
+  if (selectedServices.some(service => !service || service.status !== 'active')) {
+    logBookingStepFailure('service_lookup', {
+      code: 'BOOKING_SERVICE_UNAVAILABLE',
+    }, context);
+    return await handoffToConsultant({
+      ...context,
+      reason: 'booking_service_unavailable',
+    });
+  }
   const sizePricedServices = selectedServices.filter(service =>
-    service?.prices_by_size && Object.keys(service.prices_by_size).length > 0
+    service.prices_by_size && Object.keys(service.prices_by_size).length > 0
   );
-  const servicesWithoutSizePrices = selectedServices.filter(service =>
-    !service?.prices_by_size || Object.keys(service.prices_by_size).length === 0
-  );
-  if (servicesWithoutSizePrices.length > 0) {
-    const names = servicesWithoutSizePrices.map(service => service?.name || 'dịch vụ đã chọn').join(', ');
-    return `Dạ, ${names} chưa được cấu hình giá theo size nên hiện chưa thể kiểm tra lịch hoặc đặt dịch vụ này. Mình vui lòng chọn dịch vụ khác hoặc liên hệ nhân viên để được hỗ trợ ạ.`;
-  }
-  const parsedHairSize = servicePricing.parseHairSize(state.hair_length_text || '');
-  const selectedHairSize = state.hair_size || parsedHairSize?.size;
-  if (sizePricedServices.length > 0 && !selectedHairSize) {
-    if (parsedHairSize?.ambiguous) {
-      return `Dạ, em chưa xác định được size vì ${parsedHairSize.reason} Mình cho em biết size phù hợp trong dịch vụ để em kiểm tra lịch và giá chính xác ạ.`;
+  let selectedHairSize = state.hair_size || null;
+  let productSizes = {};
+  if (sizePricedServices.length > 0) {
+    const sizeResult = selectedHairSize
+      ? { size: selectedHairSize }
+      : servicePricing.parseHairSize(state.hair_length_text || '');
+    if (sizeResult?.ambiguous) {
+      if (Number(state.hair_size_clarification_attempts || 0) >= 2) {
+        return await handoffToConsultant({
+          ...context,
+          serviceNames: sizePricedServices.map(service => service.name),
+          reason: 'hair_size_unresolved',
+        });
+      }
+      return servicePricing.buildBoundaryQuestion(sizeResult.reason);
     }
-    const sizeOptions = sizePricedServices.map(service => {
-      const options = Object.entries(service.prices_by_size)
-        .map(([size, tier]) => `${size}${tier.description ? ` (${tier.description})` : ''}`)
-        .join(', ');
-      return `${service.name}: ${options}`;
-    }).join('; ');
-    return `Dạ, dịch vụ mình chọn tính giá theo size. Mình cho em biết size tóc để em kiểm tra lịch và giá chính xác nhé ạ. Các size hiện có: ${sizeOptions}.`;
-  }
-  const productSizes = Object.fromEntries(sizePricedServices.map(service => [
-    service.id,
-    selectedHairSize,
-  ]));
-  const serviceWithUnavailableSize = sizePricedServices.find(service =>
-    !service.prices_by_size[selectedHairSize]
-  );
-  if (serviceWithUnavailableSize) {
-    const availableSizes = Object.entries(serviceWithUnavailableSize.prices_by_size)
-      .map(([size, tier]) => `${size}${tier.description ? ` (${tier.description})` : ''}`)
-      .join(', ');
-    return `Dạ, dịch vụ ${serviceWithUnavailableSize.name} không có size ${selectedHairSize}. Các size hiện có: ${availableSizes}. Mình chọn giúp em một size trong danh sách nhé ạ.`;
+    if (!sizeResult?.size) {
+      if (Number(state.hair_size_clarification_attempts || 0) >= 2) {
+        return await handoffToConsultant({
+          ...context,
+          serviceNames: sizePricedServices.map(service => service.name),
+          reason: 'hair_size_unresolved',
+        });
+      }
+      return servicePricing.buildSizeQuestion(sizePricedServices.map(service => service.name));
+    }
+    const missingSizePrice = sizePricedServices.find(service => {
+      const tier = service.prices_by_size[sizeResult.size];
+      return !tier ||
+        tier.price === null ||
+        tier.price === undefined ||
+        !Number.isFinite(Number(tier.price)) ||
+        !Number.isFinite(Number(tier.duration ?? service.duration)) ||
+        !Number.isFinite(Number(tier.staff_count ?? service.staff_count));
+    });
+    if (missingSizePrice) {
+      return await handoffToConsultant({
+        ...context,
+        serviceNames: [missingSizePrice.name],
+        reason: 'booking_size_price_missing',
+      });
+    }
+    selectedHairSize = sizeResult.size;
+    productSizes = Object.fromEntries(sizePricedServices.map(service => [
+      service.id,
+      selectedHairSize,
+    ]));
   }
   const hasDyeService = selectedServices.some(service =>
     /nhuộm/iu.test(`${service?.name || ''} ${service?.category_name || ''}`)
@@ -355,10 +566,21 @@ async function handleBookingContinuation(userMessage, context) {
       state.hair_length_text ||
       servicePricing.parseHairSize(serviceNotes)?.size
     );
-    if (!hasDyeColor || !hasHairLength) return null;
+    if (!hasDyeColor) return 'Dạ, mình muốn nhuộm màu nào ạ?';
+    if (!hasHairLength) return 'Dạ, mình cho em biết tóc dài đến đâu để em chọn size và báo đúng giá ạ?';
   }
 
-  const hoursResult = JSON.parse(await executeTool('get_business_hours', {}, context));
+  const hoursResult = await executeBookingStep('get_business_hours', {}, context, 'business_hours');
+  if (!hoursResult?.workingHours) {
+    logBookingStepFailure('business_hours', {
+      code: 'BUSINESS_HOURS_UNAVAILABLE',
+    }, context);
+    return await handoffToConsultant({
+      ...context,
+      serviceNames: selectedServices.map(service => service.name),
+      reason: 'business_hours_unavailable',
+    });
+  }
   const businessHours = formatBusinessHoursForDate(
     hoursResult.workingHours,
     state.appointment_date || null
@@ -369,6 +591,9 @@ async function handleBookingContinuation(userMessage, context) {
     const requested = userMessage.match(/\d{1,2}\s*(?:h|giờ)/iu)?.[0] || 'Giờ vừa cung cấp';
     return `Dạ, ${requested} không phải giờ hẹn hợp lệ. Giờ hoạt động${state.appointment_date ? ' ngày này' : ''} của salon là ${businessHours}. Mình chọn giúp em một giờ trong khung này nhé ạ.`;
   }
+
+  if (!state.appointment_date) return 'Dạ, mình muốn đặt lịch vào ngày nào ạ?';
+  if (!state.appointment_time) return 'Dạ, mình muốn đặt lịch vào khung giờ nào ạ?';
 
   if (state.appointment_time) {
     const [hour, minute] = state.appointment_time.split(':').map(Number);
@@ -396,13 +621,18 @@ async function handleBookingContinuation(userMessage, context) {
 
   if (!state.appointment_date || !state.appointment_time) return null;
 
-  const availabilityResult = JSON.parse(await executeTool('check_available_slots', {
+  const availabilityResult = await executeBookingStep('check_available_slots', {
     date: state.appointment_date,
     product_ids: state.selected_service_ids,
     product_sizes: productSizes,
-  }, context));
+    hair_size: state.hair_size || null,
+  }, context, 'availability_check');
+  if (!availabilityResult) {
+    return 'Dạ, hệ thống lịch đang gặp sự cố nên em chưa thể kiểm tra khung giờ này. Dịch vụ, ngày giờ mình đã cung cấp vẫn được lưu lại; mình thử lại sau hoặc chat với nhân viên nhé ạ.';
+  }
   if (!availabilityResult.success) {
-    return `Dạ, em chưa thể xác nhận khung giờ này: ${availabilityResult.error || 'hệ thống chưa kiểm tra được lịch'}. Mình thử ngày giờ khác hoặc chat với nhân viên giúp em nhé ạ.`;
+    logBookingStepFailure('availability_check', availabilityResult, context);
+    return 'Dạ, hệ thống lịch đang gặp sự cố nên em chưa thể xác nhận khung giờ này. Dịch vụ, ngày giờ mình đã cung cấp vẫn được lưu lại; mình thử lại sau hoặc chat với nhân viên nhé ạ.';
   }
   if (!(availabilityResult.slots || []).includes(state.appointment_time)) {
     await conversationRepo.updateChatContext(context.conversationId, {
@@ -414,14 +644,29 @@ async function handleBookingContinuation(userMessage, context) {
       : `Dạ, ngày ${state.appointment_date} hiện không còn giờ trống. Mình muốn em kiểm tra ngày khác không ạ?`;
   }
 
-  const holdResult = JSON.parse(await executeTool('hold_appointment_slot', {
+  const holdResult = await executeBookingStep('hold_appointment_slot', {
     appointment_date: state.appointment_date,
     appointment_time: state.appointment_time,
     product_ids: state.selected_service_ids,
     product_sizes: productSizes,
-    notes: state.booking_service_notes || state.hair_length_text || null,
-  }, context));
-  if (!holdResult.success) return holdResult.message;
+    hair_size: state.hair_size || null,
+    notes: [state.booking_service_notes, state.hair_length_text]
+      .filter(Boolean)
+      .filter((note, index, notes) => notes.indexOf(note) === index)
+      .join(' | ') || null,
+  }, context, 'slot_hold');
+  if (!holdResult) {
+    return 'Dạ, hệ thống chưa thể giữ khung giờ này. Dịch vụ, ngày giờ mình đã cung cấp vẫn được lưu lại; mình thử lại sau hoặc chat với nhân viên nhé ạ.';
+  }
+  if (!holdResult.success) {
+    logBookingStepFailure('slot_hold', holdResult, context);
+    const alternatives = Array.isArray(holdResult.available_slots)
+      ? holdResult.available_slots.filter(slot => slot !== state.appointment_time)
+      : [];
+    return alternatives.length
+      ? `Dạ, lúc ${state.appointment_time} ngày ${state.appointment_date} vừa có người đặt mất rồi ạ. Các giờ còn trống là ${alternatives.join(', ')}. Mình chọn giờ nào ạ?`
+      : `Dạ, lúc ${state.appointment_time} ngày ${state.appointment_date} vừa có người đặt mất rồi ạ. Mình muốn em kiểm tra ngày khác không ạ?`;
+  }
 
   await conversationRepo.updateChatContext(context.conversationId, {
     booking_confirmation_pending: false,
@@ -458,6 +703,7 @@ async function handleBookingContinuation(userMessage, context) {
       appointment_time: state.appointment_time,
       product_ids: state.selected_service_ids,
       product_sizes: productSizes,
+      hair_size: state.hair_size || null,
       notes: state.booking_service_notes || state.hair_length_text || null,
     }, context));
     if (result.success && result.booking_code) await markBookingAsCompleted(context);
@@ -474,13 +720,56 @@ async function handleBookingContinuation(userMessage, context) {
       booking_confirmation_pending: false,
     });
   }
-
   if (contact.customer_name && contact.customer_phone) {
+    await conversationRepo.updateCustomerInfo(context.conversationId, {
+      name: contact.customer_name,
+      phone: contact.customer_phone,
+      email: contact.customer_email,
+    });
     await conversationRepo.updateChatContext(context.conversationId, {
       booking_confirmation_pending: true,
     });
   }
-  return null;
+  return formatHeldBookingSummary(holdResult, state, contact, selectedServices);
+}
+
+async function sanitizeAssistantResponse(content, chatContext) {
+  const response = String(content || '')
+    .trim()
+    .replace(/^(?:assistant|trợ lý)\s*(?::\s*|\r?\n|$)/iu, '')
+    .trim();
+  const leaksInternalGuidance = /(?:nếu khách muốn|bạn có thể hỏi|sau khi hỏi xong|hướng dẫn nội bộ|prompt nội bộ|system prompt|tự uốn tóc|uốn lỏng|uốn nếp|uốn tóc.{0,50}uốn xoăn|uốn tóc mái.{0,50}kiểu gì|phạm vi.{0,30}uốn tóc|dịch vụ bổ sung|thời lượng.{0,30}(?:bao lâu|mong muốn))/iu
+    .test(response);
+  if (response && !leaksInternalGuidance) return response;
+
+  const state = chatContext || {};
+  const selectedIds = Array.isArray(state.selected_service_ids)
+    ? state.selected_service_ids
+    : [];
+  const selectedServices = await Promise.all(selectedIds.map(id => productRepo.findById(id)));
+  const selectedNames = selectedServices.filter(Boolean).map(service => service.name);
+  if (state.booking_service_confirmed && selectedNames.length) {
+    const serviceNames = selectedNames.join(', ');
+    if (!state.appointment_date) {
+      return `Dạ, em đã ghi nhận dịch vụ ${serviceNames}. Mình muốn đặt lịch vào ngày nào ạ?`;
+    }
+    if (!state.appointment_time) {
+      return `Dạ, em đã ghi nhận dịch vụ ${serviceNames} vào ngày ${state.appointment_date}. Mình thuận tiện khung giờ nào ạ?`;
+    }
+  }
+
+  if (state.booking_intent_pending) {
+    const { rows: services } = await productRepo.findAll({ status: 'active', limit: 1000 });
+    const options = state.booking_requested_category
+      ? services.filter(service => service.category_name === state.booking_requested_category)
+      : [];
+    if (options.length) {
+      return `Dạ, nhóm ${state.booking_requested_category} hiện có các dịch vụ: ${options.map(service => service.name).join('; ')}. Mình muốn đặt dịch vụ nào ạ?`;
+    }
+    return 'Dạ, anh/chị muốn đặt lịch sử dụng dịch vụ nào ạ?';
+  }
+
+  return 'Dạ, em xin lỗi, hiện em chưa thể xử lý yêu cầu này chính xác. Anh/chị cho em biết dịch vụ cần hỗ trợ hoặc bấm “Chat với nhân viên” để được tư vấn ạ.';
 }
 
 async function buildSystemPrompt(conversation, targetDate = null) {
@@ -493,8 +782,7 @@ async function buildSystemPrompt(conversation, targetDate = null) {
   const dayAfterVN = getVietnamDate(2);
   const currentTargetDate = targetDate || tomorrowVN;
 
-  let prompt = systemPromptSetting ||
-    'Bạn là trợ lý tư vấn sản phẩm và đặt lịch chuyên nghiệp, thân thiện.';
+  let prompt = systemPromptSetting || DEFAULT_AI_SYSTEM_PROMPT;
 
   const formatPrice = price => price === null || price === undefined
     ? 'chưa có giá được xác nhận'
@@ -524,7 +812,9 @@ async function buildSystemPrompt(conversation, targetDate = null) {
   prompt += `\n\n[TRẠNG THÁI ĐẶT LỊCH — DỮ LIỆU HỆ THỐNG]\n- Booking đang chờ chọn dịch vụ: ${Boolean(chatContext.booking_intent_pending)}
 - Booking đã bắt đầu: ${Boolean(chatContext.booking_started)}
 - Nhóm dịch vụ khách yêu cầu: ${chatContext.booking_requested_category || 'chưa xác định'}
+- Dịch vụ được nhận diện trong hội thoại (chưa đồng nghĩa với booking đã xác nhận): ${selectedServiceDetails.length ? selectedServiceDetails.join('; ') : 'chưa có'}
 - Dịch vụ đã chọn: ${chatContext.booking_service_confirmed && selectedServiceDetails.length ? selectedServiceDetails.join('; ') : 'chưa chọn (dịch vụ tư vấn chưa được khách xác nhận cho lượt đặt lịch)'}
+- Nguồn dịch vụ được nhận diện: ${chatContext.selected_service_source || 'chưa xác định'}
 - Ghi chú/kiểu tóc khách yêu cầu: ${chatContext.booking_service_notes || 'chưa có'}
 - Ngày khách chọn: ${chatContext.appointment_date || 'chưa cung cấp'}
 - Giờ khách chọn: ${chatContext.appointment_time || 'chưa cung cấp'}
@@ -535,22 +825,25 @@ async function buildSystemPrompt(conversation, targetDate = null) {
 - Độ dài tóc đã xác định: ${chatContext.hair_size || chatContext.hair_length_text || 'chưa cung cấp'}
 - Thông tin liên hệ đã lưu: họ tên ${conversation?.customer_name || 'chưa có'}, số điện thoại ${conversation?.customer_phone || 'chưa có'}, email ${conversation?.customer_email || 'chưa có'}`;
 
-  prompt += `\n\n[QUY TẮC CHÀO HỎI VÀ MỞ ĐẦU HỘI THOẠI]
-- Bạn là AI tư vấn của salon, không tự nhận là nhân viên thật. Lời chào mở đầu cấu hình của salon đã được đưa vào lịch sử hội thoại khi khách bắt đầu phiên.
-- Nếu lịch sử đã có lời chào từ trợ lý, không chào lại; trả lời trực tiếp nội dung khách vừa gửi. Nếu khách vừa chào vừa hỏi cụ thể, chào tối đa một câu ngắn rồi ưu tiên giải đáp câu hỏi đó.
-- Nếu chưa có lời chào trước đó và khách chỉ chào (ví dụ xin chào, hello, hi bạn, chào em), đáp lại ngắn gọn, tự nhiên và hỏi khách cần tìm hiểu dịch vụ, giá, thời lượng hay đặt lịch; không tự hỏi tên, số điện thoại hoặc email.
-- Nếu khách hỏi AI hỗ trợ gì, nêu ngắn gọn các phạm vi đã xác nhận: tìm hiểu dịch vụ, tham khảo giá/thời lượng trong danh sách, và hướng dẫn đặt lịch trực tuyến.
-- Nếu khách chỉ chào mà chưa nêu nhu cầu, kết thúc bằng một lời gợi mở phù hợp. Không lặp lại lời chào trong các lượt sau nếu không cần thiết.`;
-
   const handoffStatus = conversation?.mode === 'waiting_for_agent'
-    ? 'Cuộc hội thoại đang chờ nhân viên tiếp nhận.'
+    ? 'Waiting for an agent.'
     : conversation?.mode === 'human'
-      ? `Cuộc hội thoại đang do nhân viên${conversation.agent_name ? ` ${conversation.agent_name}` : ''} tiếp nhận.`
-      : 'Cuộc hội thoại hiện đang ở chế độ AI, chưa chuyển sang nhân viên.';
-  prompt += `\n\n[TRẠNG THÁI HỖ TRỢ HIỆN TẠI — DỮ LIỆU HỆ THỐNG]\n- ${handoffStatus}
-- Chỉ thông báo trạng thái này; không tự khẳng định nhân viên đã tiếp nhận nếu dữ liệu trạng thái không xác nhận.`;
+      ? `An agent${conversation.agent_name ? ` ${conversation.agent_name}` : ''} is handling this conversation.`
+      : 'AI mode; no agent has taken over.';
+  const activeHold = conversation?.id
+    ? await appointmentRepo.findActiveHoldByConversation(conversation.id)
+    : null;
 
-  prompt += `
+  prompt += `\n\n[LIVE SYSTEM CONTEXT]
+- Salon: ${siteName || 'Salon'}
+- Current time (Asia/Ho_Chi_Minh): ${now}
+- Today: ${todayVN}; tomorrow: ${tomorrowVN}; day after tomorrow: ${dayAfterVN}
+- Requested appointment date: ${currentTargetDate}
+- Conversation ID: ${conversation?.id || 'unavailable'}
+- Support status: ${handoffStatus}
+- Page service context: ${conversation?.product_name || 'none'}
+- Customer details: name ${conversation?.customer_name || 'not provided'}; phone ${conversation?.customer_phone || 'not provided'}; email ${conversation?.customer_email || 'not provided'}
+- Active hold: ${activeHold ? `${activeHold.appointment_time} on ${activeHold.appointment_date}` : 'none'}
 
 [TƯ VẤN KIỂU TÓC, NHIỀU DỊCH VỤ VÀ ẢNH THAM KHẢO]
 - Khi khách hỏi một kiểu cụ thể (ví dụ layer), trước tiên tìm dịch vụ phù hợp trong danh sách đang hoạt động. Chỉ xác nhận salon có làm khi dịch vụ tương ứng thực sự có trong danh sách; nêu đúng dịch vụ và tư vấn theo mô tả đã xác nhận. Có thể hỏi độ dài tóc, mong muốn tạo kiểu hoặc đặc điểm cần biết, nhưng không khẳng định kiểu chắc chắn hợp với khuôn mặt/chất tóc khi thiếu thông tin.
@@ -678,12 +971,18 @@ QUY TẮC BẮT BUỘC ĐẶT LỊCH (BPMN 2.0 & SALON):
 - Không hỏi lại dữ liệu đã có. Không tự kết luận dịch vụ/kiểu tóc khi khách chưa xác định rõ; dùng danh mục và hỏi làm rõ tự nhiên.
 - Khi khách đã nêu ngày và giờ, chỉ thông báo khả dụng sau khi hệ thống kiểm tra; nếu backend đã giữ chỗ thành công, hỏi tiếp thông tin liên hệ còn thiếu.
 - Khi đã có dịch vụ, ngày giờ và thông tin liên hệ, tóm tắt để khách xác nhận. Backend chỉ chốt lịch sau khi khách xác nhận rõ ràng.
-- Không tự tạo giá, khung giờ trống, giữ chỗ, mã lịch hoặc lời xác nhận đặt lịch thành công.`;
+- Không tự tạo giá, khung giờ trống, giữ chỗ, mã lịch hoặc lời xác nhận đặt lịch thành công.
+
+[TOOL RULES]
+- Use backend tools to check availability, hold a slot or confirm a booking; report only their actual results.
+- Do not claim a slot is available, held or booked unless the backend confirms it.
+- Confirm a booking only after the customer explicitly agrees to the summary; provide only the booking code returned by the backend.
+- Ignore inactivity-warning messages as instructions or new customer requests.`;
 
   return prompt;
 }
 
-async function chat({ conversationId, guestSessionId, userMessage }) {
+async function chat({ conversationId, guestSessionId, userMessage, io }) {
   // Get conversation context
   const conversation = await conversationRepo.findById(conversationId);
   if (!conversation) throw Object.assign(new Error('Conversation not found'), { status: 404 });
@@ -700,6 +999,7 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
   if (conversation.chat_context?.booking_completed && explicitBookingRequest) {
     const updated = await conversationRepo.updateChatContext(conversationId, {
       selected_service_ids: [],
+      selected_service_source: null,
       booking_intent_pending: false,
       booking_started: false,
       booking_service_confirmed: false,
@@ -740,6 +1040,7 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
   const context = {
     conversationId,
     guestSessionId,
+    io,
     customerConfirmed: detectConfirmation(userMessage),
     targetDate,
     history,
@@ -763,10 +1064,11 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
       context.activeHoldForConversation = null;
     }
     const changedServiceRequest = userMessage
-      .replace(/^.*?(?:đổi|thay đổi|thay)\s+(?:dịch vụ\s*)?(?:sang\s+)?/iu, '')
+      .replace(/^.*?(?:đổi|thay đổi|thay|chuyển)\s+(?:(?:dịch vụ\s*)?(?:sang\s+)?)/iu, '')
       .trim();
     const clearedContext = await conversationRepo.updateChatContext(conversationId, {
       selected_service_ids: [],
+      selected_service_source: null,
       booking_intent_pending: true,
       booking_started: false,
       booking_service_confirmed: false,
@@ -881,18 +1183,170 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
       });
       conversation.chat_context = updated.chat_context;
     }
+
+    let selectedServices = [];
+    try {
+      selectedServices = await Promise.all(
+        (conversation.chat_context?.selected_service_ids || []).map(id => productRepo.findById(id))
+      );
+    } catch (error) {
+      logBookingStepFailure('service_lookup', error, context);
+    }
+    return {
+      content: formatHeldBookingSummary(
+        activeHoldForConversation,
+        conversation.chat_context || {},
+        contact,
+        selectedServices.filter(Boolean)
+      ),
+      aiConfigured: provider.isConfigured(),
+    };
   }
 
-  const updatedConversation = await conversationContextService.updateConversationContext(
-    conversationId,
-    conversation,
-    userMessage,
-    history
-  );
+  let updatedConversation;
+  try {
+    updatedConversation = await conversationContextService.updateConversationContext(
+      conversationId,
+      conversation,
+      userMessage,
+      history
+    );
+  } catch (error) {
+    console.error('[AI] Failed to update conversation context before handling the message', {
+      conversationId,
+      errorName: error.name || 'Error',
+      errorCode: error.code || 'CONVERSATION_CONTEXT_UPDATE_FAILED',
+    });
+    return {
+      ...await handoffToConsultant({
+        ...context,
+        reason: 'conversation_context_update_failed',
+      }),
+      aiConfigured: provider.isConfigured(),
+    };
+  }
   conversation.chat_context = updatedConversation.chat_context;
   context.conversation = conversation;
   context.chatContext = updatedConversation.chat_context;
   context.targetDate = updatedConversation.chat_context.appointment_date || targetDate;
+
+  if (isAvailableSlotsQuery) {
+    const serviceIds = context.chatContext.selected_service_ids || [];
+    if (!serviceIds.length) {
+      const serviceInquiry = await servicePricing.resolveServiceInquiry({
+        userMessage,
+        conversation,
+        history,
+      });
+      const updated = await conversationRepo.updateChatContext(conversationId, {
+        availability_query_pending: true,
+        availability_query_date: extractDateFromText(userMessage) ||
+          context.chatContext.appointment_date ||
+          context.chatContext.availability_query_date ||
+          null,
+        availability_query_service_ids: serviceIds,
+      });
+      context.chatContext = updated.chat_context;
+      conversation.chat_context = updated.chat_context;
+      if (serviceInquiry?.handled) {
+        return {
+          content: serviceInquiry.content,
+          aiConfigured: provider.isConfigured(),
+        };
+      }
+      return {
+        content: 'Dạ, mình muốn kiểm tra giờ trống cho dịch vụ nào ạ?',
+        aiConfigured: provider.isConfigured(),
+      };
+    }
+
+    const hasRequestedDate = Boolean(
+      extractDateFromText(userMessage) ||
+      context.chatContext.appointment_date ||
+      history.some(message => extractDateFromText(message.content || ''))
+    );
+    if (!hasRequestedDate) {
+      const updated = await conversationRepo.updateChatContext(conversationId, {
+        availability_query_pending: true,
+        availability_query_date: null,
+        availability_query_service_ids: serviceIds,
+      });
+      context.chatContext = updated.chat_context;
+      conversation.chat_context = updated.chat_context;
+      return {
+        content: 'Dạ, mình muốn kiểm tra giờ trống vào ngày nào ạ?',
+        aiConfigured: provider.isConfigured(),
+      };
+    }
+    return {
+      content: await getAvailableSlotsReply(
+        context,
+        extractDateFromText(userMessage) ||
+          context.chatContext.appointment_date ||
+          extractDateFromUserAndHistory('', history, 0)
+      ),
+      aiConfigured: provider.isConfigured(),
+    };
+  }
+
+  if (context.chatContext.availability_query_pending) {
+    const selectedServiceIds = context.chatContext.selected_service_ids || [];
+    const previousServiceIds = context.chatContext.availability_query_service_ids || [];
+    const serviceChanged = JSON.stringify([...selectedServiceIds].sort()) !==
+      JSON.stringify([...previousServiceIds].sort());
+    const date = extractDateFromText(userMessage) ||
+      context.chatContext.availability_query_date ||
+      context.chatContext.appointment_date;
+    const selectedTime = extractTimeFromText(userMessage);
+    if (selectedTime && selectedServiceIds.length && date) {
+      const updated = await conversationRepo.updateChatContext(conversationId, {
+        booking_intent_pending: false,
+        booking_started: true,
+        booking_service_confirmed: true,
+        selected_service_source: 'booking_request',
+        appointment_date: date,
+        appointment_time: selectedTime,
+        invalid_appointment_time: false,
+        availability_query_pending: false,
+        availability_query_date: null,
+      });
+      context.chatContext = updated.chat_context;
+      conversation.chat_context = updated.chat_context;
+      const bookingReply = await handleBookingContinuation(userMessage, context);
+      if (bookingReply) {
+        return typeof bookingReply === 'string'
+          ? { content: bookingReply, aiConfigured: provider.isConfigured() }
+          : { ...bookingReply, aiConfigured: provider.isConfigured() };
+      }
+    } else if (selectedServiceIds.length && !date) {
+      return {
+        content: 'Dạ, mình muốn kiểm tra giờ trống vào ngày nào ạ?',
+        aiConfigured: provider.isConfigured(),
+      };
+    } else if (selectedServiceIds.length && date && (
+      Boolean(extractDateFromText(userMessage)) ||
+      Boolean(servicePricing.parseHairSize(userMessage)?.size) ||
+      serviceChanged
+    )) {
+      return {
+        content: await getAvailableSlotsReply(context, date),
+        aiConfigured: provider.isConfigured(),
+      };
+    } else if (!selectedServiceIds.length) {
+      return {
+        content: 'Dạ, mình muốn kiểm tra giờ trống cho dịch vụ nào ạ?',
+        aiConfigured: provider.isConfigured(),
+      };
+    } else {
+      const updated = await conversationRepo.updateChatContext(conversationId, {
+        availability_query_pending: false,
+        availability_query_date: null,
+        availability_query_service_ids: [],
+      });
+      context.chatContext = updated.chat_context;
+      conversation.chat_context = updated.chat_context;
+    }
+  }
 
   const bookingIsInProgress = context.chatContext.booking_intent_pending ||
     context.chatContext.booking_started ||
@@ -901,6 +1355,7 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
     if (bookingIsInProgress) {
       await conversationRepo.updateChatContext(conversationId, {
         selected_service_ids: [],
+        selected_service_source: null,
         booking_intent_pending: true,
         booking_started: false,
         booking_service_confirmed: false,
@@ -916,6 +1371,7 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
       context.chatContext = {
         ...context.chatContext,
         selected_service_ids: [],
+        selected_service_source: null,
         booking_intent_pending: true,
         booking_started: false,
         booking_service_confirmed: false,
@@ -939,6 +1395,7 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
     if (haircutService) {
       const updated = await conversationRepo.updateChatContext(conversationId, {
         selected_service_ids: [haircutService.id],
+        selected_service_source: 'booking_request',
         booking_intent_pending: false,
         booking_started: true,
         booking_service_confirmed: true,
@@ -976,12 +1433,30 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
   if (explicitBookingRequest && !hasConfirmedBookingService) {
     const updated = await conversationRepo.updateChatContext(conversationId, {
       selected_service_ids: [],
+      selected_service_source: null,
       booking_intent_pending: true,
       booking_started: false,
       booking_service_confirmed: false,
       booking_confirmation_pending: false,
     });
     conversation.chat_context = updated.chat_context;
+    const requestedCategory = updated.chat_context.booking_requested_category;
+    if (requestedCategory) {
+      const { rows: services } = await productRepo.findAll({
+        status: 'active',
+        page: 1,
+        limit: 1000,
+      });
+      const options = services
+        .filter(service => service.category_name === requestedCategory)
+        .map(service => service.name);
+      if (options.length) {
+        return {
+          content: `Dạ, nhóm ${requestedCategory} hiện có các dịch vụ: ${options.join('; ')}. Mình muốn đặt dịch vụ nào ạ?`,
+          aiConfigured: provider.isConfigured(),
+        };
+      }
+    }
     return {
       content: 'Dạ, anh/chị muốn đặt lịch sử dụng dịch vụ gì ạ? Em sẽ kiểm tra lịch sau khi xác định được dịch vụ mình muốn làm.',
       aiConfigured: provider.isConfigured(),
@@ -1011,10 +1486,15 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
 
   const bookingReply = await handleBookingContinuation(userMessage, context);
   if (bookingReply) {
-    return {
-      content: bookingReply,
-      aiConfigured: provider.isConfigured(),
-    };
+    return typeof bookingReply === 'string'
+      ? {
+        content: bookingReply,
+        aiConfigured: provider.isConfigured(),
+      }
+      : {
+        ...bookingReply,
+        aiConfigured: provider.isConfigured(),
+      };
   }
 
   const bookingStateActive = context.chatContext.booking_intent_pending ||
@@ -1022,25 +1502,78 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
   const shouldSuppressPendingPriceReply =
     (explicitBookingRequest || bookingStateActive) &&
     !servicePricing.isPriceQuestion(userMessage);
-  const pricingResult = shouldSuppressPendingPriceReply
-    ? null
-    : await servicePricing.resolvePriceInquiry({
-      userMessage,
-      history,
-      conversation,
+  let pricingResult;
+  try {
+    pricingResult = shouldSuppressPendingPriceReply
+      ? null
+      : await servicePricing.resolvePriceInquiry({
+        userMessage,
+        history,
+        conversation,
+      });
+  } catch (error) {
+    console.error('[AI] Failed to resolve service pricing from the catalog', {
+      conversationId,
+      errorName: error.name || 'Error',
+      errorCode: error.code || 'SERVICE_PRICING_LOOKUP_FAILED',
     });
+    return {
+      ...await handoffToConsultant({
+        ...context,
+        reason: 'service_pricing_lookup_failed',
+      }),
+      aiConfigured: provider.isConfigured(),
+    };
+  }
   if (pricingResult?.handled) {
+    if (pricingResult.handoffRequired) {
+      return {
+        ...await handoffToConsultant({
+          ...context,
+          serviceNames: pricingResult.serviceNames,
+          reason: pricingResult.handoffReason,
+        }),
+        aiConfigured: provider.isConfigured(),
+      };
+    }
     return {
       content: pricingResult.content,
       aiConfigured: provider.isConfigured(),
     };
   }
 
-  const serviceInquiryResult = await servicePricing.resolveServiceInquiry({
-    userMessage,
-    conversation,
-  });
+  let serviceInquiryResult;
+  try {
+    serviceInquiryResult = await servicePricing.resolveServiceInquiry({
+      userMessage,
+      conversation,
+      history,
+    });
+  } catch (error) {
+    console.error('[AI] Failed to resolve a service inquiry from the catalog', {
+      conversationId,
+      errorName: error.name || 'Error',
+      errorCode: error.code || 'SERVICE_CATALOG_LOOKUP_FAILED',
+    });
+    return {
+      ...await handoffToConsultant({
+        ...context,
+        reason: 'service_catalog_lookup_failed',
+      }),
+      aiConfigured: provider.isConfigured(),
+    };
+  }
   if (serviceInquiryResult?.handled) {
+    if (serviceInquiryResult.handoffRequired) {
+      return {
+        ...await handoffToConsultant({
+          ...context,
+          serviceNames: serviceInquiryResult.serviceNames,
+          reason: serviceInquiryResult.handoffReason,
+        }),
+        aiConfigured: provider.isConfigured(),
+      };
+    }
     return {
       content: serviceInquiryResult.content,
       aiConfigured: provider.isConfigured(),
@@ -1049,7 +1582,10 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
 
   if (!provider.isConfigured()) {
     return {
-      content: 'Xin lỗi, tính năng AI chưa được cấu hình. Bạn có thể bấm "Chat với nhân viên" để được hỗ trợ trực tiếp.',
+      ...await handoffToConsultant({
+        ...context,
+        reason: 'ai_provider_unavailable',
+      }),
       aiConfigured: false,
     };
   }
@@ -1081,9 +1617,11 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
   const allowedTools = getAllowedTools(userMessage, history);
   const allowedToolNames = new Set(allowedTools.map(tool => tool.function.name));
   const providerRequestStartedAt = Date.now();
+  let currentPhase = 'provider_request';
 
   try {
     while (toolCallCount < MAX_TOOL_CALLS) {
+      currentPhase = 'provider_request';
       const response = await provider.chat({
         messages: currentMessages,
         tools: allowedTools,
@@ -1152,6 +1690,7 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
 
         // Execute each tool call
         for (const toolCall of toolCalls) {
+          currentPhase = `tool:${toolCall.function.name}`;
           let args = {};
           try {
             args = typeof toolCall.function.arguments === 'string'
@@ -1207,8 +1746,13 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
       // Safety check 1: Intercept leaked tool call in finalContent
       const leakedTool = extractToolCallsFromContent(finalContent);
       if (leakedTool && leakedTool.length > 0) {
-        console.log('[AI] Safety handler: Intercepted leaked tool call in finalContent:', leakedTool[0].function.name);
         const leaked = leakedTool[0];
+        if (!allowedToolNames.has(leaked.function.name)) {
+          console.warn(`[AI] Blocked embedded tool call outside the current request intent: ${leaked.function.name}`);
+          finalContent = 'Dạ, em chưa thể thực hiện thao tác đặt lịch này khi chưa đủ bước xác nhận. Mình vui lòng tiếp tục cung cấp thông tin cần thiết nhé ạ.';
+          break;
+        }
+        console.log('[AI] Safety handler: Intercepted leaked tool call in finalContent:', leaked.function.name);
         let args = {};
         try {
           args = typeof leaked.function.arguments === 'string'
@@ -1237,11 +1781,14 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
       break;
     }
   } catch (err) {
-    console.error('[AI] Provider request failed', {
+    console.error('[AI] Request processing failed', {
+      phase: currentPhase,
       provider: provider.getProviderName(),
       conversationId,
       errorName: err.name || 'Error',
       errorCode: err.code || 'AI_PROVIDER_REQUEST_FAILED',
+      causeName: err.cause?.name || null,
+      causeCode: err.cause?.code || null,
       status: Number.isInteger(err.status) ? err.status : null,
       upstreamStatus: Number.isInteger(err.upstreamStatus) ? err.upstreamStatus : null,
       attempts: Number.isInteger(err.attempts) ? err.attempts : null,
@@ -1255,13 +1802,26 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
         return { content: finalContent, aiConfigured: provider.isConfigured() };
       } catch {}
     }
-    finalContent = 'Dạ, hệ thống AI đang tạm thời gặp sự cố nên chưa thể trả lời lúc này. Thông tin đặt lịch hiện tại vẫn được giữ lại; mình vui lòng thử lại sau hoặc bấm “Chat với nhân viên” để được hỗ trợ ạ.';
-    return { content: finalContent, aiConfigured: provider.isConfigured() };
+    return {
+      ...await handoffToConsultant({
+        ...context,
+        reason: 'ai_provider_request_failed',
+      }),
+      aiConfigured: provider.isConfigured(),
+    };
   }
 
   if (finalContent === null) {
-    finalContent = 'Xin lỗi, đã xảy ra lỗi trong quá trình xử lý. Vui lòng thử lại.';
+    return {
+      ...await handoffToConsultant({
+        ...context,
+        reason: 'ai_response_unavailable',
+      }),
+      aiConfigured: provider.isConfigured(),
+    };
   }
+
+  finalContent = await sanitizeAssistantResponse(finalContent, context.chatContext);
 
   if (/(?:đã\s+(?:xác nhận|đặt lịch|đặt hẹn)|đặt lịch\s+thành công|đặt hẹn\s+thành công|booking\s*code)/iu.test(finalContent)) {
     const isAppointmentStatusInquiry = /(?:đặt chưa|đã đặt lịch chưa|lịch hẹn.*(?:trạng thái|xác nhận)|kiểm tra.*lịch hẹn)/iu.test(userMessage || '');
@@ -1292,14 +1852,18 @@ async function chat({ conversationId, guestSessionId, userMessage }) {
 
   // Safety check 3: If user asked for available slots and finalContent STILL asks customer to enter time without listing slots
   if (isAvailableSlotsQuery && checkedSlotsResult) {
-    const hasSlotMention = (checkedSlotsResult.slots || []).some(s => finalContent.includes(s));
-    if (!hasSlotMention && (!checkedSlotsResult.slots || checkedSlotsResult.slots.length === 0)) {
-      if (!finalContent.includes(checkedSlotsResult.next_date || 'ngày khác') && !finalContent.includes('tiếp theo')) {
-        finalContent = formatSlotsReply(checkedSlotsResult.date, [], checkedSlotsResult.next_date);
-      }
-    } else if (!hasSlotMention && checkedSlotsResult.slots && checkedSlotsResult.slots.length > 0) {
+    if (!checkedSlotsResult.success) {
+      finalContent = 'Dạ, hiện hệ thống chưa thể xác nhận lịch trống. Mình vui lòng thử lại sau hoặc chat với nhân viên để được hỗ trợ ạ.';
+    } else {
+      const hasSlotMention = (checkedSlotsResult.slots || []).some(s => finalContent.includes(s));
+      if (!hasSlotMention && (!checkedSlotsResult.slots || checkedSlotsResult.slots.length === 0)) {
+        if (!finalContent.includes(checkedSlotsResult.next_date || 'ngày khác') && !finalContent.includes('tiếp theo')) {
+          finalContent = formatSlotsReply(checkedSlotsResult.date, [], checkedSlotsResult.next_date);
+        }
+      } else if (!hasSlotMention && checkedSlotsResult.slots && checkedSlotsResult.slots.length > 0) {
       console.log('[AI] Safety handler: AI omitted slots from response. Applying formatSlotsReply.');
       finalContent = formatSlotsReply(checkedSlotsResult.date, checkedSlotsResult.slots, checkedSlotsResult.next_date);
+      }
     }
   }
 

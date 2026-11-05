@@ -14,10 +14,21 @@ const appointmentRepo = require('../repositories/appointmentRepository');
 
 // GET /api/appointments/slots?date=YYYY-MM-DD - Public: check available slots
 router.get('/slots', asyncHandler(async (req, res) => {
-  const { date, duration } = req.query;
+  const { date, duration, productId, productIds, hairSize, hair_size: hairSizeSnake } = req.query;
   if (!date) return res.status(400).json({ success: false, error: 'date parameter is required' });
 
-  const result = await appointmentService.checkAvailableSlots(date, duration ? parseInt(duration, 10) : undefined);
+  const selectedProductIds = Array.isArray(productIds)
+    ? productIds
+    : typeof productIds === 'string'
+      ? productIds.split(',').map(id => id.trim()).filter(Boolean)
+      : productId
+        ? [String(productId)]
+        : [];
+  const result = await appointmentService.checkAvailableSlots(
+    date,
+    duration ? parseInt(duration, 10) : undefined,
+    { productIds: selectedProductIds, hairSize: hairSize || hairSizeSnake || null }
+  );
   res.json({ success: true, data: result });
 }));
 
@@ -30,6 +41,9 @@ router.post('/hold', optionalAuthenticate, asyncHandler(async (req, res) => {
     productId,
     productIds,
     productSizes,
+    product_sizes: productSizesSnake,
+    hairSize,
+    hair_size: hairSizeSnake,
     notes,
     conversationId,
   } = req.body;
@@ -41,10 +55,17 @@ router.post('/hold', optionalAuthenticate, asyncHandler(async (req, res) => {
       userId: (req.user && req.user.role === 'user') ? req.user.id : null,
       appointmentDate,
       appointmentTime,
-      durationMinutes: durationMinutes ? parseInt(durationMinutes, 10) : 30,
+      durationMinutes: durationMinutes ? parseInt(durationMinutes, 10) : undefined,
       productId: productId || null,
-      productIds: Array.isArray(productIds) && productIds.length > 0 ? productIds : (productId ? [productId] : []),
-      productSizes: productSizes || {},
+      productIds: Array.isArray(productIds)
+        ? productIds
+        : typeof productIds === 'string'
+          ? productIds.split(',').map(id => id.trim()).filter(Boolean)
+        : productId
+          ? [productId]
+          : [],
+      productSizes: productSizes || productSizesSnake || {},
+      hairSize: hairSize || hairSizeSnake || null,
       notes: notes || null,
     });
 
@@ -132,11 +153,13 @@ router.post('/', optionalAuthenticate, asyncHandler(async (req, res) => {
   const {
     customerName, customerPhone, customerEmail,
     productId, productIds, appointmentDate, appointmentTime,
-    productSizes, durationMinutes, notes, conversationId, staffId,
+    productSizes, product_sizes: productSizesSnake,
+    durationMinutes, hairSize, hair_size: hairSizeSnake,
+    notes, conversationId, staffId,
   } = req.body;
 
   const isAdminOrStaff = req.user && ['admin', 'receptionist', 'staff'].includes(req.user.role);
-  const confirmedBySystem = isAdminOrStaff ? true : (req.body.confirmedBySystem !== undefined ? req.body.confirmedBySystem : true);
+  const confirmedBySystem = isAdminOrStaff || req.body.confirmedBySystem === true;
   const status = isAdminOrStaff ? 'confirmed' : 'pending';
   const createdBy = req.user ? req.user.name : (customerName || 'Khách hàng');
 
@@ -149,8 +172,13 @@ router.post('/', optionalAuthenticate, asyncHandler(async (req, res) => {
     customerPhone,
     customerEmail: (typeof customerEmail === 'string' && customerEmail.trim()) ? customerEmail.trim() : null,
     productId: productId || null,
-    productIds: Array.isArray(productIds) && productIds.length > 0 ? productIds : (productId ? [productId] : []),
-    productSizes: productSizes || {},
+    productIds: Array.isArray(productIds)
+      ? productIds
+      : typeof productIds === 'string'
+        ? productIds.split(',').map(id => id.trim()).filter(Boolean)
+        : (productId ? [productId] : []),
+    productSizes: productSizes || productSizesSnake || {},
+    hairSize: hairSize || hairSizeSnake || null,
     appointmentDate,
     appointmentTime,
     durationMinutes: durationMinutes ? parseInt(durationMinutes, 10) : undefined,

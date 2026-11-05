@@ -96,7 +96,10 @@ describe('Conversation & Staff Handoff Test Suite', () => {
 
     assert.equal(res.status, 200);
     assert.equal(res.body.success, true);
-    assert.equal(res.body.data.status, 'waiting');
+    assert.ok(
+      ['waiting', 'already_waiting'].includes(res.body.data.status),
+      'A prior automatic handoff should not create a duplicate handoff request'
+    );
     assert.equal(res.body.data.conversation.mode, 'waiting_for_agent');
 
     // Kiểm tra trong DB trạng thái đã đổi thành waiting_for_agent

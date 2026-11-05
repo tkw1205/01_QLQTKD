@@ -85,6 +85,21 @@ describe('Appointment Service & API Test Suite', () => {
     assert.ok(Array.isArray(res.body.data.slots));
   });
 
+  test('Public appointment creation requires explicit customer confirmation', async () => {
+    const response = await apiRequest('/api/appointments', {
+      method: 'POST',
+      body: {
+        customerName: 'Khách kiểm thử',
+        customerPhone: '0901234567',
+        appointmentDate: futureDate,
+        appointmentTime: '15:00',
+      },
+    });
+
+    assert.equal(response.status, 400);
+    assert.match(response.body.error || response.body.message, /must be confirmed/i);
+  });
+
   test('Đặt lịch hẹn thành công khi đủ thông tin và có xác nhận (confirmedBySystem)', async () => {
     // Kiểm tra thiếu xác nhận (confirmedBySystem) phải bị từ chối
     await assert.rejects(

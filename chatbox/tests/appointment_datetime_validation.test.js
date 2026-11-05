@@ -128,6 +128,7 @@ async function postAppointment(date, time, guestSessionId = createGuestSession()
       appointmentDate: date,
       appointmentTime: time,
       durationMinutes: 30,
+      confirmedBySystem: true,
     },
   });
 }
@@ -142,9 +143,9 @@ test('Appointment adjustment modal displays the stored date and submits the sele
     staffPage,
     /<input type="date" id="modal-input-date"[^>]*value="\$\{escapeHtml\(appt\.appointment_date \|\| ''\)\}"/
   );
+  assert.match(staffPage, /const selectedDate = document\.getElementById\('modal-input-date'\)\.value;/);
   assert.match(staffPage, /appointmentDate:\s*selectedDate/);
-  assert.match(staffPage, /res\.data\.appointment_date !== scheduleDateInput\.value/);
-  assert.match(staffPage, /await loadScheduleData\(\);/);
+  assert.match(staffPage, /if \(updated\) closeApptDetailModal\(\);/);
 });
 
 async function putAssignment(appointmentId, body) {

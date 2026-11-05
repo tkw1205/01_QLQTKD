@@ -493,16 +493,10 @@
       const scheduleThead = document.getElementById('schedule-thead');
       const scheduleTbody = document.getElementById('schedule-tbody');
 
-      function formatDateInputValue(date) {
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      }
-
-      function getTodayDateInputValue() {
-        return formatDateInputValue(new Date());
-      }
-
-      // Initialize with today's local calendar date.
-      scheduleDateInput.value = getTodayDateInputValue();
+      // Initialize with today (or Vietnam date 2026-10-30)
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      scheduleDateInput.value = todayStr;
 
       function formatDayLabel(dateStr) {
         if (!dateStr) return '';
@@ -517,25 +511,25 @@
         scheduleDateLabel.textContent = formatDayLabel(scheduleDateInput.value);
       }
 
-      function changeScheduleDateBy(days) {
-        const [year, month, day] = scheduleDateInput.value.split('-').map(Number);
-        const date = new Date(Date.UTC(year, month - 1, day + days));
-        scheduleDateInput.value = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
-        updateDateLabel();
-        loadScheduleData();
-      }
-
       // Date navigation events
       document.getElementById('btn-prev-day').addEventListener('click', () => {
-        changeScheduleDateBy(-1);
+        const cur = new Date(scheduleDateInput.value + 'T00:00:00');
+        cur.setDate(cur.getDate() - 1);
+        scheduleDateInput.value = cur.toISOString().slice(0, 10);
+        updateDateLabel();
+        loadScheduleData();
       });
 
       document.getElementById('btn-next-day').addEventListener('click', () => {
-        changeScheduleDateBy(1);
+        const cur = new Date(scheduleDateInput.value + 'T00:00:00');
+        cur.setDate(cur.getDate() + 1);
+        scheduleDateInput.value = cur.toISOString().slice(0, 10);
+        updateDateLabel();
+        loadScheduleData();
       });
 
       document.getElementById('btn-today').addEventListener('click', () => {
-        scheduleDateInput.value = getTodayDateInputValue();
+        scheduleDateInput.value = todayStr;
         updateDateLabel();
         loadScheduleData();
       });
@@ -691,10 +685,7 @@
       }
 
       // ─── LOAD SCHEDULE DATA (Active Staff & Appointments) ───
-      let scheduleLoadRequestId = 0;
-
       async function loadScheduleData(options = {}) {
-        const requestId = ++scheduleLoadRequestId;
         const { preserveScroll = true, silent = false } = options;
         const scrollState = preserveScroll ? getScheduleScrollState() : null;
 
@@ -723,8 +714,6 @@
             Admin.api(`/api/appointments?date=${date}&limit=100`)
           ]);
 
-          if (requestId !== scheduleLoadRequestId) return;
-
           if (staffRes.success) {
             activeStaffList = staffRes.data || [];
           } else {
@@ -744,8 +733,6 @@
             strictRestoreScroll(scrollState);
           }
         } catch (err) {
-          if (requestId !== scheduleLoadRequestId) return;
-
           if (!hasExistingRows && !silent) {
             scheduleTbody.innerHTML = `
               <tr>
@@ -1175,13 +1162,8 @@
 
           Admin.toast(`Đã cập nhật: ${appointmentTime} – ${escapeHtml(staffName)} thành công!`, 'success');
 
-          if (res.data.appointment_date !== scheduleDateInput.value) {
-            scheduleDateInput.value = res.data.appointment_date;
-            await loadScheduleData();
-          } else {
-            // In-place DOM update prevents scroll reset & table redraw
-            updateAppointmentInPlace(res.data);
-          }
+          // In-place DOM update prevents scroll reset & table redraw
+          updateAppointmentInPlace(res.data);
           return true;
         } catch (err) {
           // Display conflict or validation error message without resetting scroll position
@@ -1228,9 +1210,6 @@
               actionText = `đã đổi giờ hẹn từ <strong>${escapeHtml(h.old_time || '—')}</strong> sang <strong>${escapeHtml(h.new_time || '—')}</strong>`;
             } else {
               actionText = `đã chuyển phân công từ <span style="color: var(--mut);">${escapeHtml(h.old_staff_name || 'Chưa phân công')}</span> sang <strong>${escapeHtml(h.new_staff_name || 'Mới')}</strong>`;
-            }
-            if (h.old_date && h.new_date && h.old_date !== h.new_date) {
-              actionText += ` và đổi ngày từ <strong>${escapeHtml(h.old_date)}</strong> sang <strong>${escapeHtml(h.new_date)}</strong>`;
             }
             return `
               <div class="history-item">

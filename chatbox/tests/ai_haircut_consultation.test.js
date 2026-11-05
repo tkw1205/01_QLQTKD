@@ -35,7 +35,7 @@ after(() => {
   );
 });
 
-test('generic haircut consultation is handled by the LLM', async () => {
+test('generic haircut consultation is resolved from the service catalog', async () => {
   let providerCalls = 0;
   provider.chat = async () => {
     providerCalls++;
@@ -51,11 +51,11 @@ test('generic haircut consultation is handled by the LLM', async () => {
   });
 
   assert.equal(result.aiConfigured, true);
-  assert.equal(result.content, 'Provider consultation response');
-  assert.equal(providerCalls, 1);
+  assert.match(result.content, /Cắt tạo kiểu/);
+  assert.equal(providerCalls, 0);
 });
 
-test('generic request wording and polite suffixes use the LLM', async () => {
+test('generic haircut wording and polite suffixes use the service catalog', async () => {
   let providerCalls = 0;
   provider.chat = async () => {
     providerCalls++;
@@ -71,13 +71,13 @@ test('generic request wording and polite suffixes use the LLM', async () => {
       userMessage,
     });
 
-    assert.equal(result.content, 'Provider consultation response');
+    assert.match(result.content, /Cắt tạo kiểu/);
   }
 
-  assert.equal(providerCalls, 2);
+  assert.equal(providerCalls, 0);
 });
 
-test('price inquiries are deterministic while generic style consultations remain on the LLM path', async () => {
+test('price inquiries and generic style consultations use catalog data', async () => {
   const providerResponse = 'Đây là phản hồi thử từ provider.';
   let providerCalls = 0;
   provider.chat = async () => {
@@ -97,20 +97,21 @@ test('price inquiries are deterministic while generic style consultations remain
   assert.match(priceResult.content, /size S, M hay L/i);
   assert.equal(providerCalls, 0);
 
-  const llmRequests = [
+  const serviceRequests = [
     'Tôi muốn cắt tóc layer',
     'Tôi muốn uốn tóc',
     'Tôi muốn nhuộm tóc',
   ];
-  for (const userMessage of llmRequests) {
+  for (const userMessage of serviceRequests) {
     const result = await orchestrator.chat({
       conversationId,
       guestSessionId,
       userMessage,
     });
 
-    assert.equal(result.content, providerResponse, userMessage);
+    assert.notEqual(result.content, providerResponse, userMessage);
+    assert.match(result.content, /dịch vụ|nhóm/u, userMessage);
   }
 
-  assert.equal(providerCalls, llmRequests.length);
+  assert.equal(providerCalls, 0);
 });

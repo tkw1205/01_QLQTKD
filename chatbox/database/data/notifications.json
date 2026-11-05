@@ -1,5 +1,13 @@
 [
   {
+    "id": "9b587c67-b17b-47df-aee6-7cf42b35919e",
+    "conversation_id": "c76b005f-bfc9-4965-840b-75b3247d0c2d",
+    "customer_name": "size s",
+    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
+    "is_read": false,
+    "created_at": "2026-11-05T20:17:02.221Z"
+  },
+  {
     "id": "7ee976c1-b446-4936-874c-a429aed67fe2",
     "conversation_id": "5ed69445-2423-471e-9359-7316fe71bbf1",
     "customer_name": "Khách hàng",
@@ -62,5 +70,29 @@
     "last_message": "Chào admin, em muốn đặt mua điện thoại",
     "is_read": false,
     "created_at": "2026-11-05T14:16:54.157Z"
+  },
+  {
+    "id": "f1d3f9d5-4a85-4089-a48f-5e6df5ccd211",
+    "conversation_id": "15c8105a-a964-4ec2-a6cc-93e0df574a74",
+    "customer_name": "Khách hàng",
+    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
+    "is_read": true,
+    "created_at": "2026-11-05T17:10:43.457Z"
+  },
+  {
+    "id": "3d464d9a-6530-430f-8ed1-90261cfcb8e6",
+    "conversation_id": "fb2c9981-4fca-4060-af71-d92e676b334f",
+    "customer_name": "Khách hàng",
+    "last_message": "Khách hàng yêu cầu kết nối với nhân viên tư vấn",
+    "is_read": true,
+    "created_at": "2026-11-05T14:44:52.390Z"
+  },
+  {
+    "id": "aca599ce-61ce-46ee-9bc9-a79966bd4aa5",
+    "conversation_id": "9bba6139-723f-4b80-b465-881db88438c1",
+    "customer_name": "Anh Minh Test",
+    "last_message": "Chào admin, em muốn đặt mua điện thoại",
+    "is_read": true,
+    "created_at": "2026-11-01T16:27:26.804Z"
   }
 ]

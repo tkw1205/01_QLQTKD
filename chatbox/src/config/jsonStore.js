@@ -166,7 +166,7 @@ const INITIAL_USERS = [
 ];
 
 const INITIAL_SYSTEM_SETTINGS = [
-  { key: 'site_name', value: 'Chatbox Demo Store', is_public: true, updated_at: new Date().toISOString() },
+  { key: 'site_name', value: 'Mây Hair Studio', is_public: true, updated_at: new Date().toISOString() },
   { key: 'site_tagline', value: 'Tư vấn sản phẩm trực tuyến', is_public: true, updated_at: new Date().toISOString() },
   { key: 'ai_welcome_message', value: 'Xin chào quý khách! Em là AI tư vấn của salon. Em có thể hỗ trợ mình tìm hiểu dịch vụ, tham khảo giá và thời gian thực hiện hoặc hướng dẫn đặt lịch trực tuyến. Mình cần tư vấn nội dung nào ạ?', is_public: true, updated_at: new Date().toISOString() },
   { key: 'ai_system_prompt', value: DEFAULT_AI_SYSTEM_PROMPT, is_public: false, updated_at: new Date().toISOString() },

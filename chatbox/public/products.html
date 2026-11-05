@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Menu Dịch Vụ & Bảng Giá — Mây Hair Studio</title>
-  <meta name="description" content="Khám phá menu 15 dịch vụ làm tóc, cắt, uốn, nhuộm, gội đầu dưỡng sinh và phục hồi cao cấp tại Mây Hair Studio Đà Nẵng.">
+  <meta name="description" content="Khám phá danh sách dịch vụ, bảng giá và thời lượng được cập nhật trực tiếp từ Mây Hair Studio Đà Nẵng.">
   <link rel="stylesheet" href="/css/main.css">
   <link rel="stylesheet" href="/css/chat.css">
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
@@ -40,7 +40,7 @@
 
     <!-- Search & Filter Controls -->
     <div class="search-bar">
-      <input type="text" id="search-input" class="form-control" placeholder="Tìm tên dịch vụ, ví dụ: layer, gội, nâu trà...">
+      <input type="text" id="search-input" class="form-control" placeholder="Tìm dịch vụ theo tên hoặc mô tả...">
       <select id="category-filter" class="form-control" style="max-width: 240px;">
         <option value="">Tất cả danh mục dịch vụ</option>
       </select>
@@ -93,6 +93,7 @@
   </div>
 
   <script src="/js/api.js"></script>
+  <script src="/js/product-catalog.js"></script>
   <script src="/js/chat.js"></script>
   <script>
     let currentPage = 1;
@@ -136,25 +137,7 @@
             return;
           }
 
-          container.innerHTML = res.data.map(p => `
-            <div class="card product-card">
-              <div class="img-wrapper">
-                ${p.image_url 
-                  ? `<img src="${p.image_url}" alt="${p.name}">` 
-                  : `<div class="img-placeholder">💇‍♀️</div>`}
-              </div>
-              <div class="card-body">
-                <div class="badge badge-info mb-1">${p.category_name || 'Dịch vụ tóc'}</div>
-                <h3 style="font-size: 1.15rem;">${p.name}</h3>
-                <div class="price">${API.formatProductPrice(p)}</div>
-                <p class="desc">${p.description || 'Chưa có mô tả chi tiết.'}</p>
-                <div class="flex gap-1 mt-2">
-                  <button class="btn btn-sm btn-primary flex-1" data-chat-product-id="${p.id}" style="justify-content: center;">Tư vấn ngay</button>
-                  <a href="/product-detail.html?id=${encodeURIComponent(p.id)}" class="btn btn-sm btn-outline flex-1" style="justify-content: center;">Chi tiết</a>
-                </div>
-              </div>
-            </div>
-          `).join('');
+          ProductCatalog.renderCards(container, res.data);
 
           renderPagination(res.meta.total, page, limit);
         }

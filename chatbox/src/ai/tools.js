@@ -38,6 +38,11 @@ const TOOL_DEFINITIONS = [
             items: { type: 'string' },
             description: 'ID dịch vụ đã được xác định từ dữ liệu hệ thống.',
           },
+          product_sizes: {
+            type: 'object',
+            additionalProperties: { type: 'string' },
+            description: 'Size đã xác nhận cho từng ID dịch vụ.',
+          },
           hair_size: { type: 'string', enum: ['S', 'M', 'L'], description: 'Size đã được xác định nếu dịch vụ yêu cầu.' },
         },
       },
@@ -60,6 +65,12 @@ const TOOL_DEFINITIONS = [
             items: { type: 'string' },
             description: 'ID toàn bộ dịch vụ khách đã chọn (nếu có nhiều dịch vụ)',
           },
+          product_sizes: {
+            type: 'object',
+            additionalProperties: { type: 'string' },
+            description: 'Lựa chọn size theo từng ID dịch vụ, chỉ gửi sau khi khách xác nhận size.',
+          },
+          hair_size: { type: 'string', enum: ['S', 'M', 'L'], description: 'Size dùng chung nếu chưa gửi product_sizes.' },
           notes: { type: 'string', description: 'Ghi chú thêm về dịch vụ' },
         },
       },
@@ -86,6 +97,12 @@ const TOOL_DEFINITIONS = [
             items: { type: 'string' },
             description: 'ID toàn bộ dịch vụ khách đã chọn (nếu có nhiều dịch vụ)',
           },
+          product_sizes: {
+            type: 'object',
+            additionalProperties: { type: 'string' },
+            description: 'Lựa chọn size theo từng ID dịch vụ, chỉ gửi sau khi khách xác nhận size.',
+          },
+          hair_size: { type: 'string', enum: ['S', 'M', 'L'], description: 'Size dùng chung nếu chưa gửi product_sizes.' },
           notes: { type: 'string', description: 'Ghi chú thêm' },
         },
       },
@@ -110,6 +127,11 @@ const TOOL_DEFINITIONS = [
             type: 'array',
             items: { type: 'string' },
             description: 'ID toàn bộ dịch vụ khách đã chọn (nếu có nhiều dịch vụ)',
+          },
+          product_sizes: {
+            type: 'object',
+            additionalProperties: { type: 'string' },
+            description: 'Lựa chọn size theo từng ID dịch vụ, chỉ gửi sau khi khách xác nhận size.',
           },
           notes: { type: 'string', description: 'Ghi chú thêm về cuộc tư vấn' },
         },
@@ -426,7 +448,11 @@ async function executeTool(toolName, rawArgs, context = {}) {
         const result = await appointmentService.checkAvailableSlots(
           normalizedDate,
           requestedDuration ? Number.parseInt(requestedDuration, 10) : undefined,
-          { productIds, hairSize }
+          {
+            productIds,
+            hairSize,
+            productSizes: args.product_sizes || args.productSizes || {},
+          }
         );
         const slots = result.slots || [];
 
@@ -476,6 +502,7 @@ async function executeTool(toolName, rawArgs, context = {}) {
           appointmentTime: apptTime,
           productId: args.product_id || null,
           productIds: args.product_ids || null,
+          productSizes: args.product_sizes || args.productSizes || {},
           hairSize: args.hair_size || args.size || null,
           notes: args.notes || null,
         });
@@ -494,6 +521,7 @@ async function executeTool(toolName, rawArgs, context = {}) {
             const avail = await appointmentService.checkAvailableSlots(apptDate, undefined, {
               productIds: args.product_ids || (args.product_id ? [args.product_id] : []),
               hairSize: args.hair_size || args.size || null,
+              productSizes: args.product_sizes || args.productSizes || {},
             });
             alternateSlots = (avail.slots || []).filter(s => s !== apptTime);
           }
@@ -644,6 +672,7 @@ async function executeTool(toolName, rawArgs, context = {}) {
           customerEmail: customerEmail,
           productId: args.product_id || null,
           productIds: args.product_ids || null,
+          productSizes: args.product_sizes || args.productSizes || {},
           hairSize: args.hair_size || args.size || null,
           appointmentDate: apptDate,
           appointmentTime: apptTime,
@@ -745,6 +774,7 @@ async function executeTool(toolName, rawArgs, context = {}) {
           customerEmail: customerEmail,
           productId: args.product_id || null,
           productIds: args.product_ids || null,
+          productSizes: args.product_sizes || args.productSizes || {},
           hairSize: args.hair_size || args.size || null,
           appointmentDate: apptDate,
           appointmentTime: apptTime,

@@ -177,21 +177,29 @@ describe('AI Booking Flow, Email Validation & Admin Sync Test Suite', () => {
     const available = JSON.parse(await executeTool('check_available_slots', {
       date: testDate,
       product_ids: [service.id],
-      hair_size: 'M',
+      product_sizes: { [service.id]: 'S' },
     }, { conversationId: bookingConversation.id, guestSessionId }));
     assert.ok(available.slots.length > 0);
     const selectedTime = available.slots[0];
 
+    const sizePromptReply = await orchestrator.chat({
+      conversationId: bookingConversation.id,
+      guestSessionId,
+      userMessage: `Tôi muốn đặt lịch ${service.name} ngày ${testDate} lúc ${selectedTime}`,
+    });
+    assert.match(sizePromptReply.content, /độ dài tóc|size S, M hay L/u);
+    assert.equal(await appointmentRepo.findActiveHoldByConversation(bookingConversation.id), null);
+
     const availableReply = await orchestrator.chat({
       conversationId: bookingConversation.id,
       guestSessionId,
-      userMessage: `Tôi muốn đặt lịch ${service.name}, tóc ngang vai, ngày ${testDate} lúc ${selectedTime}`,
+      userMessage: 'Tôi chọn size S',
     });
     assert.match(availableReply.content, /đã giữ chỗ/u);
     assert.match(availableReply.content, /họ tên và số điện thoại/u);
     const activeHold = await appointmentRepo.findActiveHoldByConversation(bookingConversation.id);
     assert.equal(activeHold.appointment_time, selectedTime);
-    assert.equal(activeHold.price, service.prices_by_size.M.price);
+    assert.equal(activeHold.price, service.prices_by_size.S.price);
     assert.equal(providerPrompts.length, 0);
 
     const contactReply = await orchestrator.chat({

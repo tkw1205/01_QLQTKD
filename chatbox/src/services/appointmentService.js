@@ -28,6 +28,7 @@ async function getBusinessHours() {
 async function checkAvailableSlots(date, requestedDuration, {
   productIds = [],
   hairSize = null,
+  productSizes = {},
 } = {}) {
   let duration = Number(requestedDuration);
   let requiredStaff = 1;
@@ -39,8 +40,17 @@ async function checkAvailableSlots(date, requestedDuration, {
         code: 'INVALID_SERVICES',
       });
     }
+    if (!productSizes || typeof productSizes !== 'object' || Array.isArray(productSizes)) {
+      throw Object.assign(new Error('Invalid service size selection.'), {
+        status: 400,
+        code: 'INVALID_SERVICE_SIZE',
+      });
+    }
     const requirements = products.map(product =>
-      appointmentRepo.getServiceRequirements(product, hairSize)
+      appointmentRepo.getServiceRequirements(
+        product,
+        productSizes[product.id] || hairSize
+      )
     );
     duration = requirements.reduce((total, item) => total + item.durationMinutes, 0);
     requiredStaff = Math.max(...requirements.map(item => item.staffCount));
@@ -73,7 +83,8 @@ async function checkAvailableSlots(date, requestedDuration, {
 
 async function holdSlot({
   conversationId, guestSessionId, appointmentDate, appointmentTime,
-  durationMinutes, productId, productIds, hairSize = null, userId = null, notes = null,
+  durationMinutes, productId, productIds, productSizes = {}, hairSize = null,
+  userId = null, notes = null,
 }) {
   if (!appointmentDate || !appointmentTime) {
     throw Object.assign(new Error('Missing required date or time for holding slot'), { status: 400 });
@@ -87,7 +98,10 @@ async function holdSlot({
   const nowVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
   const todayStr = `${nowVN.getFullYear()}-${String(nowVN.getMonth() + 1).padStart(2, '0')}-${String(nowVN.getDate()).padStart(2, '0')}`;
   if (appointmentDate < todayStr) {
-    throw Object.assign(new Error('Cannot book appointments in the past'), { status: 400 });
+    throw Object.assign(new Error('Cannot book appointments in the past'), {
+      status: 400,
+      code: 'APPOINTMENT_IN_PAST',
+    });
   }
 
   const duration = durationMinutes === undefined || durationMinutes === null
@@ -108,6 +122,7 @@ async function holdSlot({
     durationMinutes: duration,
     productId,
     productIds,
+    productSizes,
     hairSize,
     userId,
     notes,
@@ -168,7 +183,7 @@ async function createAppointment({
   conversationId, guestSessionId, confirmedBySystem,
   customerName, customerPhone, customerEmail,
   productId, productIds, appointmentDate, appointmentTime,
-  durationMinutes, hairSize = null, notes, userId = null,
+  productSizes = {}, durationMinutes, hairSize = null, notes, userId = null,
   staffId = null, status = 'pending', createdBy = null,
 }) {
   // Server-side confirmation check: confirmedBySystem must be explicitly set
@@ -216,6 +231,7 @@ async function createAppointment({
     customerEmail: trimmedEmail,
     productId,
     productIds,
+    productSizes,
     hairSize,
     appointmentDate,
     appointmentTime,

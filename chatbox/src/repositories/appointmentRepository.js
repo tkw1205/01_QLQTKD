@@ -25,7 +25,7 @@ function enrichAppointment(appt) {
   return {
     ...appt,
     product_name: appt.product_name || (product ? product.name : null),
-    price: (appt.price !== undefined && appt.price !== null) ? appt.price : (product ? product.price : null),
+    price: appt.price ?? null,
     staff_name: appt.staff_name || (staff ? staff.name : null),
   };
 }
@@ -47,7 +47,10 @@ function getAppointmentDurationMinutes(appointment) {
       return products.reduce((total, product) =>
         total + getServiceRequirements(
           product,
-          appointment.hair_size || appointment.size || null
+          appointment.product_sizes?.[product.id] ||
+            appointment.hair_size ||
+            appointment.size ||
+            null
         ).durationMinutes, 0
       );
     } catch (error) {
@@ -115,6 +118,16 @@ function getServiceRequirements(product, hairSize) {
     });
   }
   return { durationMinutes, staffCount, price };
+}
+
+function getServiceSize(product, productSizes = {}, hairSize = null) {
+  return productSizes[product.id] || hairSize || null;
+}
+
+function getSelectedServiceRequirements(products, productSizes = {}, hairSize = null) {
+  return products.map(product =>
+    getServiceRequirements(product, getServiceSize(product, productSizes, hairSize))
+  );
 }
 
 function getWorkingHoursForDate(businessSettings, date) {
@@ -274,7 +287,8 @@ async function findAvailableSlots(date, durationMinutes, { requiredStaff = 1 } =
 
 async function hold({
   conversationId, guestSessionId, appointmentDate, appointmentTime,
-  durationMinutes, productId = null, productIds = null, hairSize = null, userId = null, notes = null,
+  durationMinutes = 30, productId = null, productIds = null, productSizes = {}, hairSize = null,
+  userId = null, notes = null,
 }) {
   const now = Date.now();
   assertAppointmentIsFuture(appointmentDate, appointmentTime, now);
@@ -287,7 +301,18 @@ async function hold({
     : productId
       ? products.filter(product => product.id === productId && product.status === 'active')
       : [];
-  if (Array.isArray(productIds) && productIds.length > 0 && selectedProducts.length !== productIds.length) {
+  const requestedProductCount = Array.isArray(productIds) && productIds.length > 0
+    ? productIds.length
+    : productId
+      ? 1
+      : 0;
+  if (!productSizes || typeof productSizes !== 'object' || Array.isArray(productSizes)) {
+    throw Object.assign(new Error('Invalid service size selection.'), {
+      status: 400,
+      code: 'INVALID_SERVICE_SIZE',
+    });
+  }
+  if (selectedProducts.length !== requestedProductCount) {
     throw Object.assign(new Error('Một hoặc nhiều dịch vụ đã chọn không còn khả dụng.'), {
       status: 400,
       code: 'INVALID_SERVICES',
@@ -299,9 +324,7 @@ async function hold({
       code: 'INVALID_SERVICES',
     });
   }
-  const serviceRequirements = selectedProducts.map(product =>
-    getServiceRequirements(product, hairSize)
-  );
+  const serviceRequirements = getSelectedServiceRequirements(selectedProducts, productSizes, hairSize);
   const selectedDuration = selectedProducts.length > 0
     ? serviceRequirements.reduce((total, requirements) => total + requirements.durationMinutes, 0)
     : Number(durationMinutes);
@@ -386,6 +409,9 @@ async function hold({
     customer_email: null,
     product_id: selectedProductId || null,
     product_ids: selectedProductIds,
+    product_sizes: Object.fromEntries(selectedProducts
+      .filter(product => getServiceSize(product, productSizes, hairSize))
+      .map(product => [product.id, getServiceSize(product, productSizes, hairSize)])),
     hair_size: hairSize || null,
     product_name: selectedProductName,
     price: selectedPrice,
@@ -485,6 +511,63 @@ async function confirmHold({
   const closeMinutes = dayConfig.closed ? 24 * 60 : timeToMinutes(dayConfig.close);
   const holdStart = timeToMinutes(appt.appointment_time);
 
+  let confirmedDuration = Number(appt.duration_minutes) || 30;
+  let confirmedPrice = appt.price;
+  let confirmedProductName = appt.product_name;
+  const heldProductIds = Array.isArray(appt.product_ids) && appt.product_ids.length
+    ? appt.product_ids
+    : appt.product_id
+      ? [appt.product_id]
+      : [];
+  if (heldProductIds.length) {
+    const products = jsonStore.getCollection('products');
+    const selectedProducts = heldProductIds.map(id => products.find(product => product.id === id && product.status === 'active'));
+    if (selectedProducts.some(product => !product)) {
+      appt.status = 'cancelled';
+      appt.notes = (appt.notes ? `${appt.notes} | ` : '') + 'Service unavailable at confirmation';
+      appt.updated_at = new Date().toISOString();
+      jsonStore.saveCollection('appointments', appointments);
+      throw Object.assign(new Error('Một hoặc nhiều dịch vụ đã chọn không còn khả dụng.'), {
+        status: 400,
+        code: 'INVALID_SERVICES',
+      });
+    }
+
+    const productSizes = appt.product_sizes || {};
+    const serviceRequirements = getSelectedServiceRequirements(
+      selectedProducts,
+      productSizes,
+      appt.hair_size || appt.size || null
+    );
+    confirmedDuration = serviceRequirements.reduce(
+      (total, requirements) => total + requirements.durationMinutes,
+      0
+    );
+    confirmedPrice = serviceRequirements.reduce(
+      (total, requirements) => total + requirements.price,
+      0
+    );
+    confirmedProductName = selectedProducts.map(product => product.name).join(' + ');
+
+    const businessSettings = jsonStore.getCollection('business_settings');
+    const hoursSetting = businessSettings.find(setting => setting.key === 'working_hours');
+    const workingHours = hoursSetting
+      ? (typeof hoursSetting.value === 'string' ? JSON.parse(hoursSetting.value) : hoursSetting.value)
+      : {};
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayConfig = workingHours[dayNames[getDayOfWeek(appt.appointment_date)]];
+    const openMinutes = timeToMinutes(dayConfig?.open || '08:30');
+    const closeMinutes = timeToMinutes(dayConfig?.close || '20:30');
+    const startMinutes = timeToMinutes(appt.appointment_time);
+    if ((dayConfig && dayConfig.enabled === false) ||
+        startMinutes < openMinutes || startMinutes + confirmedDuration > closeMinutes) {
+      throw Object.assign(new Error('Thời lượng dịch vụ đã thay đổi; vui lòng chọn lại khung giờ.'), {
+        status: 400,
+        code: 'SERVICE_DURATION_CHANGED',
+      });
+    }
+  }
+
   // Double check Step 9: Re-verify conflict with other confirmed/pending appointments
   const conflict = appointments.some(a =>
     a.id !== appt.id &&
@@ -510,6 +593,9 @@ async function confirmHold({
   appt.customer_phone = customerPhone;
   appt.customer_email = customerEmail || appt.customer_email || null;
   appt.notes = notes || appt.notes || null;
+  appt.duration_minutes = confirmedDuration;
+  appt.price = confirmedPrice;
+  appt.product_name = confirmedProductName;
   if (userId) appt.user_id = userId;
   appt.status = 'confirmed';
   appt.booking_code = generateBookingCode(appt.appointment_date);
@@ -522,8 +608,8 @@ async function confirmHold({
 
 async function create({
   conversationId, guestSessionId, customerName, customerPhone, customerEmail,
-  productId, productIds, appointmentDate, appointmentTime, durationMinutes, notes, userId = null,
-  hairSize = null, staffId = null, status = 'pending', createdBy = null, price = null
+  productId, productIds, productSizes = {}, appointmentDate, appointmentTime, durationMinutes = 30, notes,
+  userId = null, hairSize = null, staffId = null, status = 'pending', createdBy = null, price = null
 }) {
   const now = Date.now();
   assertAppointmentIsFuture(appointmentDate, appointmentTime, now);
@@ -553,10 +639,13 @@ async function create({
       });
     }
   }
-
-  const serviceRequirements = selectedProducts.map(product =>
-    getServiceRequirements(product, hairSize)
-  );
+  if (!productSizes || typeof productSizes !== 'object' || Array.isArray(productSizes)) {
+    throw Object.assign(new Error('Invalid service size selection.'), {
+      status: 400,
+      code: 'INVALID_SERVICE_SIZE',
+    });
+  }
+  const serviceRequirements = getSelectedServiceRequirements(selectedProducts, productSizes, hairSize);
   let finalDuration = durationMinutes === undefined || durationMinutes === null
     ? null
     : Number(durationMinutes);
@@ -750,6 +839,9 @@ async function create({
     staff_count: requiredStaffCount,
     product_id: finalProductId,
     product_ids: selectedProducts.map(p => p.id),
+    product_sizes: Object.fromEntries(selectedProducts
+      .filter(product => getServiceSize(product, productSizes, hairSize))
+      .map(product => [product.id, getServiceSize(product, productSizes, hairSize)])),
     hair_size: hairSize || null,
     product_name: finalProductName,
     price: finalPrice,

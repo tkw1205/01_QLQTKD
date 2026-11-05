@@ -72,6 +72,7 @@
   </div>
 
   <script src="/js/api.js"></script>
+  <script src="/js/product-catalog.js"></script>
   <script src="/js/chat.js"></script>
   <script>
     async function loadProductDetail() {
@@ -88,24 +89,29 @@
         const res = await API.get(`/api/products/${encodeURIComponent(productId)}`);
         if (res.success && res.data) {
           const p = res.data;
+          const escapeHtml = ProductCatalog.escapeHtml.bind(ProductCatalog);
+          const priceTiers = ProductCatalog.renderSizePrices(p);
+          const duration = Number(p.duration) || null;
           document.title = `${p.name} — Mây Hair Studio`;
 
           container.innerHTML = `
             <div class="grid-2 card" style="overflow: hidden; align-items: stretch;">
               <div style="background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 400px; padding: 1.5rem;">
-                ${p.image_url 
-                  ? `<img src="${p.image_url}" alt="${p.name}" style="max-height: 420px; width: 100%; object-fit: cover; border-radius: var(--radius-lg); box-shadow: var(--shadow);">` 
-                  : `<div style="font-size: 5rem; color: var(--border);">💇‍♀️</div>`}
+                ${p.image_url
+                  ? `<img class="product-detail-image" src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}">`
+                  : ProductCatalog.renderPlaceholder(p.name, 'product-detail-image-placeholder')}
               </div>
               <div class="p-3" style="display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
-                  <div class="badge badge-info mb-1">${p.category_name || 'Dịch vụ salon tóc'}</div>
-                  <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem; font-family: 'Playfair Display', Georgia, serif;">${p.name}</h1>
+                  <div class="badge badge-info mb-1">${escapeHtml(p.category_name || 'Dịch vụ salon tóc')}</div>
+                  <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem; font-family: 'Playfair Display', Georgia, serif;">${escapeHtml(p.name)}</h1>
                   <div class="price" style="font-size: 1.6rem; color: var(--primary); font-weight: 700; margin-bottom: 1rem;">
                     ${API.formatProductPrice(p)}
                   </div>
+                  <p class="desc">Thời gian thực hiện: ${duration ? `${duration} phút` : 'Liên hệ'}${p.staff_count ? ` · ${escapeHtml(p.staff_count)} nhân viên` : ''}</p>
+                  ${priceTiers}
                   <div style="line-height: 1.8; color: var(--text-muted); margin-bottom: 1.5rem; font-size: 1rem;">
-                    ${p.description || 'Chưa có thông tin mô tả chi tiết cho dịch vụ này.'}
+                    ${escapeHtml(p.description || 'Chưa có thông tin mô tả chi tiết cho dịch vụ này.')}
                   </div>
 
                   <div class="mb-3" style="border-top: 1px dashed var(--border); padding-top: 1rem;">
@@ -130,6 +136,12 @@
               </div>
             </div>
           `;
+          const productImage = container.querySelector('img');
+          if (productImage) {
+            productImage.addEventListener('error', () => {
+              productImage.outerHTML = ProductCatalog.renderPlaceholder(p.name, 'product-detail-image-placeholder');
+            }, { once: true });
+          }
         }
       } catch (err) {
         container.innerHTML = `<div class="alert alert-danger">${err.message || 'Lỗi khi tải thông tin dịch vụ'}</div>`;

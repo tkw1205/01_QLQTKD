@@ -16,22 +16,35 @@ async function getActiveServices() {
 describe('Deterministic salon service pricing', () => {
   test('answers every configured service and size from the JSON catalog', async () => {
     const services = await getActiveServices();
-    assert.equal(services.length, 26);
+    assert.ok(services.length > 0);
 
     for (const service of services) {
-      for (const size of ['S', 'M', 'L']) {
-        const tier = service.prices_by_size[size];
+      const tiers = Object.entries(service.prices_by_size || {});
+      if (tiers.length === 0) {
+        const result = await servicePricing.resolvePriceInquiry({
+          userMessage: `Giá ${service.name}`,
+        });
+        assert.equal(result.handled, true, `${service.name} without size prices is handled`);
+        assert.match(result.content, /chưa có giá theo size/u);
+        assert.doesNotMatch(result.content, /trọn gói/u);
+        continue;
+      }
+
+      for (const [size, tier] of tiers) {
         const result = await servicePricing.resolvePriceInquiry({
           userMessage: `Giá ${service.name} size ${size}`,
         });
-
         assert.equal(result.handled, true, `${service.name} size ${size} is handled`);
         assert.ok(
           result.content.includes(new Intl.NumberFormat('vi-VN').format(tier.price)),
           `${service.name} size ${size} uses its catalog price`
         );
-        assert.ok(result.content.includes(`${tier.duration} phút`));
-        assert.ok(result.content.includes(`${tier.staff_count} nhân viên`));
+        if (tier.duration ?? service.duration) {
+          assert.ok(result.content.includes(`${tier.duration ?? service.duration} phút`));
+        }
+        if (tier.staff_count ?? service.staff_count) {
+          assert.ok(result.content.includes(`${tier.staff_count ?? service.staff_count} nhân viên`));
+        }
       }
     }
   });

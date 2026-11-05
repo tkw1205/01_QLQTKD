@@ -14,7 +14,7 @@ const appointmentRepo = require('../repositories/appointmentRepository');
 
 // GET /api/appointments/slots?date=YYYY-MM-DD - Public: check available slots
 router.get('/slots', asyncHandler(async (req, res) => {
-  const { date, duration, productId, productIds, hairSize } = req.query;
+  const { date, duration, productId, productIds, hairSize, hair_size: hairSizeSnake } = req.query;
   if (!date) return res.status(400).json({ success: false, error: 'date parameter is required' });
 
   const selectedProductIds = Array.isArray(productIds)
@@ -27,7 +27,7 @@ router.get('/slots', asyncHandler(async (req, res) => {
   const result = await appointmentService.checkAvailableSlots(
     date,
     duration ? parseInt(duration, 10) : undefined,
-    { productIds: selectedProductIds, hairSize: hairSize || null }
+    { productIds: selectedProductIds, hairSize: hairSize || hairSizeSnake || null }
   );
   res.json({ success: true, data: result });
 }));
@@ -40,7 +40,10 @@ router.post('/hold', optionalAuthenticate, asyncHandler(async (req, res) => {
     durationMinutes,
     productId,
     productIds,
+    productSizes,
+    product_sizes: productSizesSnake,
     hairSize,
+    hair_size: hairSizeSnake,
     notes,
     conversationId,
   } = req.body;
@@ -56,10 +59,13 @@ router.post('/hold', optionalAuthenticate, asyncHandler(async (req, res) => {
       productId: productId || null,
       productIds: Array.isArray(productIds)
         ? productIds
+        : typeof productIds === 'string'
+          ? productIds.split(',').map(id => id.trim()).filter(Boolean)
         : productId
           ? [productId]
           : [],
-      hairSize: hairSize || null,
+      productSizes: productSizes || productSizesSnake || {},
+      hairSize: hairSize || hairSizeSnake || null,
       notes: notes || null,
     });
 
@@ -147,7 +153,9 @@ router.post('/', optionalAuthenticate, asyncHandler(async (req, res) => {
   const {
     customerName, customerPhone, customerEmail,
     productId, productIds, appointmentDate, appointmentTime,
-    durationMinutes, hairSize, notes, conversationId, staffId,
+    productSizes, product_sizes: productSizesSnake,
+    durationMinutes, hairSize, hair_size: hairSizeSnake,
+    notes, conversationId, staffId,
   } = req.body;
 
   const isAdminOrStaff = req.user && ['admin', 'receptionist', 'staff'].includes(req.user.role);
@@ -169,7 +177,8 @@ router.post('/', optionalAuthenticate, asyncHandler(async (req, res) => {
       : typeof productIds === 'string'
         ? productIds.split(',').map(id => id.trim()).filter(Boolean)
         : (productId ? [productId] : []),
-    hairSize: hairSize || null,
+    productSizes: productSizes || productSizesSnake || {},
+    hairSize: hairSize || hairSizeSnake || null,
     appointmentDate,
     appointmentTime,
     durationMinutes: durationMinutes ? parseInt(durationMinutes, 10) : undefined,

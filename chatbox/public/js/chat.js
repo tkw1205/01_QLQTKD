@@ -320,7 +320,7 @@ class ChatWidget {
     if (this.input) {
       this.input.disabled = false;
       if (mode === 'closed') {
-        this.input.placeholder = 'Nhập tin nhắn để bắt đầu phiên mới cùng Salon Lumière...';
+        this.input.placeholder = 'Nhập tin nhắn để bắt đầu phiên mới cùng Mây Hair Studio...';
       } else {
         this.input.placeholder = 'Nhập câu hỏi hoặc yêu cầu đặt lịch làm tóc...';
       }
@@ -498,7 +498,7 @@ class ChatWidget {
             if (res.data.greeting) {
               this.appendMessage(res.data.greeting);
             }
-            API.showToast('Đã bắt đầu phiên tư vấn mới cùng Salon Lumière', 'info');
+            API.showToast('Đã bắt đầu phiên tư vấn mới cùng Mây Hair Studio', 'info');
           }
           if (res.data.message && !res.data.duplicate) {
             this.appendMessage(res.data.message);

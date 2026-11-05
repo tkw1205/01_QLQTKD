@@ -521,12 +521,12 @@
       const isAdmin = user.role === 'admin';
       const isReceptionist = user.role === 'receptionist';
 
-      // 1. Top Navigation Bar (#side / .admin-sidebar) styled after Salon Lumière
+      // 1. Top Navigation Bar (#side / .admin-sidebar)
       const sidebarHtml = `
         <div class="side-inner">
           <div class="logo-wrap">
             <button type="button" class="sidebar-toggle" title="Menu">☰</button>
-            <a href="/admin/dashboard.html" class="logo">Salon <i>Lumière</i></a>
+            <a href="/admin/dashboard.html" class="logo">Mây Hair Studio</a>
           </div>
           
           <nav class="nv-list">

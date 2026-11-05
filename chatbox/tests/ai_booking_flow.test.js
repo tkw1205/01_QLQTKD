@@ -177,14 +177,23 @@ describe('AI Booking Flow, Email Validation & Admin Sync Test Suite', () => {
     const available = JSON.parse(await executeTool('check_available_slots', {
       date: testDate,
       product_ids: [service.id],
+      product_sizes: { [service.id]: 'S' },
     }, { conversationId: bookingConversation.id, guestSessionId }));
     assert.ok(available.slots.length > 0);
     const selectedTime = available.slots[0];
 
-    const availableReply = await orchestrator.chat({
+    const sizePromptReply = await orchestrator.chat({
       conversationId: bookingConversation.id,
       guestSessionId,
       userMessage: `Tôi muốn đặt lịch ${service.name} ngày ${testDate} lúc ${selectedTime}`,
+    });
+    assert.match(sizePromptReply.content, /cho em biết size tóc/u);
+    assert.equal(await appointmentRepo.findActiveHoldByConversation(bookingConversation.id), null);
+
+    const availableReply = await orchestrator.chat({
+      conversationId: bookingConversation.id,
+      guestSessionId,
+      userMessage: 'Tôi chọn size S',
     });
     assert.match(availableReply.content, /hiện còn trống/u);
     assert.match(availableReply.content, /họ tên và số điện thoại/u);

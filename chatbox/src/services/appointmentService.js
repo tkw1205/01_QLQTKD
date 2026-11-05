@@ -46,7 +46,7 @@ async function checkAvailableSlots(date, requestedDuration) {
 
 async function holdSlot({
   conversationId, guestSessionId, appointmentDate, appointmentTime,
-  durationMinutes, productId, productIds, userId = null, notes = null,
+  durationMinutes, productId, productIds, productSizes, userId = null, notes = null,
 }) {
   if (!appointmentDate || !appointmentTime) {
     throw Object.assign(new Error('Missing required date or time for holding slot'), { status: 400 });
@@ -64,6 +64,7 @@ async function holdSlot({
     durationMinutes: duration,
     productId,
     productIds,
+    productSizes,
     userId,
     notes,
   });
@@ -123,6 +124,7 @@ async function createAppointment({
   conversationId, guestSessionId, confirmedBySystem,
   customerName, customerPhone, customerEmail,
   productId, productIds, appointmentDate, appointmentTime,
+  productSizes,
   durationMinutes, notes, userId = null,
   staffId = null, status = 'pending', createdBy = null,
 }) {
@@ -167,6 +169,7 @@ async function createAppointment({
     customerEmail: trimmedEmail,
     productId,
     productIds,
+    productSizes,
     appointmentDate,
     appointmentTime,
     durationMinutes: duration,

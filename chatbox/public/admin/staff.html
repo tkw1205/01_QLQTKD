@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Salon Lumière – Quản lý nhân viên &amp; Lịch làm việc</title>
+  <title>Mây Hair Studio – Quản lý nhân viên &amp; Lịch làm việc</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1205,7 +1205,7 @@
         const date = escapeHtml(appt.appointment_date || '—');
         const time = escapeHtml(appt.appointment_time || '—');
         const duration = appt.duration_minutes ? `${appt.duration_minutes} phút` : '30 phút';
-        const price = appt.price ? Number(appt.price).toLocaleString('vi-VN') + ' đ' : '150.000 đ';
+        const price = appt.price != null ? `${Number(appt.price).toLocaleString('vi-VN')} đ` : 'Chưa ghi nhận';
         const notes = escapeHtml(appt.notes || 'Không có ghi chú');
         const currentStaffName = escapeHtml(appt.staff_name || 'Chưa phân công');
 
@@ -1379,32 +1379,51 @@
 
       let availableServices = [];
 
+      function getSelectedServiceTier(service) {
+        const sizeSelect = Array.from(servicesListContainer.querySelectorAll('[data-service-size-for]'))
+          .find(select => select.dataset.serviceSizeFor === service.id);
+        return sizeSelect ? service.prices_by_size?.[sizeSelect.value] : null;
+      }
+
       function getServiceDuration(service) {
+        const tier = getSelectedServiceTier(service);
         return Number(
-          service.prices_by_size?.S?.duration ??
+          tier?.duration ??
           service.duration_minutes ??
           service.duration
         ) || 30;
       }
 
+      function getServicePrice(service) {
+        const tier = getSelectedServiceTier(service);
+        return Number(tier?.price) || 0;
+      }
+
       function formatServicePrice(service) {
-        if (!service.prices_by_size) return `${Number(service.price).toLocaleString('vi-VN')} đ`;
-        const unit = service.price_unit === 'per_tap' ? '/tép' : '';
-        return ['S', 'M', 'L']
-          .filter(size => service.prices_by_size[size]?.price != null)
-          .map(size => `${size}: ${Number(service.prices_by_size[size].price).toLocaleString('vi-VN')} đ${unit}`)
-          .join(' · ') || 'Liên hệ';
+        const tiers = Object.entries(service.prices_by_size || {})
+          .filter(([, tier]) => tier?.price != null);
+        if (!tiers.length) return 'Chưa cấu hình giá theo size';
+        const unit = service.price_unit === 'per_tap'
+          ? '/tép'
+          : service.price_unit
+            ? (String(service.price_unit).startsWith('/') ? escapeHtml(service.price_unit) : `/${escapeHtml(service.price_unit)}`)
+            : '';
+        return tiers
+          .map(([size, tier]) => `${escapeHtml(size)}: ${Number(tier.price).toLocaleString('vi-VN')} đ${unit}`)
+          .join(' · ');
       }
 
       async function loadAvailableServices() {
-        if (availableServices.length > 0) return availableServices;
         try {
           const res = await Admin.api('/api/products');
-          if (res.success && Array.isArray(res.data)) {
-            availableServices = res.data;
+          if (!res.success || !Array.isArray(res.data)) {
+            throw new Error('Phản hồi danh sách dịch vụ không hợp lệ.');
           }
+          availableServices = res.data;
         } catch (err) {
-          console.warn('Không thể tải danh sách dịch vụ:', err);
+          availableServices = [];
+          console.error('Không thể tải danh sách dịch vụ:', err);
+          throw err;
         }
         return availableServices;
       }
@@ -1419,43 +1438,60 @@
           const service = availableServices.find(s => s.id === serviceId);
           if (service) {
             totalDuration += getServiceDuration(service);
-            totalPrice += Number(service.price) || 0;
+            totalPrice += getServicePrice(service);
           }
         });
 
         const selectedServices = Array.from(checkedBoxes)
           .map(checkbox => availableServices.find(service => service.id === checkbox.value))
           .filter(Boolean);
-        summaryTotalPriceLabel.textContent = selectedServices.some(service => service.prices_by_size)
-          ? 'Tạm tính theo size S'
-          : 'Tổng chi phí';
+        summaryTotalPriceLabel.textContent = 'Tạm tính theo size đã chọn';
         summaryTotalDuration.textContent = `${totalDuration} phút`;
         summaryTotalPrice.textContent = `${totalPrice.toLocaleString('vi-VN')} đ`;
       }
 
       async function openCreateApptModal({ staffId = '', date = '', time = '' } = {}) {
-        await loadAvailableServices();
+        try {
+          await loadAvailableServices();
+        } catch (err) {
+          servicesListContainer.innerHTML = `<div style="color: var(--danger); font-size: .82rem;">Không thể tải dịch vụ: ${escapeHtml(err.message)}</div>`;
+          createApptModal.classList.add('open');
+          return;
+        }
 
         // 1. Populate services list
         if (availableServices.length === 0) {
           servicesListContainer.innerHTML = '<div style="color: var(--mut); font-size: .82rem;">Không có dịch vụ nào trong hệ thống.</div>';
         } else {
+          let hasInitialSelection = false;
           servicesListContainer.innerHTML = availableServices.map((svc, idx) => {
             const priceStr = formatServicePrice(svc);
-            const durationStr = `${getServiceDuration(svc)} phút${svc.prices_by_size ? ' (S)' : ''}`;
-            const isChecked = idx === 0 ? 'checked' : '';
+            const firstTier = Object.values(svc.prices_by_size || {})
+              .find(tier => tier?.price != null);
+            const durationStr = `${Number(firstTier?.duration ?? svc.duration) || 30} phút`;
+            const canBook = Boolean(firstTier);
+            const isChecked = canBook && !hasInitialSelection ? 'checked' : '';
+            if (isChecked) hasInitialSelection = true;
+            const sizeOptions = Object.entries(svc.prices_by_size || {})
+              .filter(([, tier]) => tier?.price != null)
+              .map(([size, tier]) => `<option value="${escapeHtml(size)}">${escapeHtml(size)} — ${Number(tier.price).toLocaleString('vi-VN')} đ</option>`)
+              .join('');
             return `
-              <label style="display: flex; align-items: center; gap: 8px; font-size: .82rem; cursor: pointer; padding: 3px 0;">
-                <input type="checkbox" name="services" value="${svc.id}" ${isChecked} style="accent-color: var(--pri); width: 16px; height: 16px;">
-                <span style="font-weight: 600; color: var(--ink); flex: 1;">${escapeHtml(svc.name)}</span>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: .82rem; padding: 3px 0;">
+                <input id="create-appt-service-${idx}" type="checkbox" name="services" value="${escapeHtml(svc.id)}" ${isChecked} ${canBook ? '' : 'disabled'} style="accent-color: var(--pri); width: 16px; height: 16px;">
+                <label for="create-appt-service-${idx}" style="font-weight: 600; color: var(--ink); flex: 1; cursor: pointer;">${escapeHtml(svc.name)}</label>
                 <span style="color: var(--mut); font-size: .78rem;">(${durationStr})</span>
+                ${sizeOptions ? `<select data-service-size-for="${escapeHtml(svc.id)}" class="form-control" aria-label="Chọn size cho ${escapeHtml(svc.name)}" style="width: auto; max-width: 150px; padding: 3px 6px;">${sizeOptions}</select>` : ''}
                 <span style="color: var(--pri); font-weight: 600; font-size: .8rem;">${priceStr}</span>
-              </label>
+              </div>
             `;
           }).join('');
 
           servicesListContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
             cb.addEventListener('change', updateCreateApptSummary);
+          });
+          servicesListContainer.querySelectorAll('[data-service-size-for]').forEach(select => {
+            select.addEventListener('change', updateCreateApptSummary);
           });
         }
         updateCreateApptSummary();
@@ -1548,11 +1584,15 @@
         // Calculate combined duration & price
         let totalDuration = 0;
         let totalPrice = 0;
+        const productSizes = {};
         selectedProductIds.forEach(id => {
           const s = availableServices.find(item => item.id === id);
           if (s) {
             totalDuration += getServiceDuration(s);
-            totalPrice += Number(s.price) || 0;
+            totalPrice += getServicePrice(s);
+            const tierSelect = Array.from(servicesListContainer.querySelectorAll('[data-service-size-for]'))
+              .find(select => select.dataset.serviceSizeFor === s.id);
+            if (tierSelect) productSizes[s.id] = tierSelect.value;
           }
         });
 
@@ -1571,6 +1611,7 @@
               customerEmail: customerEmail || null,
               productIds: selectedProductIds,
               productId: selectedProductIds[0],
+              productSizes,
               appointmentDate,
               appointmentTime,
               durationMinutes: totalDuration,

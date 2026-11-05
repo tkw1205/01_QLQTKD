@@ -2,12 +2,6 @@
 
 const productRepository = require('../repositories/productRepository');
 
-const SIZE_LABELS = {
-  S: 'tóc ngắn',
-  M: 'tóc lỡ',
-  L: 'tóc dài',
-};
-
 function normalizeText(value) {
   return String(value || '')
     .toLocaleLowerCase('vi-VN')
@@ -157,6 +151,10 @@ function formatServicePrice(service, size) {
   return `- ${service.name}: ${formatPrice(Number(tier.price))}${unit} (size ${size}), ${duration} phút, ${staffCount} nhân viên.`;
 }
 
+function hasSizePrices(service) {
+  return Boolean(service.prices_by_size && Object.keys(service.prices_by_size).length > 0);
+}
+
 function buildSizeQuestion(serviceNames) {
   const serviceLabel = serviceNames.length === 1
     ? `dịch vụ ${serviceNames[0]}`
@@ -269,26 +267,37 @@ async function resolvePriceInquiry({ userMessage, history = [], conversation = n
     return { handled: true, content: buildAmbiguousServiceReply(matches, query) };
   }
 
-  if (matches.some(service => !service.prices_by_size || typeof service.prices_by_size !== 'object')) {
-    return {
-      handled: true,
-      content: `Dạ, danh mục hiện chưa có bảng giá theo size cho dịch vụ ${matches.map(service => service.name).join(', ')}, nên em chưa thể báo giá chính xác ạ.`,
-    };
-  }
-
+  const sizePricedMatches = matches.filter(hasSizePrices);
+  const unconfiguredMatches = matches.filter(service => !hasSizePrices(service));
   const sizeResult = parseHairSize(userMessage) ||
     (chatContext.hair_size ? { size: chatContext.hair_size } : null);
 
-  if (sizeResult?.ambiguous) {
+  if (!sizePricedMatches.length) {
+    return {
+      handled: true,
+      content: matches.map(service =>
+        `Dạ, dịch vụ ${service.name} chưa có giá theo size được cấu hình nên em chưa thể báo giá chính xác ạ.`
+      ).join('\n'),
+    };
+  }
+  if (sizePricedMatches.length && sizeResult?.ambiguous) {
     return { handled: true, content: buildBoundaryQuestion(sizeResult.reason) };
   }
-  if (!sizeResult?.size) {
-    return { handled: true, content: buildSizeQuestion(matches.map(service => service.name)) };
+  if (!sizeResult?.size && sizePricedMatches.length) {
+    const unavailablePrices = unconfiguredMatches.map(service =>
+      `Dạ, dịch vụ ${service.name} chưa có giá theo size được cấu hình.`
+    );
+    return {
+      handled: true,
+      content: [...unavailablePrices, buildSizeQuestion(sizePricedMatches.map(service => service.name))].join('\n'),
+    };
   }
 
   return {
     handled: true,
-    content: matches.map(service => formatServicePrice(service, sizeResult.size)).join('\n'),
+    content: matches.map(service => hasSizePrices(service)
+      ? formatServicePrice(service, sizeResult.size)
+      : `Dạ, dịch vụ ${service.name} chưa có giá theo size được cấu hình nên em chưa thể báo giá chính xác ạ.`).join('\n'),
   };
 }
 

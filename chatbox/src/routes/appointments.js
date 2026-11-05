@@ -28,6 +28,8 @@ router.post('/hold', optionalAuthenticate, asyncHandler(async (req, res) => {
     appointmentTime,
     durationMinutes,
     productId,
+    productIds,
+    productSizes,
     notes,
     conversationId,
   } = req.body;
@@ -41,6 +43,8 @@ router.post('/hold', optionalAuthenticate, asyncHandler(async (req, res) => {
       appointmentTime,
       durationMinutes: durationMinutes ? parseInt(durationMinutes, 10) : 30,
       productId: productId || null,
+      productIds: Array.isArray(productIds) && productIds.length > 0 ? productIds : (productId ? [productId] : []),
+      productSizes: productSizes || {},
       notes: notes || null,
     });
 
@@ -128,7 +132,7 @@ router.post('/', optionalAuthenticate, asyncHandler(async (req, res) => {
   const {
     customerName, customerPhone, customerEmail,
     productId, productIds, appointmentDate, appointmentTime,
-    durationMinutes, notes, conversationId, staffId,
+    productSizes, durationMinutes, notes, conversationId, staffId,
   } = req.body;
 
   const isAdminOrStaff = req.user && ['admin', 'receptionist', 'staff'].includes(req.user.role);
@@ -145,7 +149,8 @@ router.post('/', optionalAuthenticate, asyncHandler(async (req, res) => {
     customerPhone,
     customerEmail: (typeof customerEmail === 'string' && customerEmail.trim()) ? customerEmail.trim() : null,
     productId: productId || null,
-    productIds: Array.isArray(productIds) ? productIds : (productId ? [productId] : []),
+    productIds: Array.isArray(productIds) && productIds.length > 0 ? productIds : (productId ? [productId] : []),
+    productSizes: productSizes || {},
     appointmentDate,
     appointmentTime,
     durationMinutes: durationMinutes ? parseInt(durationMinutes, 10) : undefined,

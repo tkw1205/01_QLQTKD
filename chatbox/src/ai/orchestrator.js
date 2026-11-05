@@ -306,6 +306,43 @@ async function handleBookingContinuation(userMessage, context) {
   const selectedServices = await Promise.all(state.selected_service_ids.map(id =>
     productRepo.findById(id)
   ));
+  const sizePricedServices = selectedServices.filter(service =>
+    service?.prices_by_size && Object.keys(service.prices_by_size).length > 0
+  );
+  const servicesWithoutSizePrices = selectedServices.filter(service =>
+    !service?.prices_by_size || Object.keys(service.prices_by_size).length === 0
+  );
+  if (servicesWithoutSizePrices.length > 0) {
+    const names = servicesWithoutSizePrices.map(service => service?.name || 'dịch vụ đã chọn').join(', ');
+    return `Dạ, ${names} chưa được cấu hình giá theo size nên hiện chưa thể kiểm tra lịch hoặc đặt dịch vụ này. Mình vui lòng chọn dịch vụ khác hoặc liên hệ nhân viên để được hỗ trợ ạ.`;
+  }
+  const parsedHairSize = servicePricing.parseHairSize(state.hair_length_text || '');
+  const selectedHairSize = state.hair_size || parsedHairSize?.size;
+  if (sizePricedServices.length > 0 && !selectedHairSize) {
+    if (parsedHairSize?.ambiguous) {
+      return `Dạ, em chưa xác định được size vì ${parsedHairSize.reason} Mình cho em biết size phù hợp trong dịch vụ để em kiểm tra lịch và giá chính xác ạ.`;
+    }
+    const sizeOptions = sizePricedServices.map(service => {
+      const options = Object.entries(service.prices_by_size)
+        .map(([size, tier]) => `${size}${tier.description ? ` (${tier.description})` : ''}`)
+        .join(', ');
+      return `${service.name}: ${options}`;
+    }).join('; ');
+    return `Dạ, dịch vụ mình chọn tính giá theo size. Mình cho em biết size tóc để em kiểm tra lịch và giá chính xác nhé ạ. Các size hiện có: ${sizeOptions}.`;
+  }
+  const productSizes = Object.fromEntries(sizePricedServices.map(service => [
+    service.id,
+    selectedHairSize,
+  ]));
+  const serviceWithUnavailableSize = sizePricedServices.find(service =>
+    !service.prices_by_size[selectedHairSize]
+  );
+  if (serviceWithUnavailableSize) {
+    const availableSizes = Object.entries(serviceWithUnavailableSize.prices_by_size)
+      .map(([size, tier]) => `${size}${tier.description ? ` (${tier.description})` : ''}`)
+      .join(', ');
+    return `Dạ, dịch vụ ${serviceWithUnavailableSize.name} không có size ${selectedHairSize}. Các size hiện có: ${availableSizes}. Mình chọn giúp em một size trong danh sách nhé ạ.`;
+  }
   const hasDyeService = selectedServices.some(service =>
     /nhuộm/iu.test(`${service?.name || ''} ${service?.category_name || ''}`)
   );
@@ -362,6 +399,7 @@ async function handleBookingContinuation(userMessage, context) {
   const availabilityResult = JSON.parse(await executeTool('check_available_slots', {
     date: state.appointment_date,
     product_ids: state.selected_service_ids,
+    product_sizes: productSizes,
   }, context));
   if (!availabilityResult.success) {
     return `Dạ, em chưa thể xác nhận khung giờ này: ${availabilityResult.error || 'hệ thống chưa kiểm tra được lịch'}. Mình thử ngày giờ khác hoặc chat với nhân viên giúp em nhé ạ.`;
@@ -380,6 +418,7 @@ async function handleBookingContinuation(userMessage, context) {
     appointment_date: state.appointment_date,
     appointment_time: state.appointment_time,
     product_ids: state.selected_service_ids,
+    product_sizes: productSizes,
     notes: state.booking_service_notes || state.hair_length_text || null,
   }, context));
   if (!holdResult.success) return holdResult.message;
@@ -418,6 +457,7 @@ async function handleBookingContinuation(userMessage, context) {
       appointment_date: state.appointment_date,
       appointment_time: state.appointment_time,
       product_ids: state.selected_service_ids,
+      product_sizes: productSizes,
       notes: state.booking_service_notes || state.hair_length_text || null,
     }, context));
     if (result.success && result.booking_code) await markBookingAsCompleted(context);
@@ -464,14 +504,9 @@ async function buildSystemPrompt(conversation, targetDate = null) {
       const duration = service.duration === null || service.duration === undefined
         ? 'chưa có thời lượng được xác nhận'
         : `${service.duration} phút`;
-      const prices = service.prices_by_size
-        ? ['S', 'M', 'L'].map(size => {
-          const tier = service.prices_by_size[size];
-          return tier
-            ? `${size}: ${formatPrice(tier.price)} (${tier.duration || duration}, ${tier.staff_count || service.staff_count || 'chưa rõ'} nhân viên)`
-            : `${size}: chưa có giá`;
-        }).join('; ')
-        : formatPrice(service.price);
+      const prices = Object.entries(service.prices_by_size || {}).map(([size, tier]) =>
+        `${size}: ${formatPrice(tier.price)} (${tier.duration || duration}, ${tier.staff_count || service.staff_count || 'chưa rõ'} nhân viên)`
+      ).join('; ') || 'chưa cấu hình giá theo size';
       const unit = service.price_unit === 'per_tap' ? '/tép' : '';
       return `- ID: ${service.id} | Nhóm: ${service.category_name || 'chưa phân loại'} (${service.category_description || 'chưa có mô tả nhóm'}) | ${service.name}: ${service.description || 'chưa có mô tả dịch vụ'} | Giá: ${prices}${unit} | Thời gian: ${duration} | Nhân viên: ${service.staff_count || 'chưa rõ'}`;
     }).join('\n')
@@ -521,7 +556,7 @@ async function buildSystemPrompt(conversation, targetDate = null) {
 - Khi khách hỏi một kiểu cụ thể (ví dụ layer), trước tiên tìm dịch vụ phù hợp trong danh sách đang hoạt động. Chỉ xác nhận salon có làm khi dịch vụ tương ứng thực sự có trong danh sách; nêu đúng dịch vụ và tư vấn theo mô tả đã xác nhận. Có thể hỏi độ dài tóc, mong muốn tạo kiểu hoặc đặc điểm cần biết, nhưng không khẳng định kiểu chắc chắn hợp với khuôn mặt/chất tóc khi thiếu thông tin.
 - Nếu khách hỏi giá, ứng dụng sẽ tra cứu chính xác dịch vụ và giá S/M/L từ danh mục hoạt động. Chỉ nhắc lại giá có trong danh mục; không tự tính hoặc suy đoán giá. Nếu thiếu size, hỏi khách; nếu thiếu dịch vụ/giá hoặc tên dịch vụ mơ hồ, hỏi làm rõ và không báo giá.
 - Quy ước size theo dữ liệu salon: S là tóc từ cằm trở lên; M là tóc từ cằm đến ngang vai; L là tóc từ ngang ngực trở xuống. Mốc cằm bị chồng lấn và khoảng từ ngang vai đến ngang ngực chưa được quy định; hỏi khách làm rõ thay vì tự phân loại.
-- Dịch vụ nối tóc có giá theo từng tép; luôn ghi rõ đơn vị /tép, không trình bày như giá trọn gói. Thời lượng và số nhân viên phải theo đúng dòng dịch vụ/size trong danh mục.
+- Dịch vụ nối tóc có giá theo từng tép; luôn ghi rõ đơn vị /tép. Thời lượng và số nhân viên phải theo đúng dòng dịch vụ/size trong danh mục.
 - Khi khách chọn nhiều dịch vụ, tra từng dịch vụ và dùng đúng các ID trong danh mục. Chỉ tính tổng giá khi tất cả dịch vụ đều có giá xác nhận; nếu thiếu giá, nêu rõ chưa tính được tổng chính xác. Chỉ cộng thời lượng đã có dữ liệu thành thời lượng dự kiến; không khẳng định các dịch vụ được làm đồng thời. Lưu các dịch vụ đã chọn trong ngữ cảnh và truyền toàn bộ ID vào công cụ đặt lịch.
 - Nếu khách thay đổi/bỏ một dịch vụ, cập nhật danh sách lựa chọn theo lời khách, không giữ lại dịch vụ đã bỏ; nhắc ngắn danh sách mới và hỏi ngày/giờ hoặc bước còn thiếu.
 - Khi nhận hình tham khảo: chỉ nói đã nhận/xem hình nếu hình ảnh thực sự có trong nội dung đầu vào mà AI truy cập được. Nếu không thấy hình hoặc nền tảng không chuyển ảnh cho AI, nói rõ chưa xem được ảnh và đề nghị mô tả kiểu tóc/tải ảnh theo chức năng website nếu có. Nếu xem được ảnh, chỉ nhận xét các đặc điểm nhìn thấy và hỏi mong muốn/tình trạng tóc; không nhận diện chắc chắn mọi chi tiết, không hứa kết quả giống hệt hình.

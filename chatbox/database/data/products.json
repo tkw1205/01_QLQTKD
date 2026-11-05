@@ -1,29 +1,65 @@
 [
   {
     "id": "22222222-2222-2222-2222-222222222001",
-    "category_id": "11111111-1111-1111-1111-111111111001",
+    "category_id": "11111111-1111-1111-1111-111111111102",
     "name": "Cắt & tạo kiểu Layer hiện đại",
     "slug": "cat-tao-kieu-layer-hien-dai",
     "description": "Thiết kế dáng tóc Layer tầng bay bổng, ôm trọn gương mặt thanh thoát, sấy phồng tự nhiên theo phong cách Hàn Quốc.",
-    "price": 150000,
+    "price": null,
     "duration": 45,
-    "image_url": "/images/studio/service-cut-layer.jpg",
-    "status": "inactive",
+    "image_url": null,
+    "status": "active",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2026-11-05T17:08:30.943Z",
+    "service_code": "DV001",
+    "staff_count": 1,
+    "price_unit": null,
+    "prices_by_size": {
+      "S": {
+        "price": 30000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 30000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 35000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    },
+    "pricing_type": "by_size"
   },
   {
     "id": "22222222-2222-2222-2222-222222222002",
-    "category_id": "11111111-1111-1111-1111-111111111001",
+    "category_id": "11111111-1111-1111-1111-111111111102",
     "name": "Cắt tóc Bob / Pixie thời thượng",
     "slug": "cat-toc-bob-pixie-thoi-thuong",
     "description": "Đường cắt dứt khoát tôn góc cạnh và xương quai hàm, cá tính nhưng vẫn giữ nét mềm mại nữ tính.",
     "price": 180000,
     "duration": 45,
-    "image_url": "/images/studio/service-cut-bob.jpg",
-    "status": "inactive",
+    "image_url": null,
+    "status": "active",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2026-11-05T17:06:44.521Z",
+    "service_code": "DV002",
+    "pricing_type": "by_size",
+    "staff_count": 1,
+    "price_unit": null,
+    "prices_by_size": {
+      "S": {
+        "price": 150000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 170000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 180000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    }
   },
   {
     "id": "22222222-2222-2222-2222-222222222003",
@@ -36,20 +72,52 @@
     "image_url": "/images/studio/service-cut-men.jpg",
     "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2024-01-01T00:00:00.000Z",
+    "service_code": "DV003",
+    "pricing_type": "by_size",
+    "prices_by_size": {
+      "S": {
+        "price": 180000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 210000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 240000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    }
   },
   {
     "id": "22222222-2222-2222-2222-222222222004",
-    "category_id": "11111111-1111-1111-1111-111111111001",
+    "category_id": "11111111-1111-1111-1111-111111111101",
     "name": "Tỉa mái bay / mái thưa & sấy bồng bềnh",
     "slug": "tia-mai-bay-mai-thua-say-bong-benh",
     "description": "Chỉnh lại độ dài mái thưa, mái bay mềm mại che khuyết điểm thái dương và trán hẹp.",
     "price": 70000,
     "duration": 15,
     "image_url": "/images/studio/service-cut-bangs.jpg",
-    "status": "inactive",
+    "status": "active",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2026-11-05T17:53:38.868Z",
+    "service_code": "DV004",
+    "prices_by_size": {
+      "S": {
+        "price": 70000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 80000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 100000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    },
+    "staff_count": 1
   },
   {
     "id": "22222222-2222-2222-2222-222222222005",
@@ -62,7 +130,22 @@
     "image_url": "/images/studio/service-wash-herbal.jpg",
     "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2024-01-01T00:00:00.000Z",
+    "service_code": "DV005",
+    "prices_by_size": {
+      "S": {
+        "price": 70000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 90000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 100000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    }
   },
   {
     "id": "22222222-2222-2222-2222-222222222006",
@@ -75,20 +158,52 @@
     "image_url": "/images/studio/service-wash-quick.jpg",
     "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2024-01-01T00:00:00.000Z",
+    "service_code": "DV006",
+    "prices_by_size": {
+      "S": {
+        "price": 70000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 80000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 100000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    }
   },
   {
     "id": "22222222-2222-2222-2222-222222222007",
-    "category_id": "11111111-1111-1111-1111-111111111002",
+    "category_id": "11111111-1111-1111-1111-111111111102",
     "name": "Thải độc da đầu & tẩy tế bào chết Nano",
     "slug": "thai-doc-da-dau-tay-te-bao-chet-nano",
     "description": "Thanh lọc nang tóc bị bít tắc do hóa chất và khói bụi, ngừa gàu ngứa và hỗ trợ tóc mọc dày khỏe.",
     "price": 180000,
     "duration": 45,
-    "image_url": "/images/studio/service-scalp-detox.jpg",
+    "image_url": null,
     "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2026-11-05T18:26:28.057Z",
+    "service_code": "DV007",
+    "staff_count": 1,
+    "price_unit": null,
+    "prices_by_size": {
+      "S": {
+        "price": 130000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 150000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 180000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    }
   },
   {
     "id": "22222222-2222-2222-2222-222222222008",
@@ -101,7 +216,22 @@
     "image_url": "/images/studio/service-color-milktea.jpg",
     "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2024-01-01T00:00:00.000Z",
+    "service_code": "DV008",
+    "prices_by_size": {
+      "S": {
+        "price": 350000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 410000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 480000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    }
   },
   {
     "id": "22222222-2222-2222-2222-222222222009",
@@ -114,7 +244,22 @@
     "image_url": "/images/studio/service-color-balayage.jpg",
     "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2024-01-01T00:00:00.000Z",
+    "service_code": "DV009",
+    "prices_by_size": {
+      "S": {
+        "price": 390000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 460000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 540000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    }
   },
   {
     "id": "22222222-2222-2222-2222-222222222010",
@@ -127,7 +272,22 @@
     "image_url": "/images/studio/service-color-touchup.jpg",
     "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2024-01-01T00:00:00.000Z",
+    "service_code": "DV010",
+    "prices_by_size": {
+      "S": {
+        "price": 260000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 310000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 360000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    }
   },
   {
     "id": "22222222-2222-2222-2222-222222222011",
@@ -140,7 +300,22 @@
     "image_url": "/images/studio/service-perm-wave.jpg",
     "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2024-01-01T00:00:00.000Z",
+    "service_code": "DV011",
+    "prices_by_size": {
+      "S": {
+        "price": 330000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 390000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 450000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    }
   },
   {
     "id": "22222222-2222-2222-2222-222222222012",
@@ -153,7 +328,22 @@
     "image_url": "/images/studio/service-perm-root.jpg",
     "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2024-01-01T00:00:00.000Z",
+    "service_code": "DV012",
+    "prices_by_size": {
+      "S": {
+        "price": 240000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 280000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 330000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    }
   },
   {
     "id": "22222222-2222-2222-2222-222222222013",
@@ -166,7 +356,22 @@
     "image_url": "/images/studio/service-perm-straight.jpg",
     "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2024-01-01T00:00:00.000Z",
+    "service_code": "DV013",
+    "prices_by_size": {
+      "S": {
+        "price": 240000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 280000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 330000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    }
   },
   {
     "id": "22222222-2222-2222-2222-222222222014",
@@ -179,7 +384,22 @@
     "image_url": "/images/studio/service-treatment-keratin.jpg",
     "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2024-01-01T00:00:00.000Z",
+    "service_code": "DV014",
+    "prices_by_size": {
+      "S": {
+        "price": 210000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 240000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 280000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    }
   },
   {
     "id": "22222222-2222-2222-2222-222222222015",
@@ -192,30 +412,48 @@
     "image_url": "/images/studio/service-treatment-stemcell.jpg",
     "status": "inactive",
     "created_at": "2024-01-01T00:00:00.000Z",
-    "updated_at": "2024-01-01T00:00:00.000Z"
+    "updated_at": "2024-01-01T00:00:00.000Z",
+    "service_code": "DV015",
+    "prices_by_size": {
+      "S": {
+        "price": 160000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 190000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 220000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    }
   },
   {
     "id": "22222222-2222-2222-2222-222222223001",
     "category_id": "11111111-1111-1111-1111-111111111101",
     "name": "Cắt tạo kiểu",
     "slug": "cat-tao-kieu",
-    "description": null,
+    "description": "",
     "price": 130000,
     "prices_by_size": {
       "S": {
         "price": 130000,
         "duration": 45,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 150000,
         "duration": 45,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 170000,
         "duration": 45,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -226,10 +464,11 @@
       "cắt tạo kiểu",
       "cắt tóc tạo kiểu"
     ],
-    "image_url": null,
+    "image_url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR71NVY4kfdUMfl2kkElDaJWot5BYbencuUKnuOL792ng&s=10",
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-11-05T14:25:56.801Z",
+    "service_code": "DV016"
   },
   {
     "id": "22222222-2222-2222-2222-222222223002",
@@ -242,17 +481,20 @@
       "S": {
         "price": 40000,
         "duration": 20,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 50000,
         "duration": 20,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 60000,
         "duration": 20,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -261,10 +503,11 @@
     "aliases": [
       "gội đầu"
     ],
-    "image_url": null,
+    "image_url": "/images/studio/service-wash-herbal.jpg",
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV017"
   },
   {
     "id": "22222222-2222-2222-2222-222222223003",
@@ -277,17 +520,20 @@
       "S": {
         "price": 80000,
         "duration": 25,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 100000,
         "duration": 25,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 120000,
         "duration": 25,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -299,7 +545,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV018"
   },
   {
     "id": "22222222-2222-2222-2222-222222223004",
@@ -312,17 +559,20 @@
       "S": {
         "price": 130000,
         "duration": 25,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 150000,
         "duration": 25,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 170000,
         "duration": 25,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -334,7 +584,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV019"
   },
   {
     "id": "22222222-2222-2222-2222-222222223005",
@@ -347,17 +598,20 @@
       "S": {
         "price": 80000,
         "duration": 60,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 100000,
         "duration": 60,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 120000,
         "duration": 60,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -370,7 +624,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV020"
   },
   {
     "id": "22222222-2222-2222-2222-222222223006",
@@ -383,17 +638,20 @@
       "S": {
         "price": 180000,
         "duration": 90,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 200000,
         "duration": 90,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 230000,
         "duration": 90,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -402,10 +660,11 @@
     "aliases": [
       "phồng chân"
     ],
-    "image_url": null,
+    "image_url": "/images/studio/service-perm-root.jpg",
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV021"
   },
   {
     "id": "22222222-2222-2222-2222-222222223007",
@@ -418,17 +677,20 @@
       "S": {
         "price": 229000,
         "duration": 150,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 249000,
         "duration": 150,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 279000,
         "duration": 150,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -438,10 +700,11 @@
       "uốn art",
       "uốn sản phẩm art"
     ],
-    "image_url": null,
+    "image_url": "/images/studio/service-perm-wave.jpg",
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV022"
   },
   {
     "id": "22222222-2222-2222-2222-222222223008",
@@ -454,17 +717,20 @@
       "S": {
         "price": 180000,
         "duration": 60,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 200000,
         "duration": 60,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 230000,
         "duration": 60,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -476,7 +742,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV023"
   },
   {
     "id": "22222222-2222-2222-2222-222222223009",
@@ -489,17 +756,20 @@
       "S": {
         "price": 230000,
         "duration": 90,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 250000,
         "duration": 90,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 280000,
         "duration": 90,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -511,7 +781,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV024"
   },
   {
     "id": "22222222-2222-2222-2222-222222223010",
@@ -524,17 +795,20 @@
       "S": {
         "price": 319000,
         "duration": 150,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 349000,
         "duration": 150,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 379000,
         "duration": 150,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -547,30 +821,32 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV025"
   },
   {
     "id": "22222222-2222-2222-2222-222222223011",
     "category_id": "11111111-1111-1111-1111-111111111105",
     "name": "Nhuộm (sản phẩm ART)",
     "slug": "nhuom-san-pham-art",
-    "description": null,
+    "description": "",
     "price": 229000,
     "prices_by_size": {
       "S": {
         "price": 229000,
         "duration": 120,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 249000,
         "duration": 120,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
-        "price": 279000,
-        "duration": 120,
-        "staff_count": 2
+        "price": 290000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -583,7 +859,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-11-05T15:36:11.453Z",
+    "service_code": "DV026"
   },
   {
     "id": "22222222-2222-2222-2222-222222223012",
@@ -596,17 +873,20 @@
       "S": {
         "price": 180000,
         "duration": 60,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 200000,
         "duration": 60,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 230000,
         "duration": 60,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -615,10 +895,11 @@
     "aliases": [
       "chấm chân"
     ],
-    "image_url": null,
+    "image_url": "/images/studio/service-color-touchup.jpg",
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV027"
   },
   {
     "id": "22222222-2222-2222-2222-222222223013",
@@ -631,17 +912,20 @@
       "S": {
         "price": 130000,
         "duration": 40,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 150000,
         "duration": 40,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 170000,
         "duration": 40,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -653,7 +937,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV028"
   },
   {
     "id": "22222222-2222-2222-2222-222222223014",
@@ -666,17 +951,20 @@
       "S": {
         "price": 250000,
         "duration": 60,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 300000,
         "duration": 60,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 350000,
         "duration": 60,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -688,7 +976,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV029"
   },
   {
     "id": "22222222-2222-2222-2222-222222223015",
@@ -701,17 +990,20 @@
       "S": {
         "price": 420000,
         "duration": 75,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 450000,
         "duration": 75,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 490000,
         "duration": 75,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -724,7 +1016,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV030"
   },
   {
     "id": "22222222-2222-2222-2222-222222223016",
@@ -737,17 +1030,20 @@
       "S": {
         "price": 600000,
         "duration": 90,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 700000,
         "duration": 90,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 800000,
         "duration": 90,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -759,7 +1055,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV031"
   },
   {
     "id": "22222222-2222-2222-2222-222222223017",
@@ -772,17 +1069,20 @@
       "S": {
         "price": 35000,
         "duration": 120,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 40000,
         "duration": 120,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 45000,
         "duration": 120,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": "per_tap",
@@ -794,7 +1094,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV032"
   },
   {
     "id": "22222222-2222-2222-2222-222222223018",
@@ -807,17 +1108,20 @@
       "S": {
         "price": 70000,
         "duration": 90,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 75000,
         "duration": 90,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 85000,
         "duration": 90,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": "per_tap",
@@ -829,7 +1133,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV033"
   },
   {
     "id": "22222222-2222-2222-2222-222222223019",
@@ -842,17 +1147,20 @@
       "S": {
         "price": 45000,
         "duration": 90,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 50000,
         "duration": 90,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 60000,
         "duration": 90,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": "per_tap",
@@ -864,7 +1172,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV034"
   },
   {
     "id": "22222222-2222-2222-2222-222222223020",
@@ -877,17 +1186,20 @@
       "S": {
         "price": 600000,
         "duration": 120,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 700000,
         "duration": 120,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 800000,
         "duration": 120,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -899,7 +1211,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV035"
   },
   {
     "id": "22222222-2222-2222-2222-222222223021",
@@ -912,17 +1225,20 @@
       "S": {
         "price": 600000,
         "duration": 150,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 700000,
         "duration": 150,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 800000,
         "duration": 150,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -936,7 +1252,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV036"
   },
   {
     "id": "22222222-2222-2222-2222-222222223022",
@@ -949,17 +1266,20 @@
       "S": {
         "price": 2000000,
         "duration": 240,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 2250000,
         "duration": 240,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 2500000,
         "duration": 240,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -968,10 +1288,11 @@
     "aliases": [
       "tẩy balay"
     ],
-    "image_url": null,
+    "image_url": "/images/studio/service-color-balayage.jpg",
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV037"
   },
   {
     "id": "22222222-2222-2222-2222-222222223023",
@@ -984,17 +1305,20 @@
       "S": {
         "price": 650000,
         "duration": 150,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 700000,
         "duration": 150,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 780000,
         "duration": 150,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -1006,7 +1330,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV038"
   },
   {
     "id": "22222222-2222-2222-2222-222222223024",
@@ -1019,17 +1344,20 @@
       "S": {
         "price": 2000000,
         "duration": 210,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 2250000,
         "duration": 210,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 2500000,
         "duration": 210,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -1041,7 +1369,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV039"
   },
   {
     "id": "22222222-2222-2222-2222-222222223025",
@@ -1054,17 +1383,20 @@
       "S": {
         "price": 750000,
         "duration": 120,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 800000,
         "duration": 120,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 880000,
         "duration": 120,
-        "staff_count": 2
+        "staff_count": 2,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -1076,7 +1408,8 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV040"
   },
   {
     "id": "22222222-2222-2222-2222-222222223026",
@@ -1089,17 +1422,20 @@
       "S": {
         "price": 200000,
         "duration": 90,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc ngắn (từ cằm trở lên)"
       },
       "M": {
         "price": 350000,
         "duration": 90,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
       },
       "L": {
         "price": 500000,
         "duration": 90,
-        "staff_count": 1
+        "staff_count": 1,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
       }
     },
     "price_unit": null,
@@ -1111,6 +1447,38 @@
     "image_url": null,
     "status": "active",
     "created_at": "2026-10-31T13:07:44.567Z",
-    "updated_at": "2026-10-31T13:07:44.567Z"
+    "updated_at": "2026-10-31T13:07:44.567Z",
+    "service_code": "DV041"
+  },
+  {
+    "id": "2657d0e9-090e-475e-b45e-41c5122d996b",
+    "category_id": "11111111-1111-1111-1111-111111111101",
+    "name": "Cắt tóc nữ",
+    "slug": "cat-toc-nu",
+    "description": "",
+    "price": 5000,
+    "prices_by_size": {
+      "S": {
+        "price": 90000,
+        "description": "Tóc ngắn (từ cằm trở lên)"
+      },
+      "M": {
+        "price": 110000,
+        "description": "Tóc lỡ (từ cằm đến ngang vai)"
+      },
+      "L": {
+        "price": 130000,
+        "description": "Tóc dài (từ ngang ngực trở xuống)"
+      }
+    },
+    "price_unit": null,
+    "duration": 45,
+    "staff_count": null,
+    "aliases": [],
+    "image_url": null,
+    "status": "discontinued",
+    "created_at": "2026-11-05T14:26:53.551Z",
+    "updated_at": "2026-11-05T15:39:08.952Z",
+    "service_code": "DV042"
   }
 ]

@@ -79,7 +79,9 @@ const API = {
   },
 
   get(endpoint) {
-    return this.request(endpoint, { method: 'GET' });
+    const options = { method: 'GET' };
+    if (endpoint.startsWith('/api/products')) options.cache = 'no-store';
+    return this.request(endpoint, options);
   },
 
   post(endpoint, body) {
@@ -100,11 +102,33 @@ const API = {
   },
 
   formatProductPrice(product) {
-    if (!product?.prices_by_size) return this.formatCurrency(product?.price);
-    const unit = product.price_unit === 'per_tap' ? '/tép' : '';
-    return ['S', 'M', 'L']
-      .filter(size => product.prices_by_size[size]?.price != null)
-      .map(size => `${size}: ${this.formatCurrency(product.prices_by_size[size].price)}${unit}`)
+    const rawUnit = product?.price_unit === 'per_tap'
+      ? '/tép'
+      : product?.price_unit
+        ? (String(product.price_unit).startsWith('/') ? String(product.price_unit) : `/${product.price_unit}`)
+        : '';
+    const unit = rawUnit.replace(/[&<>"']/g, character => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    })[character]);
+
+    const tiers = Object.entries(product?.prices_by_size || {})
+      .filter(([, tier]) => tier?.price != null);
+    if (!tiers.length) return 'Giá theo size đang được cập nhật';
+    return tiers
+      .map(([size, tier]) => {
+        const safeSize = String(size).replace(/[&<>"']/g, character => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[character]);
+        return `${safeSize}: ${this.formatCurrency(tier.price)}${unit}`;
+      })
       .join(' · ') || 'Liên hệ';
   },
 

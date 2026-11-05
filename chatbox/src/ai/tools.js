@@ -33,6 +33,11 @@ const TOOL_DEFINITIONS = [
             items: { type: 'string' },
             description: 'ID các dịch vụ khách đã chọn; nếu có, dùng tổng thời lượng của các dịch vụ này để kiểm tra lịch.',
           },
+          product_sizes: {
+            type: 'object',
+            additionalProperties: { type: 'string' },
+            description: 'Size đã xác nhận cho từng ID dịch vụ.',
+          },
         },
       },
     },
@@ -53,6 +58,11 @@ const TOOL_DEFINITIONS = [
             type: 'array',
             items: { type: 'string' },
             description: 'ID toàn bộ dịch vụ khách đã chọn (nếu có nhiều dịch vụ)',
+          },
+          product_sizes: {
+            type: 'object',
+            additionalProperties: { type: 'string' },
+            description: 'Lựa chọn size theo từng ID dịch vụ, chỉ gửi sau khi khách xác nhận size.',
           },
           notes: { type: 'string', description: 'Ghi chú thêm về dịch vụ' },
         },
@@ -80,6 +90,11 @@ const TOOL_DEFINITIONS = [
             items: { type: 'string' },
             description: 'ID toàn bộ dịch vụ khách đã chọn (nếu có nhiều dịch vụ)',
           },
+          product_sizes: {
+            type: 'object',
+            additionalProperties: { type: 'string' },
+            description: 'Lựa chọn size theo từng ID dịch vụ, chỉ gửi sau khi khách xác nhận size.',
+          },
           notes: { type: 'string', description: 'Ghi chú thêm' },
         },
       },
@@ -104,6 +119,11 @@ const TOOL_DEFINITIONS = [
             type: 'array',
             items: { type: 'string' },
             description: 'ID toàn bộ dịch vụ khách đã chọn (nếu có nhiều dịch vụ)',
+          },
+          product_sizes: {
+            type: 'object',
+            additionalProperties: { type: 'string' },
+            description: 'Lựa chọn size theo từng ID dịch vụ, chỉ gửi sau khi khách xác nhận size.',
           },
           notes: { type: 'string', description: 'Ghi chú thêm về cuộc tư vấn' },
         },
@@ -410,8 +430,24 @@ async function executeTool(toolName, rawArgs, context = {}) {
               slots: [],
             });
           }
+          const selectedTiers = selectedServices.map(service =>
+            ['S', 'M', 'L'].includes(args.product_sizes?.[service.id])
+              ? service.prices_by_size?.[args.product_sizes[service.id]]
+              : null
+          );
+          if (selectedTiers.some(tier =>
+            !tier || !Number.isFinite(Number(tier.price)) || Number(tier.price) <= 0
+          )) {
+            return JSON.stringify({
+              success: false,
+              code: 'INVALID_SERVICE_SIZE',
+              error: 'Vui lòng chọn size có giá hợp lệ cho từng dịch vụ.',
+              slots: [],
+            });
+          }
           duration = selectedServices.reduce(
-            (total, service) => total + (Number(service.duration) || 30),
+            (total, service, index) =>
+              total + (Number(selectedTiers[index].duration ?? service.duration) || 30),
             0
           );
         }
@@ -460,6 +496,7 @@ async function executeTool(toolName, rawArgs, context = {}) {
           appointmentTime: apptTime,
           productId: args.product_id || null,
           productIds: args.product_ids || null,
+          productSizes: args.product_sizes || {},
           notes: args.notes || null,
         });
         return JSON.stringify({
@@ -616,6 +653,7 @@ async function executeTool(toolName, rawArgs, context = {}) {
           customerEmail: customerEmail,
           productId: args.product_id || null,
           productIds: args.product_ids || null,
+          productSizes: args.product_sizes || {},
           appointmentDate: apptDate,
           appointmentTime: apptTime,
           notes: args.notes || null,
@@ -716,6 +754,7 @@ async function executeTool(toolName, rawArgs, context = {}) {
           customerEmail: customerEmail,
           productId: args.product_id || null,
           productIds: args.product_ids || null,
+          productSizes: args.product_sizes || {},
           appointmentDate: apptDate,
           appointmentTime: apptTime,
           notes: args.notes || null,

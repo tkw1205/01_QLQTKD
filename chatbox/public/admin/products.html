@@ -3,32 +3,197 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Salon Lumière – Quản lý dịch vụ & sản phẩm</title>
+  <title>Mây Hair Studio – Quản lý dịch vụ & sản phẩm</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/admin.css">
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
   <style>
-    .prod-thumb {
-      width: 48px;
-      height: 48px;
-      border-radius: var(--radius);
+    .product-modal {
+      max-width: 760px !important;
+    }
+    .product-field-error {
+      display: block;
+      min-height: 0;
+      margin-top: .3rem;
+      color: var(--danger);
+      font-size: .8rem;
+    }
+    .product-field-error:empty {
+      display: none;
+    }
+    .product-invalid {
+      border-color: var(--danger) !important;
+    }
+    .product-standard-sizes,
+    .product-custom-sizes {
+      display: grid;
+      gap: .55rem;
+    }
+    .product-standard-size {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(150px, 220px);
+      align-items: center;
+      gap: 1rem;
+    }
+    .product-standard-size-label {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .product-standard-size-label small {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    @media (max-width: 600px) {
+      .product-standard-size {
+        grid-template-columns: minmax(0, 1fr) minmax(110px, 150px);
+        gap: .5rem;
+      }
+      .product-standard-size-label {
+        flex-wrap: wrap;
+      }
+    }
+    .product-list-wrap {
+      overflow-x: auto;
+    }
+    .product-list-table {
+      min-width: 860px;
+      table-layout: fixed;
+    }
+    .product-list-table th {
+      background: #f0f7f0;
+      color: #53665b;
+      font-weight: 700;
+      border-bottom-color: #dce9dc;
+    }
+    .product-list-table td {
+      height: 56px;
+      color: #26342b;
+      border-bottom-color: #e2ece2;
+    }
+    .product-list-table tbody tr:not(.product-detail-row):hover td {
+      background: #f8fbf8;
+    }
+    .product-service-row {
+      cursor: pointer;
+    }
+    .product-code-cell {
+      white-space: nowrap;
+      font-weight: 600;
+    }
+    .product-code {
+      color: #53665b;
+      font-variant-numeric: tabular-nums;
+    }
+    .product-expand-toggle,
+    .product-action-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border: 1px solid #d5e5d5;
+      border-radius: 6px;
+      background: #fff;
+      color: #52665a;
+      cursor: pointer;
+    }
+    .product-expand-toggle {
+      width: 24px;
+      height: 28px;
+      margin-right: .25rem;
+      border: 0;
+      background: transparent;
+      font-size: 1rem;
+    }
+    .product-action-button:hover,
+    .product-expand-toggle:hover {
+      background: #f0f7f0;
+      border-color: #a9c5a9;
+    }
+    .product-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: .4rem;
+    }
+    .product-detail-row td {
+      height: auto;
+      padding: 0;
+      background: #f4f8f3;
+    }
+    .product-detail-content {
+      display: grid;
+      grid-template-columns: 180px minmax(0, 1fr);
+      gap: 1.25rem;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #dce9dc;
+    }
+    .product-detail-image-wrap {
+      width: 180px;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #e6efe4;
+    }
+    .product-detail-image {
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      background: var(--soft);
-      border: 1px solid var(--line);
+    }
+    .product-detail-placeholder {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.25rem;
-      flex-shrink: 0;
-      color: var(--pri);
+      width: 100%;
+      height: 100%;
+      color: #617567;
+      font-size: 2rem;
       font-weight: 700;
     }
-    .prod-row-info {
-      display: flex;
-      align-items: center;
-      gap: .75rem;
+    .product-detail-name {
+      margin: 0 0 .35rem;
+      color: #26342b;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    .product-detail-summary {
+      color: #637469;
+    }
+    .product-price-table {
+      width: 100%;
+      margin-top: 1rem;
+    }
+    .product-price-table th,
+    .product-price-table td {
+      height: auto;
+      padding: .6rem .5rem;
+      background: transparent;
+      border-bottom: 1px solid #dce9dc;
+    }
+    .product-price-table th {
+      color: #53665b;
+    }
+    .product-price-table th:last-child,
+    .product-price-table td:last-child {
+      text-align: right;
+    }
+    .product-price-table tbody tr:hover td {
+      background: transparent;
+    }
+    @media (max-width: 640px) {
+      .product-detail-content {
+        grid-template-columns: 110px minmax(0, 1fr);
+        gap: .85rem;
+        padding: 1rem;
+      }
+      .product-detail-image-wrap {
+        width: 110px;
+      }
     }
   </style>
 </head>
@@ -41,7 +206,7 @@
     <div class="admin-main">
       <header class="admin-header">
         <div>
-          <h2>Quản lý dịch vụ &amp; sản phẩm</h2>
+          <h2>Quản lý dịch vụ</h2>
           <p class="sub">Thêm, sửa bảng giá, size tóc và nhóm dịch vụ</p>
         </div>
         <div style="display: flex; align-items: center; gap: .75rem;">
@@ -61,7 +226,7 @@
             type="text"
             id="filter-search"
             class="form-control"
-            placeholder="🔍 Tìm kiếm theo tên sản phẩm hoặc mô tả..."
+            placeholder="🔍 Tìm kiếm theo tên dịch vụ hoặc mô tả..."
             style="min-width: 260px;"
           >
           <select id="filter-category" class="form-control" style="max-width: 200px;">
@@ -82,7 +247,7 @@
         <div class="card">
           <div class="card-header">
             <div>
-              <h3 style="font-size: 1rem; margin: 0;">Danh sách Mặt hàng</h3>
+              <h3 style="font-size: 1rem; margin: 0;">Danh sách dịch vụ</h3>
               <div style="font-size: .8rem; color: var(--text-muted); margin-top: .2rem;" id="products-count-label">
                 Hiển thị 0 sản phẩm
               </div>
@@ -92,15 +257,23 @@
             </button>
           </div>
 
-          <div class="table-wrap">
-            <table>
+          <div class="product-list-wrap">
+            <table class="product-list-table">
+              <colgroup>
+                <col style="width: 18%;">
+                <col style="width: 23%;">
+                <col style="width: 29%;">
+                <col style="width: 12%;">
+                <col style="width: 9%;">
+                <col style="width: 9%;">
+              </colgroup>
               <thead>
                 <tr>
-                  <th>Sản phẩm</th>
-                  <th>Danh mục</th>
-                  <th>Đơn giá</th>
-                  <th>Trạng thái</th>
-                  <th>Ngày cập nhật</th>
+                  <th>Mã dịch vụ</th>
+                  <th>Nhóm dịch vụ</th>
+                  <th>Tên dịch vụ</th>
+                  <th>Thời gian (phút)</th>
+                  <th>Số NV cần</th>
                   <th style="text-align: right;">Thao tác</th>
                 </tr>
               </thead>
@@ -132,50 +305,71 @@
 
   <!-- Modal: Thêm / Sửa Sản Phẩm -->
   <div class="modal-overlay" id="product-modal-overlay">
-    <div class="modal" style="max-width: 560px;">
+    <div class="modal product-modal">
       <div class="modal-header">
-        <h3 id="product-modal-title">Thêm sản phẩm mới</h3>
+        <h3 id="product-modal-title">Tạo dịch vụ</h3>
         <button type="button" class="modal-close" id="btn-close-product-modal">&times;</button>
       </div>
-      <form id="form-product">
+      <form id="form-product" novalidate>
         <div class="modal-body">
           <input type="hidden" id="product-id">
 
           <div class="form-group">
-            <label class="form-label" for="prod-name">Tên sản phẩm <span class="text-danger">*</span></label>
-            <input type="text" id="prod-name" class="form-control" placeholder="VD: iPhone 15 Pro Max" required>
+            <label class="form-label" for="prod-category">Nhóm dịch vụ <span class="text-danger">*</span></label>
+            <select id="prod-category" class="form-control" required aria-describedby="prod-category-error">
+              <option value="">-- Chọn nhóm dịch vụ --</option>
+            </select>
+            <small class="product-field-error" id="prod-category-error" aria-live="polite"></small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="prod-name">Tên dịch vụ <span class="text-danger">*</span></label>
+            <input type="text" id="prod-name" class="form-control" placeholder="Nhập tên dịch vụ" required aria-describedby="prod-name-error">
+            <small class="product-field-error" id="prod-name-error" aria-live="polite"></small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="prod-image">Ảnh minh họa (đường dẫn URL)</label>
+            <input type="url" id="prod-image" class="form-control" placeholder="Dán liên kết ảnh, ví dụ: https://example.com/image.jpg">
+            <small class="product-field-error" id="prod-image-error" aria-live="polite"></small>
+          </div>
+
+          <div class="form-group" id="prod-size-price-section">
+            <label class="form-label">Chọn ít nhất một size và nhập giá tương ứng <span class="text-danger">*</span></label>
+            <div id="prod-standard-size-prices" class="product-standard-sizes"></div>
+            <small class="product-field-error" id="prod-size-prices-error" aria-live="polite"></small>
           </div>
 
           <div class="grid-2">
             <div class="form-group">
-              <label class="form-label" for="prod-category">Danh mục</label>
-              <select id="prod-category" class="form-control">
-                <option value="">-- Chưa phân loại --</option>
-              </select>
+              <label class="form-label" for="prod-duration">Thời gian thực hiện (phút) <span class="text-danger">*</span></label>
+              <input type="number" id="prod-duration" class="form-control" min="1" step="1" placeholder="45" required aria-describedby="prod-duration-error">
+              <small class="product-field-error" id="prod-duration-error" aria-live="polite"></small>
             </div>
             <div class="form-group">
-              <label class="form-label" for="prod-price">Giá niêm yết (VND)</label>
-              <input type="number" id="prod-price" class="form-control" placeholder="VD: 34990000" min="0" step="1000">
+              <label class="form-label" for="prod-staff-count">Số lượng nhân viên thực hiện <span class="text-danger">*</span></label>
+              <input type="number" id="prod-staff-count" class="form-control" min="1" step="1" placeholder="Ví dụ: 1" required aria-describedby="prod-staff-count-error">
+              <small class="product-field-error" id="prod-staff-count-error" aria-live="polite"></small>
             </div>
           </div>
 
           <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="prod-price-unit">Đơn vị tính giá</label>
+              <input type="text" id="prod-price-unit" class="form-control" placeholder="Ví dụ: tép; để trống nếu không có đơn vị riêng">
+            </div>
             <div class="form-group">
               <label class="form-label" for="prod-status">Trạng thái kinh doanh</label>
               <select id="prod-status" class="form-control">
-                <option value="active">Đang bán (Active)</option>
-                <option value="inactive">Tạm ẩn (Inactive)</option>
+                <option value="active">Đang bán</option>
+                <option value="inactive">Tạm ẩn</option>
                 <option value="discontinued">Ngừng kinh doanh</option>
               </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="prod-image">URL Ảnh sản phẩm</label>
-              <input type="url" id="prod-image" class="form-control" placeholder="https://example.com/image.jpg">
             </div>
           </div>
 
           <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="prod-desc">Mô tả tóm tắt sản phẩm</label>
+            <label class="form-label" for="prod-desc">Mô tả dịch vụ</label>
             <textarea id="prod-desc" class="form-control" rows="3" placeholder="Mô tả thông số, tính năng nổi bật để hỗ trợ tư vấn..."></textarea>
           </div>
         </div>
@@ -183,7 +377,7 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" id="btn-cancel-product-modal">Hủy</button>
           <button type="submit" class="btn btn-primary" id="btn-save-product">
-            <span>Lưu sản phẩm</span>
+            <span>Lưu dịch vụ</span>
           </button>
         </div>
       </form>
@@ -242,6 +436,38 @@
       let totalProducts = 0;
       let categories = [];
       let products = [];
+      let expandedProductId = null;
+      const standardSizeDescriptions = {
+        S: 'Tóc ngắn (từ cằm trở lên)',
+        M: 'Tóc lỡ (từ cằm đến ngang vai)',
+        L: 'Tóc dài (từ ngang ngực trở xuống)',
+      };
+      const standardSizeMultipliers = { S: 1, M: 1.18, L: 1.38 };
+
+      function suggestSizePrice(size) {
+        const categoryName = categories.find(category => category.id === prodCat.value)?.name || '';
+        const serviceName = prodName.value;
+        const normalize = value => value.normalize('NFD').replace(/[\u0300-\u036f]/gu, '').toLowerCase();
+        const normalizedName = normalize(serviceName);
+        const nameWords = new Set(normalizedName.split(/\s+/u));
+        const categoryWords = new Set(normalize(categoryName).split(/\s+/u));
+        let basePrice = 90000;
+        if (/thay doc|tay te bao/u.test(normalizedName)) basePrice = 120000;
+        else if (categoryWords.has('tay') || /tay toc|tay balay|tay ombre|nang nen|bleach/u.test(normalizedName)) basePrice = 320000;
+        else if (categoryWords.has('nhuom') || nameWords.has('nhuom') || nameWords.has('color')) basePrice = 230000;
+        else if (categoryWords.has('uon') || categoryWords.has('duoi') || nameWords.has('uon') || nameWords.has('duoi') || nameWords.has('perm') || nameWords.has('straight')) basePrice = 210000;
+        else if (categoryWords.has('phuc') || nameWords.has('phuc') || /keratin|collagen|hap dau/u.test(normalizedName)) basePrice = 150000;
+        else if (categoryWords.has('noi') || nameWords.has('extension')) basePrice = 110000;
+        else if (categoryWords.has('goi') || nameWords.has('shampoo') || /duong sinh/u.test(normalizedName)) basePrice = 70000;
+        else if (categoryWords.has('cat') || nameWords.has('cat') || nameWords.has('tia') || /tao kieu|styling/u.test(normalizedName)) basePrice = 85000;
+
+        const duration = Number(prodDuration.value) || 45;
+        const durationFactor = Math.min(1.8, Math.max(0.7, 0.75 + duration / 180));
+        const complexityFactor = /balayage|ombre|nano|chuyen sau|co truyen|art/u.test(normalizedName) ? 1.15 : 1;
+        const variation = [...`${serviceName} ${categoryName}`].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 5;
+        const variedPrice = basePrice * durationFactor * complexityFactor * (0.9 + variation * 0.05);
+        return Math.round((variedPrice * standardSizeMultipliers[size]) / 10000) * 10000;
+      }
 
       // Elements
       const filterSearch = document.getElementById('filter-search');
@@ -261,8 +487,12 @@
       const prodId = document.getElementById('product-id');
       const prodName = document.getElementById('prod-name');
       const prodCat = document.getElementById('prod-category');
-      const prodPrice = document.getElementById('prod-price');
-      const prodPriceLabel = document.querySelector('label[for="prod-price"]');
+      const prodSizePriceSection = document.getElementById('prod-size-price-section');
+      const prodSizePricesError = document.getElementById('prod-size-prices-error');
+      const prodDuration = document.getElementById('prod-duration');
+      const prodStaffCount = document.getElementById('prod-staff-count');
+      const prodPriceUnit = document.getElementById('prod-price-unit');
+      const prodStandardSizePrices = document.getElementById('prod-standard-size-prices');
       const prodStatus = document.getElementById('prod-status');
       const prodImage = document.getElementById('prod-image');
       const prodDesc = document.getElementById('prod-desc');
@@ -272,6 +502,140 @@
       const catName = document.getElementById('cat-name');
       const catDesc = document.getElementById('cat-desc');
       const catListContainer = document.getElementById('categories-list-container');
+      const productFieldErrors = {
+        category: document.getElementById('prod-category-error'),
+        name: document.getElementById('prod-name-error'),
+        image: document.getElementById('prod-image-error'),
+        duration: document.getElementById('prod-duration-error'),
+        staffCount: document.getElementById('prod-staff-count-error'),
+      };
+      if (currentUser.role !== 'admin') {
+        document.getElementById('btn-open-categories').hidden = true;
+      }
+
+      function renderStandardSizeRow(size, description, tier) {
+        const row = document.createElement('div');
+        row.className = 'product-price-tier product-standard-size';
+        row.dataset.duration = tier?.duration ?? '';
+        row.innerHTML = `
+          <label class="product-standard-size-label">
+            <input type="checkbox" class="tier-enabled" aria-label="Áp dụng size ${size}" ${tier ? 'checked' : ''}>
+            <span>Size ${size}</span>
+            <small>${description}</small>
+          </label>
+          <div>
+            <input type="number" class="form-control tier-price" min="0.01" step="any" placeholder="Giá size ${size}" value="${tier?.price ?? ''}" aria-label="Giá size ${size}" ${tier ? '' : 'disabled'}>
+            <small class="product-field-error tier-price-error" aria-live="polite"></small>
+          </div>
+          <input type="hidden" class="tier-size" value="${size}">
+        `;
+        row.querySelector('.tier-enabled').addEventListener('change', event => {
+          const priceInput = row.querySelector('.tier-price');
+          priceInput.disabled = !event.target.checked;
+          priceInput.required = event.target.checked;
+          if (event.target.checked && !priceInput.value.trim()) {
+            priceInput.value = String(suggestSizePrice(size));
+          }
+          row.querySelector('.tier-price-error').textContent = '';
+          priceInput.classList.remove('product-invalid');
+          priceInput.removeAttribute('aria-invalid');
+          prodSizePricesError.textContent = '';
+        });
+        prodStandardSizePrices.appendChild(row);
+      }
+
+      function loadPriceTiers(pricesBySize) {
+        const configuredTiers = pricesBySize || {};
+        prodStandardSizePrices.innerHTML = '';
+        renderStandardSizeRow('S', standardSizeDescriptions.S, configuredTiers.S);
+        renderStandardSizeRow('M', standardSizeDescriptions.M, configuredTiers.M);
+        renderStandardSizeRow('L', standardSizeDescriptions.L, configuredTiers.L);
+      }
+
+      function updatePricingSections() {
+        prodStandardSizePrices.querySelectorAll('.product-price-tier').forEach(row => {
+          const checkbox = row.querySelector('.tier-enabled');
+          const priceInput = row.querySelector('.tier-price');
+          priceInput.disabled = !checkbox.checked;
+          priceInput.required = checkbox.checked;
+        });
+      }
+
+      function clearProductValidationErrors() {
+        Object.values(productFieldErrors).forEach(error => { error.textContent = ''; });
+        prodSizePricesError.textContent = '';
+        formProduct.querySelectorAll('.product-invalid').forEach(input => input.classList.remove('product-invalid'));
+        formProduct.querySelectorAll('[aria-invalid="true"]').forEach(input => input.removeAttribute('aria-invalid'));
+        formProduct.querySelectorAll('.tier-price-error').forEach(error => { error.textContent = ''; });
+      }
+
+      function showProductFieldError(input, errorElement, message) {
+        input.classList.add('product-invalid');
+        input.setAttribute('aria-invalid', 'true');
+        errorElement.textContent = message;
+      }
+
+      function clearFieldError(input, errorElement) {
+        input.classList.remove('product-invalid');
+        input.removeAttribute('aria-invalid');
+        errorElement.textContent = '';
+      }
+
+      function showServerValidationError(error) {
+        const field = error.data?.field;
+        const fieldTargets = {
+          category_id: [prodCat, productFieldErrors.category],
+          name: [prodName, productFieldErrors.name],
+          image_url: [prodImage, productFieldErrors.image],
+          duration: [prodDuration, productFieldErrors.duration],
+          staff_count: [prodStaffCount, productFieldErrors.staffCount],
+        };
+        if (field === 'prices_by_size') {
+          const firstPrice = prodSizePriceSection.querySelector('.tier-price:not(:disabled)');
+          if (firstPrice) firstPrice.classList.add('product-invalid');
+          prodSizePricesError.textContent = error.message;
+          (firstPrice || prodStandardSizePrices.querySelector('.tier-enabled'))?.focus();
+          return;
+        }
+        const target = fieldTargets[field];
+        if (target) {
+          showProductFieldError(target[0], target[1], error.message);
+          target[0].focus();
+        } else {
+          Admin.toast(error.message || 'Dữ liệu dịch vụ không hợp lệ.', 'error');
+        }
+      }
+
+      formProduct.addEventListener('input', event => {
+        const fieldErrors = [
+          [prodCat, productFieldErrors.category],
+          [prodName, productFieldErrors.name],
+          [prodImage, productFieldErrors.image],
+          [prodDuration, productFieldErrors.duration],
+          [prodStaffCount, productFieldErrors.staffCount],
+        ];
+        const matched = fieldErrors.find(([input]) => input === event.target);
+        if (matched) clearFieldError(matched[0], matched[1]);
+        const tierError = event.target.closest('.product-price-tier')?.querySelector('.tier-price-error');
+        if (tierError && event.target.classList.contains('tier-price')) {
+          event.target.classList.remove('product-invalid');
+          event.target.removeAttribute('aria-invalid');
+          tierError.textContent = '';
+        }
+        const tierSizeError = event.target.closest('.product-price-tier')?.querySelector('.tier-size-error');
+        if (tierSizeError && event.target.classList.contains('tier-size')) {
+          event.target.classList.remove('product-invalid');
+          event.target.removeAttribute('aria-invalid');
+          tierSizeError.textContent = '';
+        }
+        const tierDurationError = event.target.closest('.product-price-tier')?.querySelector('.tier-duration-error');
+        if (tierDurationError && event.target.classList.contains('tier-duration')) {
+          event.target.classList.remove('product-invalid');
+          event.target.removeAttribute('aria-invalid');
+          tierDurationError.textContent = '';
+        }
+        if (event.target.closest('.product-price-tier')) prodSizePricesError.textContent = '';
+      });
 
       // 3. Load Categories
       async function loadCategories() {
@@ -292,7 +656,7 @@
           categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
         filterCategory.innerHTML = optionsHtml;
 
-        const formOptionsHtml = '<option value="">-- Chưa phân loại --</option>' +
+        const formOptionsHtml = '<option value="">-- Chọn nhóm dịch vụ --</option>' +
           categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
         prodCat.innerHTML = formOptionsHtml;
       }
@@ -324,7 +688,8 @@
         const params = new URLSearchParams({
           page: currentPage,
           limit: limit,
-          status: status
+          status: status,
+          sortBy: 'service_code',
         });
         if (search) params.append('search', search);
         if (category) params.append('category', category);
@@ -335,6 +700,9 @@
 
           products = res.data || [];
           totalProducts = res.meta?.total || 0;
+          if (!products.some(product => product.id === expandedProductId)) {
+            expandedProductId = null;
+          }
 
           renderProductsTable();
           updatePagination();
@@ -342,7 +710,7 @@
           tbody.innerHTML = `
             <tr>
               <td colspan="6" class="text-center" style="padding: 2.5rem; color: var(--danger);">
-                ✕ Lỗi tải sản phẩm: ${escapeHtml(err.message)}
+                ✕ Lỗi tải dịch vụ: ${escapeHtml(err.message)}
               </td>
             </tr>
           `;
@@ -350,106 +718,156 @@
       }
 
       function renderProductsTable() {
-        countLabel.textContent = `Hiển thị ${products.length} trên tổng số ${totalProducts} sản phẩm`;
+        countLabel.textContent = `Hiển thị ${products.length} trên tổng số ${totalProducts} dịch vụ`;
 
         if (!products.length) {
           tbody.innerHTML = `
             <tr>
               <td colspan="6" class="text-center" style="padding: 3rem; color: var(--text-muted);">
                 <div style="font-size: 2.5rem; margin-bottom: .5rem;">📦</div>
-                <div>Không tìm thấy sản phẩm nào phù hợp.</div>
+                <div>Không tìm thấy dịch vụ nào phù hợp.</div>
               </td>
             </tr>
           `;
           return;
         }
 
-        tbody.innerHTML = products.map(p => {
-          let statusBadge = '<span class="badge badge-success">Đang bán</span>';
-          if (p.status === 'inactive') {
-            statusBadge = '<span class="badge badge-secondary">Tạm ẩn</span>';
-          } else if (p.status === 'discontinued') {
-            statusBadge = '<span class="badge badge-danger">Ngừng KD</span>';
-          }
-
-          const priceStr = p.prices_by_size
-            ? ['S', 'M', 'L']
-              .filter(size => p.prices_by_size[size]?.price != null)
-              .map(size => `${size}: ${Admin.formatCurrency(p.prices_by_size[size].price)}${p.price_unit === 'per_tap' ? '/tép' : ''}`)
-              .join(' · ') || 'Liên hệ'
-            : Admin.formatCurrency(p.price);
-          const dateStr = Admin.formatDate(p.updated_at || p.created_at);
-
-          const imgHtml = p.image_url
-            ? `<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" class="prod-thumb" onerror="this.outerHTML='<div class=\\'prod-thumb\\'>📱</div>'">`
-            : `<div class="prod-thumb">📱</div>`;
+        const formatUnit = unit => {
+          if (!unit) return '';
+          const value = String(unit);
+          return value.startsWith('/') ? value : `/${value === 'per_tap' ? 'tép' : value}`;
+        };
+        const renderProductDetails = product => {
+          const tiers = Object.entries(product.prices_by_size || {})
+            .filter(([, tier]) => tier && typeof tier === 'object');
+          const fallbackTier = tiers[0]?.[1];
+          const duration = product.duration ?? fallbackTier?.duration;
+          const staffCount = product.staff_count ?? fallbackTier?.staff_count;
+          const initials = String(product.name || '')
+            .trim()
+            .split(/\s+/u)
+            .slice(0, 2)
+            .map(word => word[0] || '')
+            .join('')
+            .toLocaleUpperCase('vi-VN');
+          const image = product.image_url
+            ? `<img class="product-detail-image" src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><div class="product-detail-placeholder" hidden>${escapeHtml(initials)}</div>`
+            : `<div class="product-detail-placeholder">${escapeHtml(initials)}</div>`;
+          const summary = [
+            product.category_name || 'Chưa phân nhóm',
+            duration != null ? `${escapeHtml(duration)} phút` : 'Chưa có thời lượng',
+            staffCount != null ? `${escapeHtml(staffCount)} nhân viên` : 'Chưa xác định số nhân viên',
+          ].join(' · ');
+          const priceDetails = tiers.length
+            ? `
+              <table class="product-price-table">
+                <thead><tr><th>Size</th><th>Loại tóc</th><th>Giá</th></tr></thead>
+                <tbody>
+                  ${tiers.map(([size, tier]) => `
+                    <tr>
+                      <td>${escapeHtml(size)}</td>
+                      <td>${escapeHtml(tier.description || tier.hair_type || tier.label || standardSizeDescriptions[size] || '—')}</td>
+                      <td>${tier.price != null ? `${Admin.formatCurrency(tier.price)}${escapeHtml(formatUnit(product.price_unit))}` : 'Chưa thiết lập'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            `
+            : '<div class="product-detail-summary">Dịch vụ chưa được cấu hình giá theo size.</div>';
 
           return `
-            <tr>
-              <td>
-                <div class="prod-row-info">
-                  ${imgHtml}
-                  <div>
-                    <div style="font-weight: 600; color: var(--text);">${escapeHtml(p.name)}</div>
-                    <div style="font-size: .75rem; color: var(--text-muted);">${escapeHtml(p.slug || '')}</div>
-                  </div>
-                </div>
+            <div class="product-detail-content">
+              <div class="product-detail-image-wrap">${image}</div>
+              <div>
+                <h4 class="product-detail-name">${escapeHtml(product.name)}</h4>
+                <div class="product-detail-summary">${summary}</div>
+                ${priceDetails}
+              </div>
+            </div>
+          `;
+        };
+
+        tbody.innerHTML = products.map(product => {
+          const isExpanded = product.id === expandedProductId;
+          const firstTier = Object.values(product.prices_by_size || {})[0] || {};
+          const duration = product.duration ?? firstTier.duration;
+          const staffCount = product.staff_count ?? firstTier.staff_count;
+          return `
+            <tr class="product-service-row" data-id="${escapeHtml(product.id)}" tabindex="0" aria-expanded="${isExpanded}">
+              <td class="product-code-cell">
+                <span class="product-expand-toggle" aria-hidden="true">${isExpanded ? '▾' : '▸'}</span>
+                <span class="product-code" title="${escapeHtml(product.id || '')}">${escapeHtml(product.service_code || '—')}</span>
               </td>
+              <td>${escapeHtml(product.category_name || '—')}</td>
+              <td>${escapeHtml(product.name || '')}</td>
+              <td>${duration != null ? escapeHtml(duration) : '—'}</td>
+              <td>${staffCount != null ? escapeHtml(staffCount) : '—'}</td>
               <td>
-                ${p.category_name ? `<span class="badge badge-info">${escapeHtml(p.category_name)}</span>` : '<span style="color: var(--text-muted); font-size: .8rem;">—</span>'}
-              </td>
-              <td>
-                <strong style="color: var(--primary); font-size: .95rem;">${priceStr}</strong>
-              </td>
-              <td>${statusBadge}</td>
-              <td style="font-size: .8rem; color: var(--text-muted);">${dateStr}</td>
-              <td style="text-align: right;">
-                <div style="display: flex; gap: .5rem; justify-content: flex-end;">
-                  <button type="button" class="btn btn-outline btn-sm btn-edit-product" data-id="${p.id}" title="Chỉnh sửa">
-                    ✏️ Sửa
+                <div class="product-actions">
+                  <button type="button" class="product-action-button" data-action="edit" data-id="${escapeHtml(product.id)}" title="Chỉnh sửa dịch vụ" aria-label="Chỉnh sửa ${escapeHtml(product.name)}">
+                    <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg>
                   </button>
-                  <button type="button" class="btn btn-sm ${p.status === 'active' ? 'btn-secondary' : 'btn-success'} btn-toggle-status" data-id="${p.id}" data-status="${p.status}">
-                    ${p.status === 'active' ? 'Ẩn' : 'Hiện'}
+                  <button type="button" class="product-action-button" data-action="delete" data-id="${escapeHtml(product.id)}" title="Xóa dịch vụ" aria-label="Xóa ${escapeHtml(product.name)}">
+                    <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg>
                   </button>
                 </div>
               </td>
             </tr>
+            ${isExpanded ? `<tr class="product-detail-row"><td colspan="6">${renderProductDetails(product)}</td></tr>` : ''}
           `;
         }).join('');
-
-        // Attach action events
-        tbody.querySelectorAll('.btn-edit-product').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const id = btn.getAttribute('data-id');
-            const product = products.find(p => p.id === id);
-            if (product) openEditProductModal(product);
-          });
-        });
-
-        tbody.querySelectorAll('.btn-toggle-status').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            const id = btn.getAttribute('data-id');
-            const currentStatus = btn.getAttribute('data-status');
-            const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-
-            try {
-              const res = await Admin.api(`/api/products/${id}`, {
-                method: 'PUT',
-                body: { status: newStatus }
-              });
-              if (!res.success) throw new Error('Không thể cập nhật trạng thái');
-              Admin.toast('Đã cập nhật trạng thái sản phẩm', 'success');
-              loadProducts(currentPage);
-            } catch (err) {
-              Admin.toast(err.message || 'Lỗi cập nhật', 'error');
-            }
-          });
-        });
       }
+
+      tbody.addEventListener('click', async event => {
+        const button = event.target.closest('button[data-action]');
+        if (button && tbody.contains(button)) {
+          event.preventDefault();
+          event.stopPropagation();
+          const product = products.find(item => item.id === button.dataset.id);
+          if (!product) return;
+
+          if (button.dataset.action === 'edit') {
+            openEditProductModal(product);
+            return;
+          }
+          if (button.dataset.action === 'delete') {
+            if (!window.confirm(`Bạn có chắc muốn xóa dịch vụ "${product.name}" không?`)) return;
+            try {
+              const result = await Admin.api(`/api/products/${product.id}`, { method: 'DELETE' });
+              if (!result.success) throw new Error(result.error || 'Không thể xóa dịch vụ');
+              if (expandedProductId === product.id) expandedProductId = null;
+              Admin.toast('Đã xóa dịch vụ thành công.', 'success');
+              await loadProducts(currentPage);
+              loadCategories();
+            } catch (err) {
+              Admin.toast(err.message || 'Lỗi khi xóa dịch vụ', 'error');
+            }
+          }
+          return;
+        }
+
+        const row = event.target.closest('tr.product-service-row');
+        if (!row || !tbody.contains(row)) return;
+        const product = products.find(item => item.id === row.dataset.id);
+        if (!product) return;
+        expandedProductId = expandedProductId === product.id ? null : product.id;
+        renderProductsTable();
+      });
+
+      tbody.addEventListener('keydown', event => {
+        if (!['Enter', ' '].includes(event.key) || event.target.closest('button')) return;
+        const row = event.target.closest('tr.product-service-row');
+        if (!row) return;
+        event.preventDefault();
+        const product = products.find(item => item.id === row.dataset.id);
+        if (!product) return;
+        expandedProductId = expandedProductId === product.id ? null : product.id;
+        renderProductsTable();
+      });
 
       function updatePagination() {
         const totalPages = Math.ceil(totalProducts / limit) || 1;
-        paginationInfo.textContent = `Trang ${currentPage} / ${totalPages} (${totalProducts} sản phẩm)`;
+        paginationInfo.textContent = `Trang ${currentPage} / ${totalPages} (${totalProducts} dịch vụ)`;
         btnPrev.disabled = currentPage <= 1;
         btnNext.disabled = currentPage >= totalPages;
       }
@@ -481,26 +899,31 @@
       // 5. Product Create / Edit Modal
       function openCreateProductModal() {
         prodId.value = '';
-        prodModalTitle.textContent = 'Thêm sản phẩm mới';
+        prodModalTitle.textContent = 'Tạo dịch vụ';
         formProduct.reset();
         prodStatus.value = 'active';
-        prodPriceLabel.textContent = 'Giá niêm yết (VND)';
+        prodDuration.value = 45;
+        clearProductValidationErrors();
+        loadPriceTiers({});
+        updatePricingSections();
         prodModal.classList.add('open');
         prodName.focus();
       }
 
       function openEditProductModal(product) {
         prodId.value = product.id;
-        prodModalTitle.textContent = `Chỉnh sửa: ${product.name}`;
+        prodModalTitle.textContent = `Chỉnh sửa dịch vụ: ${product.name}`;
         prodName.value = product.name || '';
         prodCat.value = product.category_id || '';
-        prodPrice.value = product.price != null ? product.price : '';
-        prodPriceLabel.textContent = product.prices_by_size
-          ? 'Giá size S (VND)'
-          : 'Giá niêm yết (VND)';
+        prodDuration.value = product.duration || '';
+        prodStaffCount.value = product.staff_count ?? '';
+        prodPriceUnit.value = product.price_unit || '';
+        loadPriceTiers(product.prices_by_size || {});
         prodStatus.value = product.status || 'active';
         prodImage.value = product.image_url || '';
         prodDesc.value = product.description || '';
+        clearProductValidationErrors();
+        updatePricingSections();
         prodModal.classList.add('open');
         prodName.focus();
       }
@@ -520,30 +943,75 @@
 
       formProduct.addEventListener('submit', async (e) => {
         e.preventDefault();
+        clearProductValidationErrors();
         const id = prodId.value;
         const name = prodName.value.trim();
-        const categoryId = prodCat.value || null;
-        const price = prodPrice.value ? parseFloat(prodPrice.value) : null;
+        const categoryId = prodCat.value;
         const status = prodStatus.value;
         const imageUrl = prodImage.value.trim() || null;
         const description = prodDesc.value.trim();
+        const duration = Number(prodDuration.value);
+        const staffCount = Number(prodStaffCount.value);
+        let firstInvalid = null;
+        const fail = (input, errorElement, message) => {
+          showProductFieldError(input, errorElement, message);
+          if (!firstInvalid) firstInvalid = input;
+        };
 
-        if (!name) {
-          Admin.toast('Vui lòng nhập tên sản phẩm', 'warning');
+        if (!categoryId) fail(prodCat, productFieldErrors.category, 'Vui lòng chọn nhóm dịch vụ.');
+        if (!name) fail(prodName, productFieldErrors.name, 'Vui lòng nhập tên dịch vụ.');
+        if (imageUrl && !prodImage.checkValidity()) {
+          fail(prodImage, productFieldErrors.image, 'Vui lòng nhập đường dẫn ảnh hợp lệ.');
+        }
+        if (!Number.isInteger(duration) || duration < 1) {
+          fail(prodDuration, productFieldErrors.duration, 'Thời gian thực hiện phải là số nguyên dương.');
+        }
+        if (!Number.isInteger(staffCount) || staffCount < 1) {
+          fail(prodStaffCount, productFieldErrors.staffCount, 'Số nhân viên cần phải là số nguyên dương.');
+        }
+
+        const pricesBySize = {};
+        let selectedSizeCount = 0;
+        const existingTiers = products.find(product => product.id === id)?.prices_by_size || {};
+        for (const row of formProduct.querySelectorAll('.product-price-tier')) {
+          const enabled = row.querySelector('.tier-enabled');
+          if (!enabled.checked) continue;
+          selectedSizeCount++;
+          const size = row.querySelector('.tier-size').value;
+          const priceInput = row.querySelector('.tier-price');
+          const tierPrice = Number(priceInput.value);
+          if (!priceInput.value || !Number.isFinite(tierPrice) || tierPrice <= 0) {
+            fail(priceInput, row.querySelector('.tier-price-error'), 'Giá size phải là số lớn hơn 0.');
+            continue;
+          }
+          pricesBySize[size] = {
+            ...(existingTiers[size] || {}),
+            price: tierPrice,
+            description: standardSizeDescriptions[size],
+          };
+        }
+        if (!selectedSizeCount) {
+          prodSizePricesError.textContent = 'Vui lòng chọn ít nhất một size và nhập giá.';
+          const firstSize = prodStandardSizePrices.querySelector('.tier-enabled');
+          if (firstSize && !firstInvalid) firstInvalid = firstSize;
+        }
+
+        if (firstInvalid) {
+          firstInvalid.focus();
           return;
         }
 
-        const selectedProduct = products.find(product => product.id === id);
-        const body = { name, categoryId, price, status, imageUrl, description };
-        if (selectedProduct?.prices_by_size) {
-          body.prices_by_size = {
-            ...selectedProduct.prices_by_size,
-            S: {
-              ...selectedProduct.prices_by_size.S,
-              price,
-            },
-          };
-        }
+        const body = {
+          name,
+          categoryId,
+          status,
+          imageUrl,
+          description,
+          duration,
+          staffCount,
+          price_unit: prodPriceUnit.value.trim() || null,
+          prices_by_size: pricesBySize,
+        };
         const btnSave = document.getElementById('btn-save-product');
         btnSave.disabled = true;
 
@@ -555,7 +1023,7 @@
               body
             });
             if (!res.success) throw new Error('Không thể cập nhật sản phẩm');
-            Admin.toast('Cập nhật sản phẩm thành công!', 'success');
+            Admin.toast('Cập nhật dịch vụ thành công!', 'success');
           } else {
             // Create
             const res = await Admin.api('/api/products', {
@@ -563,14 +1031,15 @@
               body
             });
             if (!res.success) throw new Error('Không thể thêm sản phẩm');
-            Admin.toast('Thêm sản phẩm mới thành công!', 'success');
+            Admin.toast('Thêm dịch vụ mới thành công!', 'success');
           }
 
           closeProductModal();
           loadProducts(currentPage);
           loadCategories(); // update product count
         } catch (err) {
-          Admin.toast(err.message || 'Lỗi khi lưu sản phẩm', 'error');
+          if (err.data?.field) showServerValidationError(err);
+          else Admin.toast(err.message || 'Lỗi khi lưu sản phẩm', 'error');
         } finally {
           btnSave.disabled = false;
         }

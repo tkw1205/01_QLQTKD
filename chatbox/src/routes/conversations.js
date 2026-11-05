@@ -104,10 +104,11 @@ router.post('/:id/chat', asyncHandler(async (req, res) => {
   }
 
   // Get AI response
-  const { content, aiConfigured } = await orchestrator.chat({
+  const { content, aiConfigured, handoffAttempted, handoffStatus } = await orchestrator.chat({
     conversationId,
     guestSessionId,
     userMessage: message.trim(),
+    io,
   });
 
   // Save AI response
@@ -118,14 +119,23 @@ router.post('/:id/chat', asyncHandler(async (req, res) => {
   });
 
   // Touch updated_at for conversation
-  await convRepo.updateMode(conversationId, 'ai', conv.assigned_to);
+  if (!handoffAttempted) {
+    await convRepo.updateMode(conversationId, 'ai', conv.assigned_to);
+  }
 
   if (io) {
     io.to(`conv_${conversationId}`).emit('new_message', aiMsg);
     io.to('agents').emit('new_message', aiMsg);
   }
 
-  res.json({ success: true, data: { message: aiMsg, aiConfigured } });
+  res.json({
+    success: true,
+    data: {
+      message: aiMsg,
+      aiConfigured,
+      ...(handoffAttempted ? { handoffStatus } : {}),
+    },
+  });
 }));
 
 // POST /api/conversations/:id/switch-to-agent

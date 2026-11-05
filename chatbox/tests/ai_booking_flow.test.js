@@ -129,7 +129,7 @@ describe('AI Booking Flow, Email Validation & Admin Sync Test Suite', () => {
     assert.equal(confirmRes.code, 'INVALID_PHONE');
   });
 
-  test('3.1 LLM thu thập/xác nhận hội thoại và backend giữ/chốt đúng giờ', async t => {
+  test('3.1 Backend thu thập/xác nhận hội thoại và giữ/chốt đúng giờ', async t => {
     const originalChat = provider.chat;
     const originalIsConfigured = provider.isConfigured;
     const providerPrompts = [];
@@ -177,6 +177,7 @@ describe('AI Booking Flow, Email Validation & Admin Sync Test Suite', () => {
     const available = JSON.parse(await executeTool('check_available_slots', {
       date: testDate,
       product_ids: [service.id],
+      hair_size: 'M',
     }, { conversationId: bookingConversation.id, guestSessionId }));
     assert.ok(available.slots.length > 0);
     const selectedTime = available.slots[0];
@@ -184,15 +185,14 @@ describe('AI Booking Flow, Email Validation & Admin Sync Test Suite', () => {
     const availableReply = await orchestrator.chat({
       conversationId: bookingConversation.id,
       guestSessionId,
-      userMessage: `Tôi muốn đặt lịch ${service.name} ngày ${testDate} lúc ${selectedTime}`,
+      userMessage: `Tôi muốn đặt lịch ${service.name}, tóc ngang vai, ngày ${testDate} lúc ${selectedTime}`,
     });
-    assert.match(availableReply.content, /hiện còn trống/u);
+    assert.match(availableReply.content, /đã giữ chỗ/u);
     assert.match(availableReply.content, /họ tên và số điện thoại/u);
     const activeHold = await appointmentRepo.findActiveHoldByConversation(bookingConversation.id);
     assert.equal(activeHold.appointment_time, selectedTime);
-    assert.match(providerPrompts[0], new RegExp(service.name));
-    assert.match(providerPrompts[0], new RegExp(testDate));
-    assert.match(providerPrompts[0], new RegExp(selectedTime));
+    assert.equal(activeHold.price, service.prices_by_size.M.price);
+    assert.equal(providerPrompts.length, 0);
 
     const contactReply = await orchestrator.chat({
       conversationId: bookingConversation.id,
@@ -202,15 +202,14 @@ describe('AI Booking Flow, Email Validation & Admin Sync Test Suite', () => {
     assert.match(contactReply.content, /thông tin đặt lịch/iu);
     assert.match(contactReply.content, /0927392930/u);
     assert.match(contactReply.content, /xác nhận/u);
-    assert.match(providerPrompts[1], /Nguyễn Văn A/u);
-    assert.match(providerPrompts[1], /0927392930/u);
+    assert.equal(providerPrompts.length, 0);
     const pendingAppointment = jsonStore.loadCollection('appointments').find(a =>
         a.conversation_id === bookingConversation.id &&
         a.appointment_date === testDate &&
         a.appointment_time === selectedTime
     );
     assert.equal(pendingAppointment.status, 'holding');
-    assert.equal(providerPrompts.length, 2);
+    assert.equal(providerPrompts.length, 0);
 
     const confirmationReply = await orchestrator.chat({
       conversationId: bookingConversation.id,

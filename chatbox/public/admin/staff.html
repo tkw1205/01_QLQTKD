@@ -493,16 +493,10 @@
       const scheduleThead = document.getElementById('schedule-thead');
       const scheduleTbody = document.getElementById('schedule-tbody');
 
-      function formatDateInputValue(date) {
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      }
-
-      function getTodayDateInputValue() {
-        return formatDateInputValue(new Date());
-      }
-
-      // Initialize with today's local calendar date.
-      scheduleDateInput.value = getTodayDateInputValue();
+      // Initialize with today (or Vietnam date 2026-10-30)
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      scheduleDateInput.value = todayStr;
 
       function formatDayLabel(dateStr) {
         if (!dateStr) return '';
@@ -517,25 +511,25 @@
         scheduleDateLabel.textContent = formatDayLabel(scheduleDateInput.value);
       }
 
-      function changeScheduleDateBy(days) {
-        const [year, month, day] = scheduleDateInput.value.split('-').map(Number);
-        const date = new Date(Date.UTC(year, month - 1, day + days));
-        scheduleDateInput.value = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
-        updateDateLabel();
-        loadScheduleData();
-      }
-
       // Date navigation events
       document.getElementById('btn-prev-day').addEventListener('click', () => {
-        changeScheduleDateBy(-1);
+        const cur = new Date(scheduleDateInput.value + 'T00:00:00');
+        cur.setDate(cur.getDate() - 1);
+        scheduleDateInput.value = cur.toISOString().slice(0, 10);
+        updateDateLabel();
+        loadScheduleData();
       });
 
       document.getElementById('btn-next-day').addEventListener('click', () => {
-        changeScheduleDateBy(1);
+        const cur = new Date(scheduleDateInput.value + 'T00:00:00');
+        cur.setDate(cur.getDate() + 1);
+        scheduleDateInput.value = cur.toISOString().slice(0, 10);
+        updateDateLabel();
+        loadScheduleData();
       });
 
       document.getElementById('btn-today').addEventListener('click', () => {
-        scheduleDateInput.value = getTodayDateInputValue();
+        scheduleDateInput.value = todayStr;
         updateDateLabel();
         loadScheduleData();
       });
@@ -691,10 +685,7 @@
       }
 
       // ─── LOAD SCHEDULE DATA (Active Staff & Appointments) ───
-      let scheduleLoadRequestId = 0;
-
       async function loadScheduleData(options = {}) {
-        const requestId = ++scheduleLoadRequestId;
         const { preserveScroll = true, silent = false } = options;
         const scrollState = preserveScroll ? getScheduleScrollState() : null;
 
@@ -723,8 +714,6 @@
             Admin.api(`/api/appointments?date=${date}&limit=100`)
           ]);
 
-          if (requestId !== scheduleLoadRequestId) return;
-
           if (staffRes.success) {
             activeStaffList = staffRes.data || [];
           } else {
@@ -744,8 +733,6 @@
             strictRestoreScroll(scrollState);
           }
         } catch (err) {
-          if (requestId !== scheduleLoadRequestId) return;
-
           if (!hasExistingRows && !silent) {
             scheduleTbody.innerHTML = `
               <tr>
@@ -1175,18 +1162,11 @@
 
           Admin.toast(`Đã cập nhật: ${appointmentTime} – ${escapeHtml(staffName)} thành công!`, 'success');
 
-          if (res.data.appointment_date !== scheduleDateInput.value) {
-            scheduleDateInput.value = res.data.appointment_date;
-            await loadScheduleData();
-          } else {
-            // In-place DOM update prevents scroll reset & table redraw
-            updateAppointmentInPlace(res.data);
-          }
-          return true;
+          // In-place DOM update prevents scroll reset & table redraw
+          updateAppointmentInPlace(res.data);
         } catch (err) {
           // Display conflict or validation error message without resetting scroll position
           Admin.toast(err.message || 'Lỗi khi thay đổi lịch hẹn', 'error');
-          return false;
         } finally {
           // Strictly restore scroll position on both axes immediately and after DOM reflow
           strictRestoreScroll(scrollState);
@@ -1228,9 +1208,6 @@
               actionText = `đã đổi giờ hẹn từ <strong>${escapeHtml(h.old_time || '—')}</strong> sang <strong>${escapeHtml(h.new_time || '—')}</strong>`;
             } else {
               actionText = `đã chuyển phân công từ <span style="color: var(--mut);">${escapeHtml(h.old_staff_name || 'Chưa phân công')}</span> sang <strong>${escapeHtml(h.new_staff_name || 'Mới')}</strong>`;
-            }
-            if (h.old_date && h.new_date && h.old_date !== h.new_date) {
-              actionText += ` và đổi ngày từ <strong>${escapeHtml(h.old_date)}</strong> sang <strong>${escapeHtml(h.new_date)}</strong>`;
             }
             return `
               <div class="history-item">
@@ -1288,10 +1265,6 @@
             <label class="form-label" style="color: var(--pri); font-weight: 700;">🔄 Điều chỉnh Phân công &amp; Giờ hẹn (Hoặc Kéo thả trực tiếp trên bảng)</label>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
               <div>
-                <label style="font-size: .78rem; font-weight: 600; color: var(--ink);">Ngày hẹn</label>
-                <input type="date" id="modal-input-date" class="form-control" value="${escapeHtml(appt.appointment_date || '')}" style="width: 100%; margin-top: 4px;">
-              </div>
-              <div>
                 <label style="font-size: .78rem; font-weight: 600; color: var(--ink);">Nhân viên phụ trách</label>
                 <select id="modal-select-staff" class="form-control" style="width: 100%; margin-top: 4px;">
                   ${staffOptionsHtml}
@@ -1317,35 +1290,22 @@
 
         document.getElementById('btn-save-manual-assign').addEventListener('click', async () => {
           const selectedStaffId = document.getElementById('modal-select-staff').value;
-          const selectedDate = document.getElementById('modal-input-date').value;
           const selectedTime = document.getElementById('modal-input-time').value;
-          if (
-            selectedStaffId === (appt.staff_id || '') &&
-            selectedDate === (appt.appointment_date || '') &&
-            selectedTime === (appt.appointment_time || '')
-          ) {
-            closeApptDetailModal();
-            return;
-          }
           if (!selectedStaffId) {
             Admin.toast('Vui lòng chọn nhân viên muốn phân công', 'warning');
-            return;
-          }
-          if (!selectedDate) {
-            Admin.toast('Vui lòng chọn ngày hẹn', 'warning');
             return;
           }
           if (!selectedTime) {
             Admin.toast('Vui lòng chọn giờ hẹn', 'warning');
             return;
           }
-          const updated = await executeScheduleAdjustment({
+          await executeScheduleAdjustment({
             apptId: appt.id,
             targetStaffId: selectedStaffId,
             appointmentTime: selectedTime,
-            appointmentDate: selectedDate
+            appointmentDate: appt.appointment_date || scheduleDateInput.value
           });
-          if (updated) closeApptDetailModal();
+          closeApptDetailModal();
         });
 
         apptModal.classList.add('open');

@@ -217,36 +217,18 @@ module.exports = function setupSocketIO(io) {
       const hasAccess = await verifyConversationAccess(conversationId, socket.guestSession);
       if (!hasAccess) return;
 
-      const conv = await conversationRepository.findById(conversationId);
-      if (!conv || conv.mode === 'closed' || conv.mode === 'human') return;
-
-      const updated = await conversationRepository.updateMode(conversationId, 'waiting_for_agent');
-      await messageRepository.create({
-        conversationId,
-        senderType: 'system',
-        content: 'Khách hàng đã yêu cầu kết nối với nhân viên tư vấn.',
-      });
-
-      io.to('agents').emit('new_waiting_conversation', {
-        conversationId,
-        customerName: conv.customer_name,
-        productName: conv.product_name,
-        createdAt: updated.updated_at,
-      });
-
       try {
-        const notif = await notificationRepository.create({
+        const conversationService = require('../services/conversationService');
+        await conversationService.requestAgentSwitch(
           conversationId,
-          customerName: conv.customer_name || 'Khách hàng',
-          lastMessage: 'Khách hàng yêu cầu kết nối với nhân viên tư vấn',
+          socket.guestSession,
+          io
+        );
+      } catch (error) {
+        console.error('[Socket] Failed to hand off conversation to an agent:', error.message);
+        socket.emit('error', {
+          message: 'Chưa thể kết nối với nhân viên tư vấn. Vui lòng thử lại sau.',
         });
-        const unreadCount = await notificationRepository.getUnreadCount();
-        io.to('agents').emit('new_notification', {
-          notification: notif,
-          unreadCount,
-        });
-      } catch (err) {
-        console.error('[Socket] Failed to create notification for request_agent:', err.message);
       }
     });
 

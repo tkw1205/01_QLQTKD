@@ -28,6 +28,12 @@ describe('Adversarial Stress Test Suite: CR-01, CR-02, CR-03', () => {
   const stressDate4 = getFutureWeekday(18);
 
   before(async () => {
+    const appointments = jsonStore.getCollection('appointments');
+    const testDates = new Set([stressDate1, stressDate2, stressDate3, stressDate4]);
+    jsonStore.saveCollection(
+      'appointments',
+      appointments.filter(appointment => !testDates.has(appointment.appointment_date))
+    );
     await startServer();
   });
 
@@ -94,6 +100,7 @@ describe('Adversarial Stress Test Suite: CR-01, CR-02, CR-03', () => {
         method: 'POST',
         body: {
           customerName: `Concurrent User ${i}`,
+          confirmedBySystem: true,
           customerPhone: `090111122${i}`,
           customerEmail: null,
           appointmentDate: stressDate1,
@@ -144,6 +151,7 @@ describe('Adversarial Stress Test Suite: CR-01, CR-02, CR-03', () => {
           headers: { 'x-guest-session': uuidv4() },
           body: {
             customerName: `Interloper Direct ${i}`,
+            confirmedBySystem: true,
             customerPhone: `090222233${i}`,
             appointmentDate: stressDate1,
             appointmentTime: timeSlot,
@@ -394,6 +402,7 @@ describe('Adversarial Stress Test Suite: CR-01, CR-02, CR-03', () => {
 
       const body = {
         customerName: `Khách Email ${v.label}`,
+        confirmedBySystem: true,
         customerPhone: '0908888111',
         appointmentDate: stressDate3,
         appointmentTime: timeStr,
@@ -429,6 +438,7 @@ describe('Adversarial Stress Test Suite: CR-01, CR-02, CR-03', () => {
         method: 'POST',
         body: {
           customerName: 'Khách Email Chuẩn',
+          confirmedBySystem: true,
           customerPhone: '0908888222',
           customerEmail: email,
           appointmentDate: stressDate3,
@@ -458,6 +468,7 @@ describe('Adversarial Stress Test Suite: CR-01, CR-02, CR-03', () => {
         method: 'POST',
         body: {
           customerName: 'Khách Email Lỗi',
+          confirmedBySystem: true,
           customerPhone: '0908888333',
           customerEmail: email,
           appointmentDate: stressDate3,
@@ -489,6 +500,7 @@ describe('Adversarial Stress Test Suite: CR-01, CR-02, CR-03', () => {
         method: 'POST',
         body: {
           customerName: 'Khách Type Coercion',
+          confirmedBySystem: true,
           customerPhone: '0908888444',
           customerEmail: badVal,
           appointmentDate: stressDate4,
@@ -535,6 +547,7 @@ describe('Adversarial Stress Test Suite: CR-01, CR-02, CR-03', () => {
       method: 'POST',
       body: {
         customerName: 'Khách Lookup Bảo Mật',
+        confirmedBySystem: true,
         customerPhone: '0909999111',
         customerEmail: null,
         appointmentDate: stressDate4,
@@ -582,6 +595,7 @@ describe('Adversarial Stress Test Suite: CR-01, CR-02, CR-03', () => {
       method: 'POST',
       body: {
         customerName: 'Khách Normalization Phone',
+        confirmedBySystem: true,
         customerPhone: '0909999222',
         customerEmail: null,
         appointmentDate: stressDate4,
@@ -611,11 +625,13 @@ describe('Adversarial Stress Test Suite: CR-01, CR-02, CR-03', () => {
   // =========================================================================
 
   test('5.1 CR-02 / CR-03c String Verification: Holding slot response message states 5 minutes', async () => {
+    const availableSlots = await appointmentService.checkAvailableSlots(stressDate4, 30);
+    assert.ok(availableSlots.slots.length, 'Test date should have an available slot');
     const res = await apiRequest('/api/appointments/hold', {
       method: 'POST',
       body: {
         appointmentDate: stressDate4,
-        appointmentTime: '14:00',
+        appointmentTime: availableSlots.slots[0],
         durationMinutes: 30,
       },
     });

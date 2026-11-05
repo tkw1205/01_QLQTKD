@@ -74,7 +74,10 @@ async function findByConversation(conversationId, { limit = 100, before = null }
 async function findForAI(conversationId, { limit = 20 } = {}) {
   const messages = jsonStore.getCollection('messages');
   const filtered = messages.filter(
-    m => m.conversation_id === conversationId && (m.sender_type === 'user' || m.sender_type === 'assistant')
+    m => m.conversation_id === conversationId &&
+      (m.sender_type === 'user' || m.sender_type === 'assistant') &&
+      m.metadata?.kind !== 'session_timeout_warning' &&
+      !/phiên chat sẽ tự động kết thúc sau 5 phút nữa/iu.test(m.content || '')
   );
 
   filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));

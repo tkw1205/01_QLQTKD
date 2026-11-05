@@ -1,11 +1,7 @@
 'use strict';
 const appointmentRepo = require('../repositories/appointmentRepository');
+const productRepo = require('../repositories/productRepository');
 const settingsRepo = require('../repositories/settingsRepository');
-const {
-  assertAppointmentIsFuture,
-  getLocalDateTimeParts,
-  parseDate,
-} = require('../utils/appointmentDateTime');
 
 const PHONE_REGEX = /^0[35789][0-9]{8}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -25,36 +21,84 @@ function isValidEmail(email) {
 
 async function getBusinessHours() {
   const wh = await settingsRepo.getBusinessSetting('working_hours');
-  const duration = parseInt(await settingsRepo.get('appointment_duration')) || 30;
+  const duration = parseInt(await settingsRepo.get('appointment_duration'), 10);
   return { workingHours: wh, appointmentDuration: duration };
 }
 
-async function checkAvailableSlots(date, requestedDuration) {
-  const durationSetting = parseInt(await settingsRepo.get('appointment_duration')) || 30;
-  const duration = requestedDuration || durationSetting;
+async function checkAvailableSlots(date, requestedDuration, {
+  productIds = [],
+  hairSize = null,
+} = {}) {
+  let duration = Number(requestedDuration);
+  let requiredStaff = 1;
+  if (productIds.length) {
+    const products = await Promise.all(productIds.map(id => productRepo.findById(id)));
+    if (products.some(product => !product || product.status !== 'active')) {
+      throw Object.assign(new Error('Một hoặc nhiều dịch vụ đã chọn không còn khả dụng.'), {
+        status: 400,
+        code: 'INVALID_SERVICES',
+      });
+    }
+    const requirements = products.map(product =>
+      appointmentRepo.getServiceRequirements(product, hairSize)
+    );
+    duration = requirements.reduce((total, item) => total + item.durationMinutes, 0);
+    requiredStaff = Math.max(...requirements.map(item => item.staffCount));
+  } else if (!Number.isFinite(duration) || duration <= 0) {
+    duration = Number.parseInt(await settingsRepo.get('appointment_duration'), 10);
+  }
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw Object.assign(new Error('Appointment duration is not configured'), {
+      status: 503,
+      code: 'APPOINTMENT_DURATION_UNAVAILABLE',
+    });
+  }
 
-  parseDate(date);
-  const nowVN = getLocalDateTimeParts();
-  const todayStr = `${nowVN.year}-${String(nowVN.month).padStart(2, '0')}-${String(nowVN.day).padStart(2, '0')}`;
+  // Validate date
+  const d = new Date(date);
+  if (isNaN(d.getTime())) {
+    throw Object.assign(new Error('Invalid date'), { status: 400 });
+  }
+
+  // Don't allow past dates (using Asia/Ho_Chi_Minh timezone)
+  const nowVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+  const todayStr = `${nowVN.getFullYear()}-${String(nowVN.getMonth() + 1).padStart(2, '0')}-${String(nowVN.getDate()).padStart(2, '0')}`;
   if (date < todayStr) {
     throw Object.assign(new Error('Cannot book appointments in the past'), { status: 400 });
   }
 
-  const slots = await appointmentRepo.findAvailableSlots(date, duration);
+  const slots = await appointmentRepo.findAvailableSlots(date, duration, { requiredStaff });
   return { date, slots, duration };
 }
 
 async function holdSlot({
   conversationId, guestSessionId, appointmentDate, appointmentTime,
-  durationMinutes, productId, productIds, userId = null, notes = null,
+  durationMinutes, productId, productIds, hairSize = null, userId = null, notes = null,
 }) {
   if (!appointmentDate || !appointmentTime) {
     throw Object.assign(new Error('Missing required date or time for holding slot'), { status: 400 });
   }
 
-  assertAppointmentIsFuture(appointmentDate, appointmentTime);
+  const d = new Date(appointmentDate);
+  if (isNaN(d.getTime())) {
+    throw Object.assign(new Error('Invalid appointment date'), { status: 400 });
+  }
 
-  const duration = durationMinutes || parseInt(await settingsRepo.get('appointment_duration')) || 30;
+  const nowVN = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+  const todayStr = `${nowVN.getFullYear()}-${String(nowVN.getMonth() + 1).padStart(2, '0')}-${String(nowVN.getDate()).padStart(2, '0')}`;
+  if (appointmentDate < todayStr) {
+    throw Object.assign(new Error('Cannot book appointments in the past'), { status: 400 });
+  }
+
+  const duration = durationMinutes === undefined || durationMinutes === null
+    ? Number.parseInt(await settingsRepo.get('appointment_duration'), 10)
+    : Number(durationMinutes);
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw Object.assign(new Error('Appointment duration is not configured'), {
+      status: 503,
+      code: 'APPOINTMENT_DURATION_UNAVAILABLE',
+    });
+  }
 
   return appointmentRepo.hold({
     conversationId,
@@ -64,6 +108,7 @@ async function holdSlot({
     durationMinutes: duration,
     productId,
     productIds,
+    hairSize,
     userId,
     notes,
   });
@@ -123,7 +168,7 @@ async function createAppointment({
   conversationId, guestSessionId, confirmedBySystem,
   customerName, customerPhone, customerEmail,
   productId, productIds, appointmentDate, appointmentTime,
-  durationMinutes, notes, userId = null,
+  durationMinutes, hairSize = null, notes, userId = null,
   staffId = null, status = 'pending', createdBy = null,
 }) {
   // Server-side confirmation check: confirmedBySystem must be explicitly set
@@ -138,8 +183,6 @@ async function createAppointment({
   if (!customerName || !customerPhone || !appointmentDate || !appointmentTime) {
     throw Object.assign(new Error('Missing required appointment fields'), { status: 400 });
   }
-
-  assertAppointmentIsFuture(appointmentDate, appointmentTime);
 
   const cleanPhone = cleanPhoneNumber(customerPhone);
   if (!PHONE_REGEX.test(cleanPhone)) {
@@ -157,7 +200,13 @@ async function createAppointment({
     );
   }
 
-  const duration = durationMinutes || parseInt(await settingsRepo.get('appointment_duration')) || 30;
+  const duration = durationMinutes || Number.parseInt(await settingsRepo.get('appointment_duration'), 10);
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw Object.assign(new Error('Appointment duration is not configured'), {
+      status: 503,
+      code: 'APPOINTMENT_DURATION_UNAVAILABLE',
+    });
+  }
 
   const appointment = await appointmentRepo.create({
     conversationId,
@@ -167,6 +216,7 @@ async function createAppointment({
     customerEmail: trimmedEmail,
     productId,
     productIds,
+    hairSize,
     appointmentDate,
     appointmentTime,
     durationMinutes: duration,

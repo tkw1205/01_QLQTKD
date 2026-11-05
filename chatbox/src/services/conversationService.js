@@ -44,17 +44,36 @@ async function requestAgentSwitch(conversationId, guestSessionId, io) {
 
   // Update mode to waiting
   const updated = await conversationRepo.updateMode(conversationId, 'waiting_for_agent');
+  if (!updated) {
+    throw Object.assign(new Error('Failed to place conversation in the agent queue'), {
+      code: 'AGENT_HANDOFF_MODE_UPDATE_FAILED',
+    });
+  }
 
   // Add system message
-  const sysMsg = await messageRepo.create({
-    conversationId,
-    senderType: 'system',
-    content: 'Khách hàng đã yêu cầu kết nối với nhân viên tư vấn.',
-  });
+  let sysMsg;
+  try {
+    sysMsg = await messageRepo.create({
+      conversationId,
+      senderType: 'system',
+      content: 'Khách hàng đã yêu cầu kết nối với nhân viên tư vấn.',
+    });
+  } catch (error) {
+    try {
+      await conversationRepo.updateMode(conversationId, conv.mode, conv.assigned_to);
+    } catch (rollbackError) {
+      console.error('[Service] Failed to roll back an incomplete agent handoff:', rollbackError.message);
+    }
+    throw error;
+  }
 
   // Notify agents via Socket.IO
   if (io) {
     io.to(`conv_${conversationId}`).emit('new_message', sysMsg);
+    io.to(`conv_${conversationId}`).emit('mode_changed', {
+      mode: 'waiting_for_agent',
+      conversationId,
+    });
     io.to('agents').emit('new_message', sysMsg);
     io.to('agents').emit('conversation_mode_changed', {
       conversationId,
@@ -94,6 +113,10 @@ async function switchBackToAI(conversationId, guestSessionId, io) {
   if (conv.mode === 'closed') throw Object.assign(new Error('Conversation is closed'), { status: 400 });
   if (conv.mode === 'ai') return conv;
 
+  await conversationRepo.updateChatContext(conversationId, {
+    hair_size_clarification_attempts: 0,
+    service_selection_clarification_attempts: 0,
+  });
   const updated = await conversationRepo.updateMode(conversationId, 'ai', null);
   sessionTimeoutService.resetInactivityWarning(conversationId);
   const sysMsg = await messageRepo.create({
@@ -306,6 +329,7 @@ async function sendMessage(conversationId, { guestSessionId, content, message, c
         conversationId: newConv.id,
         guestSessionId: effectiveSession,
         userMessage: text,
+        io,
       });
 
       aiConfigured = chatRes.aiConfigured;
@@ -315,7 +339,9 @@ async function sendMessage(conversationId, { guestSessionId, content, message, c
         content: chatRes.content,
       });
 
-      await conversationRepo.updateMode(newConv.id, 'ai', null);
+      if (!chatRes.handoffAttempted) {
+        await conversationRepo.updateMode(newConv.id, 'ai', null);
+      }
     }
 
     if (io) {
@@ -359,10 +385,15 @@ async function sendMessage(conversationId, { guestSessionId, content, message, c
     });
 
     const orchestrator = require('../ai/orchestrator');
-    const { content: aiContent, aiConfigured } = await orchestrator.chat({
+    const {
+      content: aiContent,
+      aiConfigured,
+      handoffAttempted,
+    } = await orchestrator.chat({
       conversationId,
       guestSessionId: guestSessionId || conv.guest_session_id,
       userMessage: text,
+      io,
     });
 
     const aiMsg = await messageRepo.create({
@@ -371,7 +402,9 @@ async function sendMessage(conversationId, { guestSessionId, content, message, c
       content: aiContent,
     });
 
-    await conversationRepo.updateMode(conversationId, 'ai', conv.assigned_to);
+    if (!handoffAttempted) {
+      await conversationRepo.updateMode(conversationId, 'ai', conv.assigned_to);
+    }
 
     if (io) {
       const broadcastUserMsg = { ...userMsg, client_message_id: clientMessageId || null };
@@ -382,7 +415,7 @@ async function sendMessage(conversationId, { guestSessionId, content, message, c
     }
 
     return {
-      conversation: conv,
+      conversation: await conversationRepo.findById(conversationId),
       isNewSession: false,
       message: aiMsg,
       userMessage: userMsg,

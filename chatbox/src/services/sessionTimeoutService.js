@@ -102,6 +102,7 @@ async function checkTimeouts(io = null, options = {}) {
             conversationId: conv.id,
             senderType: 'assistant',
             content: WARNING_MESSAGE,
+            metadata: { kind: 'session_timeout_warning' },
           });
 
           conv.warning_sent = true;

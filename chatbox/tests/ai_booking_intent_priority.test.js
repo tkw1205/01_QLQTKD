@@ -121,6 +121,7 @@ test('prioritizes booking with confirmed service, date and time over a pending p
     selected_service_ids: [service.id],
     booking_service_confirmed: true,
     booking_started: true,
+    hair_size: 'M',
     pricing_inquiry_active: true,
   }, [
     { sender_type: 'user', content: 'Giá uốn tóc bao nhiêu?' },
@@ -138,7 +139,8 @@ test('prioritizes booking with confirmed service, date and time over a pending p
   assert.equal(availabilityChecks.at(-1), date);
   assert.equal(holds.length, beforeHolds + 1);
   assert.equal(holds.at(-1).appointmentTime, '14:00');
-  assert.match(reply.content, /khung giờ nào/u);
+  assert.equal(holds.at(-1).hairSize, 'M');
+  assert.match(reply.content, /họ tên và số điện thoại/u);
   assert.equal(priceResolverCalls, 0);
 });
 
@@ -152,6 +154,7 @@ test('asks only for a time when the confirmed service and requested date are kno
     selected_service_ids: [service.id],
     booking_service_confirmed: true,
     booking_started: true,
+    hair_size: 'M',
     pricing_inquiry_active: true,
   }, [
     { sender_type: 'user', content: 'Giá dịch vụ bao nhiêu?' },

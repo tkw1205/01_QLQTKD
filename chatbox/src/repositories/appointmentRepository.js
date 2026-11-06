@@ -481,7 +481,7 @@ async function confirmHold({
     cleanupExpiredHolds();
 
     throw Object.assign(
-      new Error('Holding period of 5 minutes has expired. Please select a time slot again.'),
+      new Error('The temporary hold has expired. Please select a time slot again.'),
       {
         status: 410,
         code: 'HOLD_EXPIRED',

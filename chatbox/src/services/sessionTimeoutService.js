@@ -7,7 +7,7 @@ const DEFAULT_AI_WARNING_MS = 5 * 60 * 1000;    // 5 minutes
 const DEFAULT_AI_CLOSE_MS = 10 * 60 * 1000;     // 10 minutes total (5m after warning)
 const DEFAULT_HUMAN_CLOSE_MS = 60 * 60 * 1000;  // 60 minutes
 
-const WARNING_MESSAGE = 'Dạ em thấy mình đang bận, phiên chat sẽ tự động kết thúc sau 5 phút nữa nếu không có tương tác ạ. Nếu cần hỗ trợ thêm, anh/chị cứ nhắn em nhé!';
+const WARNING_MESSAGE = 'Dạ em vẫn sẵn sàng hỗ trợ; mình cứ nhắn lại khi tiện nhé ạ!';
 const SYSTEM_CLOSED_MESSAGE_AI = 'Phiên tư vấn tự động tạm đóng do hết thời gian chờ phản hồi. Salon sẽ liên hệ lại nếu có thông tin.';
 const SYSTEM_CLOSED_MESSAGE_HUMAN = 'Cuộc trò chuyện với nhân viên đã tự động kết thúc do không có tương tác trong 60 phút.';
 

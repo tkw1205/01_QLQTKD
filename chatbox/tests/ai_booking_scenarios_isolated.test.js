@@ -142,6 +142,22 @@ test('service changes clear dependent size and availability state but preserve d
   assert.notDeepEqual(updated.chat_context.availability_query_service_ids, [haircut.id]);
 });
 
+test('availability query preserves the selected service category instead of re-asking the same question', async () => {
+  const conversation = await createConversation('availability-category');
+  await conversationRepository.updateChatContext(conversation.id, {
+    availability_query_pending: true,
+    availability_query_date: getVietnamDate(1),
+    availability_query_service_ids: [],
+  });
+
+  const reply = await sendTurn(conversation, 'uốn tóc');
+  const updated = await conversationRepository.findById(conversation.id);
+
+  assert.ok(reply.content.includes('Uốn tóc') || reply.content.includes('nhóm Uốn tóc'));
+  assert.equal(updated.chat_context.booking_requested_category, 'Uốn tóc');
+  assert.equal(updated.chat_context.availability_query_pending, true);
+});
+
 test('available-slot query waits for size, then reads real isolated appointments and working hours', async () => {
   const product = await findProduct('Cắt tạo kiểu');
   assert.ok(product);
@@ -220,6 +236,275 @@ test('natural afternoon time parsing uses the salon time, not the morning hour',
   assert.equal(extractTimeFromText('3 giờ chiều'), '15:00');
   assert.equal(extractTimeFromText('3 giờ sáng'), '03:00');
   assert.equal(extractTimeFromText('25 giờ'), null);
+});
+
+test('service selection, catalog price, booking, and "oke" confirmation persist through one real appointment', async () => {
+  const product = await findProduct('Phồng chân');
+  assert.ok(product);
+  const conversation = await createConversation('service-price-book-confirm');
+
+  const categoryReply = await sendTurn(conversation, 'Tôi muốn uốn tóc');
+  assert.match(categoryReply.content, /Phồng chân/u);
+  assert.doesNotMatch(categoryReply.content, /hỏi giá dịch vụ nào/u);
+
+  await sendTurn(conversation, 'Phồng chân');
+  let saved = await conversationRepository.findById(conversation.id);
+  assert.deepEqual(saved.chat_context.selected_service_ids, [product.id]);
+  assert.equal(saved.chat_context.service_id, product.id);
+  assert.equal(saved.chat_context.service_name, product.name);
+
+  const sizeQuestion = await sendTurn(conversation, 'Giá uốn là bao nhiêu');
+  assert.match(sizeQuestion.content, /độ dài tóc|size/iu);
+  saved = await conversationRepository.findById(conversation.id);
+  assert.deepEqual(saved.chat_context.selected_service_ids, [product.id]);
+  assert.equal(saved.chat_context.current_intent, 'ASK_PRICE');
+
+  const quote = await sendTurn(conversation, 'Tóc ngang lưng');
+  const tier = product.prices_by_size.L;
+  assert.equal(saved.chat_context.hair_size, null);
+  assert.match(quote.content, new RegExp(
+    `${new Intl.NumberFormat('vi-VN').format(tier.price)} VNĐ`,
+  ));
+  saved = await conversationRepository.findById(conversation.id);
+  assert.equal(saved.chat_context.hair_size, 'L');
+  assert.deepEqual(saved.chat_context.selected_service_ids, [product.id]);
+  assert.equal(saved.chat_context.service_price, tier.price);
+  assert.equal(saved.chat_context.service_duration, tier.duration);
+  assert.equal(saved.chat_context.service_staff_count, tier.staff_count);
+
+  const availability = await sendTurn(conversation, 'Tôi muốn đặt lịch 16 giờ ngày mai');
+  saved = await conversationRepository.findById(conversation.id);
+  const hold = await appointmentRepository.findActiveHoldByConversation(conversation.id);
+  assert.ok(hold);
+  assert.match(availability.content, /họ tên|số điện thoại/iu);
+  assert.equal(saved.chat_context.current_intent, 'BOOK_APPOINTMENT');
+  assert.equal(saved.chat_context.appointment_date, getVietnamDate(1));
+  assert.equal(saved.chat_context.appointment_time, '16:00');
+  assert.deepEqual(saved.chat_context.selected_service_ids, [product.id]);
+  assert.equal(saved.chat_context.hair_size, 'L');
+  assert.equal(hold.product_id, product.id);
+  assert.equal(hold.hair_size, 'L');
+  assert.equal(hold.price, tier.price);
+  assert.equal(hold.duration_minutes, tier.duration);
+
+  await sendTurn(conversation, 'Trần Quang Hải 0909089972');
+  saved = await conversationRepository.findById(conversation.id);
+  assert.equal(saved.chat_context.booking_status, 'AWAITING_CONFIRMATION');
+  const confirmedReply = await sendTurn(conversation, 'oke');
+  assert.match(confirmedReply.content, /đã xác nhận lịch hẹn thành công/u);
+  assert.doesNotMatch(confirmedReply.content, /giữ chỗ.{0,50}\b(?:5|10)\s*phút/iu);
+
+  saved = await conversationRepository.findById(conversation.id);
+  const appointment = await appointmentRepository.findById(saved.chat_context.appointment_id);
+  assert.equal(saved.chat_context.booking_status, 'BOOKED');
+  assert.equal(saved.chat_context.booking_completed, true);
+  assert.equal(appointment.status, 'confirmed');
+  assert.equal(appointment.product_id, product.id);
+  assert.deepEqual(appointment.product_ids, [product.id]);
+  assert.equal(appointment.hair_size, 'L');
+  assert.equal(appointment.appointment_date, getVietnamDate(1));
+  assert.equal(appointment.appointment_time, '16:00');
+  assert.equal(appointment.price, tier.price);
+  assert.equal(appointment.duration_minutes, tier.duration);
+  assert.equal(saved.chat_context.service_price, appointment.price);
+  assert.equal(saved.chat_context.service_duration, appointment.duration_minutes);
+  assert.ok(appointment.booking_code);
+  assert.equal(
+    jsonStore.getCollection('appointments')
+      .filter(item => item.conversation_id === conversation.id && item.status === 'confirmed').length,
+    1,
+  );
+
+  const duplicateConfirmation = await sendTurn(conversation, 'xác nhận');
+  assert.match(duplicateConfirmation.content, new RegExp(appointment.booking_code));
+  assert.equal(
+    jsonStore.getCollection('appointments')
+      .filter(item => item.conversation_id === conversation.id && item.status === 'confirmed').length,
+    1,
+  );
+});
+
+test('confirmation synonyms are accepted only when they are not negated or changed', () => {
+  for (const phrase of [
+    'xác nhận',
+    'đồng ý',
+    'ok',
+    'okay',
+    'oke',
+    'oki',
+    'okie',
+    'có',
+    'yes',
+    'confirm',
+    'đúng',
+    'đúng rồi',
+    'đúng vậy',
+    'vâng',
+    'dạ vâng',
+    'ừ',
+    'được',
+    'chốt nhé',
+    'đặt giúp tôi',
+  ]) {
+    assert.equal(orchestrator.detectConfirmation(phrase), true, phrase);
+  }
+  assert.equal(orchestrator.detectConfirmation('không đồng ý'), false);
+  assert.equal(orchestrator.detectConfirmation('oke nhưng đổi giờ'), false);
+});
+
+test('explicit "xác nhận" commits the active hold and reads the saved appointment back', async () => {
+  const product = await findProduct('Phồng chân');
+  const conversation = await createConversation('explicit-confirm');
+  const date = getVietnamDate(2);
+  const slots = await appointmentService.checkAvailableSlots(
+    date,
+    null,
+    { productIds: [product.id], hairSize: 'L' },
+  );
+  const time = slots.slots[0];
+  const hold = await appointmentService.holdSlot({
+    conversationId: conversation.id,
+    guestSessionId: conversation.guest_session_id,
+    appointmentDate: date,
+    appointmentTime: time,
+    productId: product.id,
+    productIds: [product.id],
+    hairSize: 'L',
+  });
+  await conversationRepository.updateCustomerInfo(conversation.id, {
+    name: 'Test Customer',
+    phone: '0901234567',
+    email: null,
+  });
+  await conversationRepository.updateChatContext(conversation.id, {
+    selected_service_ids: [product.id],
+    service_id: product.id,
+    service_name: product.name,
+    selected_service_source: 'booking_request',
+    booking_service_confirmed: true,
+    booking_started: true,
+    booking_status: 'AWAITING_CONFIRMATION',
+    booking_confirmation_pending: true,
+    appointment_date: date,
+    appointment_time: time,
+    hair_size: 'L',
+  });
+
+  const reply = await sendTurn(conversation, 'xác nhận');
+  const saved = await conversationRepository.findById(conversation.id);
+  const appointment = await appointmentRepository.findById(hold.id);
+  assert.match(reply.content, /đã xác nhận lịch hẹn thành công/u);
+  assert.equal(saved.chat_context.booking_status, 'BOOKED');
+  assert.equal(saved.chat_context.appointment_id, appointment.id);
+  assert.equal(appointment.status, 'confirmed');
+  assert.equal(appointment.booking_code, saved.chat_context.booking_code);
+});
+
+test('a failed confirmation never reports booking success', async t => {
+  const product = await findProduct('Phồng chân');
+  const conversation = await createConversation('failed-confirm');
+  const date = getVietnamDate(2);
+  const slots = await appointmentService.checkAvailableSlots(
+    date,
+    null,
+    { productIds: [product.id], hairSize: 'L' },
+  );
+  const time = slots.slots[0];
+  await appointmentService.holdSlot({
+    conversationId: conversation.id,
+    guestSessionId: conversation.guest_session_id,
+    appointmentDate: date,
+    appointmentTime: time,
+    productId: product.id,
+    productIds: [product.id],
+    hairSize: 'L',
+  });
+  await conversationRepository.updateCustomerInfo(conversation.id, {
+    name: 'Test Customer',
+    phone: '0901234567',
+    email: null,
+  });
+  await conversationRepository.updateChatContext(conversation.id, {
+    selected_service_ids: [product.id],
+    selected_service_source: 'booking_request',
+    booking_service_confirmed: true,
+    booking_started: true,
+    booking_status: 'AWAITING_CONFIRMATION',
+    booking_confirmation_pending: true,
+    appointment_date: date,
+    appointment_time: time,
+    hair_size: 'L',
+  });
+
+  const originalConfirm = appointmentService.confirmHoldingSlot;
+  t.after(() => {
+    appointmentService.confirmHoldingSlot = originalConfirm;
+  });
+  appointmentService.confirmHoldingSlot = async () => {
+    throw Object.assign(new Error('Simulated confirmation failure'), {
+      status: 409,
+      code: 'SLOT_CONFLICT',
+    });
+  };
+
+  const reply = await sendTurn(conversation, 'oke');
+  const saved = await conversationRepository.findById(conversation.id);
+  assert.doesNotMatch(reply.content, /đặt lịch thành công|đã xác nhận lịch hẹn thành công/iu);
+  assert.notEqual(saved.chat_context.booking_status, 'BOOKED');
+  assert.equal(
+    jsonStore.getCollection('appointments')
+      .filter(item => item.conversation_id === conversation.id && item.status === 'confirmed').length,
+    0,
+  );
+});
+
+test('a change request after "oke" is handled before confirmation', async () => {
+  const product = await findProduct('Phồng chân');
+  const conversation = await createConversation('change-before-confirm');
+  const date = getVietnamDate(3);
+  const slots = await appointmentService.checkAvailableSlots(
+    date,
+    null,
+    { productIds: [product.id], hairSize: 'L' },
+  );
+  const time = slots.slots[0];
+  const hold = await appointmentService.holdSlot({
+    conversationId: conversation.id,
+    guestSessionId: conversation.guest_session_id,
+    appointmentDate: date,
+    appointmentTime: time,
+    productId: product.id,
+    productIds: [product.id],
+    hairSize: 'L',
+  });
+  await conversationRepository.updateCustomerInfo(conversation.id, {
+    name: 'Test Customer',
+    phone: '0901234567',
+    email: null,
+  });
+  await conversationRepository.updateChatContext(conversation.id, {
+    selected_service_ids: [product.id],
+    booking_service_confirmed: true,
+    booking_started: true,
+    booking_status: 'AWAITING_CONFIRMATION',
+    booking_confirmation_pending: true,
+    appointment_date: date,
+    appointment_time: time,
+    hair_size: 'L',
+  });
+
+  const reply = await sendTurn(conversation, 'oke nhưng đổi giờ');
+  const saved = await conversationRepository.findById(conversation.id);
+  const unchangedHold = await appointmentRepository.findById(hold.id);
+  assert.match(reply.content, /đổi ngày hay giờ/u);
+  assert.equal(unchangedHold.status, 'holding');
+  assert.equal(saved.chat_context.booking_status, 'COLLECTING_BOOKING_DETAILS');
+  assert.equal(saved.chat_context.booking_confirmation_pending, false);
+  assert.equal(
+    jsonStore.getCollection('appointments')
+      .filter(item => item.conversation_id === conversation.id && item.status === 'confirmed').length,
+    0,
+  );
 });
 
 test('closed salon days are rejected as a business rule, not a backend exception', async () => {

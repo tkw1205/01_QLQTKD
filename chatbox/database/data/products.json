@@ -434,7 +434,7 @@
     "category_id": "11111111-1111-1111-1111-111111111101",
     "name": "Cắt tạo kiểu",
     "slug": "cat-tao-kieu",
-    "description": "",
+    "description": "Dịch vụ cắt và điều chỉnh kiểu tóc dựa trên độ dài, chất tóc, dáng khuôn mặt và phong cách mong muốn. Có thể bao gồm tỉa gọn, tạo tầng, thay đổi độ dài hoặc định hình lại kiểu tóc; giúp làm mới diện mạo và chỉnh dáng tóc gọn gàng hơn. Phần đuôi khô xơ chỉ được loại bỏ trong phạm vi khách mong muốn cắt tỉa.",
     "price": 130000,
     "prices_by_size": {
       "S": {
@@ -475,7 +475,7 @@
     "category_id": "11111111-1111-1111-1111-111111111102",
     "name": "Gội đầu",
     "slug": "goi-dau",
-    "description": null,
+    "description": "Dịch vụ làm sạch tóc và da đầu, giúp loại bỏ dầu thừa, bụi bẩn và cặn sản phẩm tạo kiểu. Cảm giác sau khi gội còn tùy tình trạng tóc, da đầu và sản phẩm được sử dụng.",
     "price": 40000,
     "prices_by_size": {
       "S": {
@@ -514,7 +514,7 @@
     "category_id": "11111111-1111-1111-1111-111111111102",
     "name": "Tạo kiểu",
     "slug": "tao-kieu",
-    "description": null,
+    "description": "Dịch vụ sắp xếp và định hình tóc theo kiểu mong muốn. Tùy lựa chọn salon cung cấp, việc tạo kiểu có thể dùng sấy, uốn lọn tạm thời hoặc làm thẳng tạm thời; kết quả giữ nếp phụ thuộc vào chất tóc và cách chăm sóc.",
     "price": 80000,
     "prices_by_size": {
       "S": {
@@ -553,7 +553,7 @@
     "category_id": "11111111-1111-1111-1111-111111111102",
     "name": "Xả phồng",
     "slug": "xa-phong",
-    "description": null,
+    "description": "Dịch vụ chăm sóc và tạo độ bồng bềnh cho mái tóc, giúp tóc trông tơi nhẹ, hạn chế cảm giác xẹp và dễ tạo kiểu hơn. Phương pháp thực hiện cụ thể cần được salon xác nhận.",
     "price": 130000,
     "prices_by_size": {
       "S": {
@@ -592,7 +592,7 @@
     "category_id": "11111111-1111-1111-1111-111111111103",
     "name": "Uốn mái / phồng mái",
     "slug": "uon-mai-phong-mai",
-    "description": null,
+    "description": "Dịch vụ tạo độ cong hoặc độ phồng cho phần tóc mái, giúp mái có dáng và dễ sắp xếp hơn. Mức độ cong, độ phồng và cách duy trì phụ thuộc vào chất tóc cùng phương pháp salon xác nhận.",
     "price": 80000,
     "prices_by_size": {
       "S": {
@@ -634,7 +634,7 @@
     "category_id": "11111111-1111-1111-1111-111111111103",
     "name": "Phồng chân",
     "slug": "phong-chan",
-    "description": null,
+    "description": "Dịch vụ tạo độ nâng ở phần chân tóc để mái tóc trông bồng bềnh hơn, phù hợp với tóc dễ xẹp hoặc muốn tăng cảm giác đầy đặn ở phần gốc. Hiệu quả và cách thực hiện tùy tình trạng tóc và phương pháp salon sử dụng.",
     "price": 180000,
     "prices_by_size": {
       "S": {
@@ -671,9 +671,9 @@
   {
     "id": "22222222-2222-2222-2222-222222223007",
     "category_id": "11111111-1111-1111-1111-111111111103",
-    "name": "Uốn (sản phẩm ART)",
+    "name": "Uốn kiểu",
     "slug": "uon-san-pham-art",
-    "description": null,
+    "description": "Dịch vụ tạo độ cong, sóng hoặc lọn tóc theo phong cách mong muốn. Kiểu uốn phù hợp phụ thuộc vào độ dài, chất tóc, tình trạng tóc và kỹ thuật salon cung cấp; tóc cần được đánh giá trước khi xử lý hóa chất.",
     "price": 229000,
     "prices_by_size": {
       "S": {
@@ -713,7 +713,7 @@
     "category_id": "11111111-1111-1111-1111-111111111104",
     "name": "Duỗi mái",
     "slug": "duoi-mai",
-    "description": null,
+    "description": "Dịch vụ làm thẳng phần tóc mái, giúp giảm độ cong hoặc vểnh tự nhiên và để mái vào nếp gọn hơn. Kết quả phụ thuộc vào chất tóc và cách tạo kiểu; cần trao đổi với salon về phương pháp phù hợp.",
     "price": 180000,
     "prices_by_size": {
       "S": {
@@ -752,7 +752,7 @@
     "category_id": "11111111-1111-1111-1111-111111111104",
     "name": "Duỗi gốc",
     "slug": "duoi-goc",
-    "description": null,
+    "description": "Dịch vụ xử lý phần tóc mới mọc gần chân tóc để tạo vẻ thẳng hoặc đồng đều hơn với phần tóc đã duỗi trước đó. Cần đánh giá tình trạng tóc và ranh giới tóc mới mọc để hạn chế xử lý chồng hóa chất không cần thiết.",
     "price": 230000,
     "prices_by_size": {
       "S": {
@@ -789,9 +789,9 @@
   {
     "id": "22222222-2222-2222-2222-222222223010",
     "category_id": "11111111-1111-1111-1111-111111111104",
-    "name": "Duỗi (sản phẩm ART)",
+    "name": "Duỗi kiểu",
     "slug": "duoi-san-pham-art",
-    "description": null,
+    "description": "Dịch vụ tạo kiểu tóc thẳng theo kết quả mong muốn, từ vẻ thẳng tự nhiên đến gọn mượt tùy kỹ thuật salon thực sự cung cấp. Kết quả phụ thuộc nền tóc và lịch sử xử lý; tóc cần được đánh giá trước khi dùng hóa chất.",
     "price": 319000,
     "prices_by_size": {
       "S": {
@@ -829,9 +829,9 @@
   {
     "id": "22222222-2222-2222-2222-222222223011",
     "category_id": "11111111-1111-1111-1111-111111111105",
-    "name": "Nhuộm (sản phẩm ART)",
+    "name": "Nhuộm kiểu",
     "slug": "nhuom-san-pham-art",
-    "description": "",
+    "description": "Dịch vụ thay đổi màu tóc theo tông màu và phong cách mong muốn. Màu đạt được phụ thuộc nền tóc hiện tại, lịch sử xử lý hóa chất và màu mục tiêu; nên được tư vấn sau khi salon đánh giá tóc.",
     "price": 229000,
     "prices_by_size": {
       "S": {
@@ -869,7 +869,7 @@
     "category_id": "11111111-1111-1111-1111-111111111105",
     "name": "Chấm chân",
     "slug": "cham-chan",
-    "description": null,
+    "description": "Dịch vụ nhuộm phần chân tóc mới mọc nhằm giảm sự khác biệt màu giữa chân tóc và phần tóc đã nhuộm. Mức độ tiệp màu phụ thuộc nền tóc, màu cũ và lịch sử nhuộm; cần xác nhận màu phù hợp trước khi thực hiện.",
     "price": 180000,
     "prices_by_size": {
       "S": {
@@ -908,7 +908,7 @@
     "category_id": "11111111-1111-1111-1111-111111111106",
     "name": "Hấp dầu",
     "slug": "hap-dau",
-    "description": null,
+    "description": "Dịch vụ chăm sóc tóc bằng sản phẩm dưỡng hoặc ủ tóc, giúp bổ sung độ ẩm và cải thiện cảm giác mềm mượt, giảm khô rối. Thường phù hợp với tóc khô, thiếu độ bóng, dễ rối hoặc thường xuyên tiếp xúc nhiệt. Hấp dầu không đồng nghĩa với phục hồi hoàn toàn cấu trúc tóc đã hư tổn.",
     "price": 130000,
     "prices_by_size": {
       "S": {
@@ -947,7 +947,7 @@
     "category_id": "11111111-1111-1111-1111-111111111106",
     "name": "Phục hồi theo tóc",
     "slug": "phuc-hoi-theo-toc",
-    "description": null,
+    "description": "Dịch vụ chăm sóc được lựa chọn dựa trên tình trạng tóc cụ thể, chẳng hạn tóc khô, xốp, yếu hoặc hư tổn do hóa chất. Phương pháp và mức cải thiện phụ thuộc kết quả đánh giá tóc cùng liệu trình salon xác nhận.",
     "price": 250000,
     "prices_by_size": {
       "S": {
@@ -986,7 +986,7 @@
     "category_id": "11111111-1111-1111-1111-111111111106",
     "name": "Phục hồi Biotin",
     "slug": "phuc-hoi-biotin",
-    "description": null,
+    "description": "Dịch vụ chăm sóc tóc có tên Biotin trong danh mục. Danh mục hiện chưa xác nhận sản phẩm hoặc thành phần cụ thể, vì vậy cần hỏi salon về liệu trình đang áp dụng. Không thể mặc định dịch vụ tái tạo hoàn toàn tóc hư tổn hoặc kích thích mọc tóc.",
     "price": 420000,
     "prices_by_size": {
       "S": {
@@ -1026,7 +1026,7 @@
     "category_id": "11111111-1111-1111-1111-111111111106",
     "name": "Phục hồi chuyên sâu",
     "slug": "phuc-hoi-chuyen-sau",
-    "description": null,
+    "description": "Dịch vụ chăm sóc chuyên sâu dành cho tóc có dấu hiệu khô, yếu hoặc hư tổn rõ hơn. Phương pháp, sản phẩm và mức cải thiện phụ thuộc tình trạng tóc thực tế và liệu trình salon xác nhận; không thể bảo đảm phục hồi hoàn toàn.",
     "price": 600000,
     "prices_by_size": {
       "S": {
@@ -1065,7 +1065,7 @@
     "category_id": "11111111-1111-1111-1111-111111111107",
     "name": "Nối hoàn vũ",
     "slug": "noi-hoan-vu",
-    "description": null,
+    "description": "Dịch vụ nối thêm các tép tóc nhằm tăng độ dài hoặc độ dày, giúp mái tóc có diện mạo đầy đặn và tự nhiên hơn. Kỹ thuật liên kết và vật liệu nối phụ thuộc vào phương pháp salon sử dụng.",
     "price": 35000,
     "prices_by_size": {
       "S": {
@@ -1104,7 +1104,7 @@
     "category_id": "11111111-1111-1111-1111-111111111107",
     "name": "Nối light",
     "slug": "noi-light",
-    "description": null,
+    "description": "Dịch vụ nối thêm các tép tóc có sắc độ khác biệt để tạo điểm nhấn hoặc hiệu ứng màu. Cách phối màu và kỹ thuật nối phụ thuộc lựa chọn của khách và phương pháp salon cung cấp; dịch vụ này không nhất thiết cần nhuộm toàn bộ tóc thật.",
     "price": 70000,
     "prices_by_size": {
       "S": {
@@ -1143,7 +1143,7 @@
     "category_id": "11111111-1111-1111-1111-111111111107",
     "name": "Baby light",
     "slug": "baby-light",
-    "description": null,
+    "description": "Dịch vụ tạo hiệu ứng những sợi tóc màu sáng nhỏ và tự nhiên. Danh mục salon xếp dịch vụ này trong nhóm nối tóc và tính theo tép; nếu thực hiện bằng tép tóc màu, chúng có thể được bố trí xen kẽ để tạo điểm nhấn mà không cần nhuộm trực tiếp các phần tóc thật tương ứng. Cách thực hiện cụ thể cần được salon xác nhận.",
     "price": 45000,
     "prices_by_size": {
       "S": {
@@ -1182,7 +1182,7 @@
     "category_id": "11111111-1111-1111-1111-111111111108",
     "name": "Tẩy 1 lần",
     "slug": "tay-1-lan",
-    "description": null,
+    "description": "Dịch vụ nâng sáng nền tóc trong một lần xử lý. Mức độ sáng đạt được phụ thuộc nền tóc tự nhiên hoặc màu đã nhuộm, lịch sử hóa chất và tình trạng tóc; không thể bảo đảm đạt một tông màu cụ thể chỉ dựa trên số lần xử lý.",
     "price": 600000,
     "prices_by_size": {
       "S": {
@@ -1221,7 +1221,7 @@
     "category_id": "11111111-1111-1111-1111-111111111108",
     "name": "Bóc đen / đỏ",
     "slug": "boc-den-do",
-    "description": null,
+    "description": "Dịch vụ xử lý hoặc giảm lượng màu đen, đỏ đã tích tụ trên tóc để chuẩn bị chuyển sang màu khác. Kết quả phụ thuộc lịch sử nhuộm, số lớp màu và tình trạng tóc; mức độ loại bỏ màu cần được chuyên viên đánh giá.",
     "price": 600000,
     "prices_by_size": {
       "S": {
@@ -1262,7 +1262,7 @@
     "category_id": "11111111-1111-1111-1111-111111111108",
     "name": "Tẩy Balay",
     "slug": "tay-balay",
-    "description": null,
+    "description": "Dịch vụ nâng sáng các phần tóc theo bố cục tạo hiệu ứng chuyển sắc kiểu balayage, giúp màu tóc có chiều sâu và điểm nhấn. Vị trí, độ sáng và kết quả phụ thuộc nền tóc, màu mục tiêu và kỹ thuật salon áp dụng.",
     "price": 2000000,
     "prices_by_size": {
       "S": {
@@ -1301,7 +1301,7 @@
     "category_id": "11111111-1111-1111-1111-111111111108",
     "name": "Hidden",
     "slug": "hidden",
-    "description": null,
+    "description": "Dịch vụ tạo hiệu ứng màu ẩn ở các lớp tóc bên trong, có thể thấy rõ hơn khi vén tóc hoặc tạo kiểu. Việc có bao gồm tẩy, nhuộm hay cả hai cần được salon xác nhận; kết quả phụ thuộc nền tóc và màu mong muốn.",
     "price": 650000,
     "prices_by_size": {
       "S": {
@@ -1340,7 +1340,7 @@
     "category_id": "11111111-1111-1111-1111-111111111108",
     "name": "Tẩy ombre",
     "slug": "tay-ombre",
-    "description": null,
+    "description": "Dịch vụ xử lý và nâng sáng các phần tóc để tạo hiệu ứng chuyển màu ombre dọc theo chiều dài tóc. Mức chuyển sắc đạt được phụ thuộc nền tóc, màu mục tiêu và lịch sử hóa chất; cần đánh giá tóc trước khi thực hiện.",
     "price": 2000000,
     "prices_by_size": {
       "S": {
@@ -1379,7 +1379,7 @@
     "category_id": "11111111-1111-1111-1111-111111111108",
     "name": "Tẩy nền",
     "slug": "tay-nen",
-    "description": null,
+    "description": "Dịch vụ nâng sáng nền tóc để chuẩn bị cho màu nhuộm cần nền sáng hơn. Mức độ nâng và phương pháp phù hợp phụ thuộc màu nền, lịch sử hóa chất và tình trạng tóc; cần được chuyên viên đánh giá trước khi xử lý.",
     "price": 750000,
     "prices_by_size": {
       "S": {
@@ -1418,7 +1418,7 @@
     "category_id": "11111111-1111-1111-1111-111111111108",
     "name": "Nâng nền",
     "slug": "nang-nen",
-    "description": null,
+    "description": "Dịch vụ nâng độ sáng của nền tóc theo mục tiêu màu bằng phương pháp phù hợp. Danh mục chưa xác định phương pháp này có dùng tẩy hay không; cần salon tư vấn sau khi xem nền tóc và lịch sử xử lý để phân biệt với dịch vụ tẩy nền.",
     "price": 200000,
     "prices_by_size": {
       "S": {

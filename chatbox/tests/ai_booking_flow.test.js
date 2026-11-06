@@ -195,7 +195,7 @@ describe('AI Booking Flow, Email Validation & Admin Sync Test Suite', () => {
       guestSessionId,
       userMessage: 'Tôi chọn size S',
     });
-    assert.match(availableReply.content, /đã giữ chỗ/u);
+    assert.match(availableReply.content, /đã được ghi nhận/u);
     assert.match(availableReply.content, /họ tên và số điện thoại/u);
     const activeHold = await appointmentRepo.findActiveHoldByConversation(bookingConversation.id);
     assert.equal(activeHold.appointment_time, selectedTime);

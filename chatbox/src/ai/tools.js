@@ -52,7 +52,7 @@ const TOOL_DEFINITIONS = [
     type: 'function',
     function: {
       name: 'hold_appointment_slot',
-      description: 'Bước 6 trong quy trình BPMN: Khóa giữ chỗ tạm thời khung giờ đã chọn trong 5 phút (TTL 5m). Chỉ gọi công cụ này khi khách đã chọn một khung giờ cụ thể và còn trống. TUYỆT ĐỐI KHÔNG thông báo đã giữ chỗ nếu công cụ trả về lỗi hoặc khung giờ đã kín.',
+      description: 'Bước 6 trong quy trình BPMN: Khóa giữ chỗ tạm thời khung giờ đã chọn. Chỉ gọi công cụ này khi khách đã chọn một khung giờ cụ thể và còn trống. TUYỆT ĐỐI KHÔNG thông báo đã giữ chỗ nếu công cụ trả về lỗi hoặc khung giờ đã kín.',
       parameters: {
         type: 'object',
         required: ['appointment_date', 'appointment_time'],
@@ -221,6 +221,43 @@ function formatDateYYYYMMDD(d) {
   return `${y}-${m}-${day}`;
 }
 
+function formatCalendarDate(year, month, day) {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) return null;
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function resolveDateWithoutYear(day, month) {
+  const today = getVietnamDate(0);
+  const currentYear = Number(today.slice(0, 4));
+  for (let year = currentYear; year <= currentYear + 8; year += 1) {
+    const candidate = formatCalendarDate(year, month, day);
+    if (candidate && candidate >= today) return candidate;
+  }
+  return null;
+}
+
+function isInvalidCalendarDateText(text) {
+  if (!text || typeof text !== 'string') return false;
+  const numericDate = text.match(/(?:^|\D)(\d{1,2})[-/.](\d{1,2})(?:[-/.](\d{4}))?(?!\d)/u);
+  const textualDate = text.toLocaleLowerCase('vi-VN')
+    .match(/ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})(?:\s+năm\s+(\d{4}))?/u);
+  const match = numericDate || textualDate;
+  if (!match) return false;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const currentYear = Number(getVietnamDate(0).slice(0, 4));
+  return match[3]
+    ? !formatCalendarDate(Number(match[3]), month, day)
+    : !Array.from({ length: 9 }, (_, offset) =>
+      formatCalendarDate(currentYear + offset, month, day)
+    ).some(Boolean);
+}
+
 function extractDateFromText(text) {
   if (!text || typeof text !== 'string') return null;
   const str = text.trim();
@@ -229,31 +266,65 @@ function extractDateFromText(text) {
   // 1. ISO YYYY-MM-DD
   const isoMatch = str.match(/\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b/);
   if (isoMatch) {
-    const year = isoMatch[1];
-    const month = isoMatch[2].padStart(2, '0');
-    const day = isoMatch[3].padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return formatCalendarDate(
+      Number(isoMatch[1]),
+      Number(isoMatch[2]),
+      Number(isoMatch[3]),
+    );
   }
 
   // 2. VN format DD/MM/YYYY or DD-MM-YYYY
   const vnMatch = str.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b/);
   if (vnMatch) {
-    const day = vnMatch[1].padStart(2, '0');
-    const month = vnMatch[2].padStart(2, '0');
-    const year = vnMatch[3];
-    return `${year}-${month}-${day}`;
+    return formatCalendarDate(
+      Number(vnMatch[3]),
+      Number(vnMatch[2]),
+      Number(vnMatch[1]),
+    );
   }
 
-  // 3. "ngày DD tháng MM [năm YYYY]"
-  const vnTextDateMatch = lower.match(/ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})(?:\s+năm\s+(\d{4}))?/);
+  // 3. Vietnamese dates with or without a year
+  const vnTextDateMatch = lower.match(/ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})(?:\s+năm\s+(\d{4}))?/u);
   if (vnTextDateMatch) {
-    const day = vnTextDateMatch[1].padStart(2, '0');
-    const month = vnTextDateMatch[2].padStart(2, '0');
-    const year = vnTextDateMatch[3] || getVietnamDate(0).split('-')[0];
-    return `${year}-${month}-${day}`;
+    const day = Number(vnTextDateMatch[1]);
+    const month = Number(vnTextDateMatch[2]);
+    return vnTextDateMatch[3]
+      ? formatCalendarDate(Number(vnTextDateMatch[3]), month, day)
+      : resolveDateWithoutYear(day, month);
   }
 
-  // 4. Relative keywords in Vietnamese
+  // 4. Numeric Vietnamese dates, including a date-only reply such as "11/11"
+  const shortVnMatch = str.match(/(?:^|\D)(\d{1,2})[-/.](\d{1,2})(?![-/.]\d)(?!\d)/u);
+  if (shortVnMatch) {
+    const day = Number(shortVnMatch[1]);
+    const month = Number(shortVnMatch[2]);
+    return resolveDateWithoutYear(day, month);
+  }
+
+  // 5. Weekdays within the current Monday-to-Sunday week
+  const weekdayNames = [
+    { pattern: /(?:thứ\s*2|thứ\s*hai)/u, day: 1 },
+    { pattern: /(?:thứ\s*3|thứ\s*ba)/u, day: 2 },
+    { pattern: /(?:thứ\s*4|thứ\s*tư)/u, day: 3 },
+    { pattern: /(?:thứ\s*5|thứ\s*năm)/u, day: 4 },
+    { pattern: /(?:thứ\s*6|thứ\s*sáu)/u, day: 5 },
+    { pattern: /(?:thứ\s*7|thứ\s*bảy)/u, day: 6 },
+    { pattern: /chủ\s*nhật/u, day: 0 },
+  ];
+  const weekday = weekdayNames.find(item => item.pattern.test(lower));
+  if (weekday && /tuần\s+này/u.test(lower)) {
+    const today = getVietnamDate(0);
+    const [year, month, day] = today.split('-').map(Number);
+    const todayDate = new Date(Date.UTC(year, month - 1, day));
+    const currentDay = todayDate.getUTCDay();
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+    const weekStart = new Date(Date.UTC(year, month - 1, day + mondayOffset));
+    const weekdayOffset = weekday.day === 0 ? 6 : weekday.day - 1;
+    const target = new Date(weekStart.getTime() + weekdayOffset * 86400000);
+    return formatCalendarDate(target.getUTCFullYear(), target.getUTCMonth() + 1, target.getUTCDate());
+  }
+
+  // 6. Relative keywords in Vietnamese
   if (/(?:ngày\s+kia|ngày\s+mốt|hôm\s+mốt|ngày\s+kìa|\bmốt\b)/i.test(lower)) {
     return getVietnamDate(2);
   }
@@ -346,6 +417,9 @@ function detectAvailableSlotsQuery(userMessage) {
     'thời gian nào trống',
     'trống lúc nào',
     'trống giờ nào',
+    'trống từ mấy giờ',
+    'từ mấy giờ đến mấy giờ',
+    'khung giờ nào trống',
     'rảnh giờ nào',
     'còn chỗ không',
     'còn chỗ nào',
@@ -362,7 +436,8 @@ function detectAvailableSlotsQuery(userMessage) {
     return true;
   }
 
-  return false;
+  return /(?:trống|rảnh)\s+từ\s+(?:mấy\s+)?giờ|từ\s+(?:mấy\s+)?giờ\s+đến\s+(?:mấy\s+)?giờ/i
+    .test(lower);
 }
 
 function formatTime(hour, minute, originalText) {
@@ -462,6 +537,7 @@ async function executeTool(toolName, rawArgs, context = {}) {
             success: true,
             date: normalizedDate,
             slots: [],
+            free_intervals: result.freeIntervals || [],
             count: 0,
             duration: result.duration || requestedDuration || null,
             next_date: nextDate,
@@ -473,9 +549,10 @@ async function executeTool(toolName, rawArgs, context = {}) {
           success: true,
           date: normalizedDate,
           slots,
+          free_intervals: result.freeIntervals || [],
           count: slots.length,
           duration: result.duration || requestedDuration || null,
-          message: `Các khung giờ còn trống trong ngày ${normalizedDate}: ${slots.join(', ')}. Hãy giới thiệu các khung giờ này cho khách lựa chọn.`
+          message: `Các khoảng trống đủ thời lượng trong ngày ${normalizedDate}: ${(result.freeIntervals || []).map(interval => `${interval.start}-${interval.end}`).join(', ')}. Các giờ bắt đầu hợp lệ được liệt kê trong slots: ${slots.join(', ')}. Hãy giới thiệu khoảng trống và hỏi khách chọn giờ bắt đầu phù hợp.`
         });
       } catch (err) {
         return JSON.stringify({
@@ -511,11 +588,11 @@ async function executeTool(toolName, rawArgs, context = {}) {
           holding_token: held.holding_token,
           appointment_date: held.appointment_date,
           appointment_time: held.appointment_time,
-          expires_at: held.hold_expires_at,
-          message: `ĐÃ GIỮ CHỖ THÀNH CÔNG khung giờ ${held.appointment_time} ngày ${held.appointment_date} trong 5 phút. Hãy thông báo đã giữ chỗ cho khách và xin Họ tên, SĐT (10 số) để hoàn tất đăng ký (email là tuỳ chọn).`,
+          message: `ĐÃ GHI NHẬN TẠM THỜI khung giờ ${held.appointment_time} ngày ${held.appointment_date}. Hãy xin Họ tên, SĐT (10 số) để hoàn tất đăng ký (email là tuỳ chọn).`,
         });
       } catch (err) {
         let alternateSlots = [];
+        let alternateFreeIntervals = [];
         try {
           if (apptDate) {
             const avail = await appointmentService.checkAvailableSlots(apptDate, undefined, {
@@ -524,6 +601,7 @@ async function executeTool(toolName, rawArgs, context = {}) {
               productSizes: args.product_sizes || args.productSizes || {},
             });
             alternateSlots = (avail.slots || []).filter(s => s !== apptTime);
+            alternateFreeIntervals = avail.freeIntervals || [];
           }
         } catch (availabilityError) {
           console.error('[AI] Could not load alternate appointment slots', {
@@ -542,6 +620,7 @@ async function executeTool(toolName, rawArgs, context = {}) {
           appointment_date: apptDate,
           appointment_time: apptTime,
           available_slots: alternateSlots,
+          available_free_intervals: alternateFreeIntervals,
           message: `GIỮ CHỖ THẤT BẠI. Khung giờ ${apptTime} ngày ${apptDate} ĐÃ KÍN hoặc không khả dụng. TUYỆT ĐỐI KHÔNG thông báo đã giữ chỗ cho khách. Hãy thông báo khung giờ này đã kín, và ${alternateSlots.length > 0 ? `gợi ý các khung giờ còn trống khác trong ngày: ${alternateSlots.slice(0, 6).join(', ')}` : 'hỏi khách có muốn xem lịch ngày khác không'}.`
         });
       }
@@ -850,6 +929,7 @@ module.exports = {
   formatDateYYYYMMDD,
   normalizeDateInput,
   extractDateFromText,
+  isInvalidCalendarDateText,
   extractDateFromUserAndHistory,
   detectAvailableSlotsQuery,
   extractTimeFromText,

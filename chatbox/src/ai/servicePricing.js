@@ -152,10 +152,6 @@ function isPermedVolumeRequest(text) {
 
 function isCategoryOnlyInquiry(query, categoryName) {
   const text = normalizeText(query);
-  if (
-    normalizeText(categoryName) === 'uon toc' &&
-    isPermedVolumeRequest(text)
-  ) return true;
   const aliases = [
     normalizeText(categoryName),
     ...(CATEGORY_ALIASES[categoryName.toLocaleLowerCase('vi-VN')] || []),
@@ -275,6 +271,130 @@ function buildAmbiguousServiceReply(services, query) {
   return `${lead}: ${names.join('; ')}. Mình muốn hỏi giá dịch vụ nào ạ?`;
 }
 
+function buildServiceSelectionReply(services) {
+  const categoryName = services[0]?.category_name;
+  const names = services.map(service => service.name);
+  const categoryLabel = categoryName ? ` thuộc nhóm ${categoryName}` : '';
+  return `Dạ, salon hiện có các dịch vụ${categoryLabel}: ${names.join('; ')}. Mình đang quan tâm dịch vụ nào ạ?`;
+}
+
+function getServiceFollowupType(userMessage) {
+  const text = normalizeText(userMessage);
+  if (/\b(?:mat bao lau|bao lau|thoi luong|thoi gian thuc hien|lam trong bao lau)\b/u.test(text)) {
+    return 'duration';
+  }
+  if (/\b(?:loai nao|co nhung loai|lua chon nao|bien the|size nao)\b/u.test(text)) {
+    return 'options';
+  }
+  if (/\b(?:tim hieu them|tim heu them|tu van them|gioi thieu dich vu nay|dich vu nay la gi|noi ro hon|chi tiet hon|cho toi biet them|cho toi biet chi tiet|dich vu nay nhu the nao|lam nhu the nao|co gi dac biet|phu hop voi toc nao|nen chon loai nao|toi muon biet them|giai thich them)\b/u.test(text)) {
+    return 'details';
+  }
+  return null;
+}
+
+function getServiceSizeTiers(service) {
+  const tiers = service.prices_by_size;
+  if (!tiers || typeof tiers !== 'object') return [];
+  return ['S', 'M', 'L']
+    .filter(size => tiers[size])
+    .map(size => ({ size, ...tiers[size] }));
+}
+
+function formatDuration(service, size = null) {
+  const tiers = getServiceSizeTiers(service);
+  if (tiers.length) {
+    const applicable = size
+      ? tiers.filter(tier => tier.size === size)
+      : tiers;
+    const durations = [...new Set(applicable
+      .map(tier => Number(tier.duration ?? service.duration))
+      .filter(duration => Number.isFinite(duration) && duration > 0))];
+    if (!durations.length) return null;
+    if (durations.length === 1) return `${durations[0]} phút`;
+    return `${Math.min(...durations)}–${Math.max(...durations)} phút tùy size`;
+  }
+  const duration = Number(service.duration);
+  return Number.isFinite(duration) && duration > 0 ? `${duration} phút` : null;
+}
+
+function buildServiceFollowupReply(service, type, hairSize = null) {
+  const duration = formatDuration(service, hairSize);
+  if (type === 'duration') {
+    if (duration) {
+      return `Dạ, dịch vụ ${service.name} có thời lượng ${duration}${hairSize ? ` theo size ${hairSize}` : ''} theo thông tin hiện có của salon ạ. Mình muốn tìm hiểu thêm về giá hay lựa chọn kiểu phù hợp ạ?`;
+    }
+    return `Dạ, danh mục hiện chưa có thời lượng xác nhận cho dịch vụ ${service.name}. Mình muốn em hỏi chuyên viên tư vấn giúp không ạ?`;
+  }
+
+  if (type === 'options') {
+    const sizes = getServiceSizeTiers(service).map(tier => tier.size);
+    if (sizes.length) {
+      return `Dạ, dịch vụ ${service.name} hiện có các mức size ${sizes.join(', ')} theo danh mục salon${duration ? `; thời lượng ${duration}` : ''} ạ. Mình muốn em tư vấn mức nào phù hợp với tóc của mình?`;
+    }
+    return `Dạ, danh mục hiện ghi nhận dịch vụ ${service.name}${duration ? ` với thời lượng ${duration}` : ''}, chưa có các biến thể khác được khai báo. Mình muốn em tư vấn thêm về đặc điểm dịch vụ hay giá ạ?`;
+  }
+
+  const description = String(service.description || '').trim();
+  const category = normalizeText(service.category_name || '');
+  const generalExplanation = /\bcat\b/u.test(category)
+    ? 'Dịch vụ cắt tóc thường giúp chỉnh lại dáng tóc hiện tại hoặc tạo kiểu mới theo mong muốn; kiểu phù hợp còn tùy khuôn mặt, chất tóc và cách chăm sóc.'
+    : /\b(uon|duoi)\b/u.test(category)
+      ? 'Ở góc độ chung, dịch vụ tạo kiểu bằng uốn hoặc duỗi giúp thay đổi độ cong hay độ thẳng của tóc; lựa chọn phù hợp còn tùy nền tóc và kết quả mình mong muốn.'
+      : /\bnhuom\b/u.test(category)
+        ? 'Ở góc độ chung, nhuộm tóc giúp thay đổi màu tóc; màu đạt được còn phụ thuộc nền tóc hiện tại và màu mình mong muốn.'
+        : null;
+  const facts = [
+    description
+      ? `Dạ, về dịch vụ ${service.name}: ${description}`
+      : generalExplanation
+        ? `Dạ, ở góc độ thông tin chung, ${generalExplanation}`
+        : `Dạ, danh mục hiện chưa có mô tả chi tiết đã xác nhận cho dịch vụ ${service.name}.`,
+    duration ? `Thời lượng hiện có trong danh mục: ${duration}.` : null,
+    getServiceSizeTiers(service).length
+      ? `Dịch vụ có các size ${getServiceSizeTiers(service).map(tier => tier.size).join(', ')}.`
+      : null,
+  ].filter(Boolean);
+  return `${facts.join(' ')} Mình còn muốn em làm rõ thêm điểm nào về dịch vụ này ạ?`;
+}
+
+async function resolveServiceFollowup({ userMessage, conversation = null }) {
+  const type = getServiceFollowupType(userMessage);
+  if (!type) return null;
+
+  const context = conversation?.chat_context || {};
+  const selectedIds = Array.isArray(context.selected_service_ids)
+    ? context.selected_service_ids
+    : [];
+  const services = (await productRepository.findAll({
+    status: 'active',
+    page: 1,
+    limit: 1000,
+  })).rows;
+  const selectedServices = selectedIds
+    .map(id => services.find(service => service.id === id))
+    .filter(Boolean);
+  if (selectedServices.length) {
+    return {
+      handled: true,
+      content: selectedServices
+        .map(service => buildServiceFollowupReply(service, type, context.hair_size))
+        .join('\n'),
+    };
+  }
+
+  const categoryName = context.service_interest_category || context.booking_requested_category;
+  if (categoryName) {
+    const categoryServices = services.filter(service => service.category_name === categoryName);
+    if (categoryServices.length) {
+      return {
+        handled: true,
+        content: `Dạ, nhóm ${categoryName} hiện có các dịch vụ: ${categoryServices.map(service => service.name).join('; ')}. Mình muốn tìm hiểu dịch vụ cụ thể nào ạ?`,
+      };
+    }
+  }
+  return null;
+}
+
 async function resolveServiceInquiry({ userMessage, conversation = null, history = [] }) {
   const chatContext = conversation?.chat_context || {};
   if (
@@ -314,8 +434,7 @@ async function resolveServiceInquiry({ userMessage, conversation = null, history
   if (
     selectedService &&
     categoryMatches.length &&
-    categoryMatches[0].category_name === selectedService.category_name &&
-    !isCategoryOnlyInquiry(userMessage, selectedService.category_name)
+    categoryMatches[0].category_name === selectedService.category_name
   ) {
     return null;
   }
@@ -324,7 +443,7 @@ async function resolveServiceInquiry({ userMessage, conversation = null, history
     if (categoryMatches.length > 1) {
       return {
         handled: true,
-        content: buildAmbiguousServiceReply(categoryMatches, userMessage),
+        content: `Dạ, nhóm ${categoryMatches[0].category_name} hiện có các dịch vụ: ${categoryMatches.map(service => service.name).join('; ')}. Mình muốn đặt dịch vụ nào ạ?`,
       };
     }
     return null;
@@ -342,10 +461,7 @@ async function resolveServiceInquiry({ userMessage, conversation = null, history
     if (!categoryMatches.length) {
       return {
         handled: true,
-        content: buildAmbiguousServiceReply(
-          pendingServiceSelection.services,
-          pendingServiceSelection.request
-        ),
+        content: buildServiceSelectionReply(pendingServiceSelection.services),
       };
     }
   }
@@ -366,7 +482,7 @@ async function resolveServiceInquiry({ userMessage, conversation = null, history
   if (categoryMatches.length > 1) {
     return {
       handled: true,
-      content: buildAmbiguousServiceReply(categoryMatches, userMessage),
+      content: buildServiceSelectionReply(categoryMatches),
     };
   }
 
@@ -416,11 +532,28 @@ async function resolvePriceInquiry({ userMessage, history = [], conversation = n
     contextProductName,
   ].filter(Boolean).join(' ');
 
-  let matches = directCurrentMatches.length
+  const selectedServicesMatchCurrentCategory = selectedServices.length > 0 &&
+    currentCategoryMatches.length > 0 &&
+    selectedServices.every(service =>
+      service.category_name === currentCategoryMatches[0].category_name
+    );
+  const selectedServicesMatchBroadDirectMatches = selectedServices.length > 0 &&
+    directCurrentMatches.length > 1 &&
+    selectedServices.every(service =>
+      directCurrentMatches.some(match => match.id === service.id)
+    ) &&
+    directCurrentMatches.every(service =>
+      service.category_name === selectedServices[0].category_name
+    );
+  let matches = directCurrentMatches.length === 1
     ? directCurrentMatches
-    : currentCategoryMatches.length
-      ? currentCategoryMatches
-      : selectedServices;
+    : selectedServicesMatchCurrentCategory || selectedServicesMatchBroadDirectMatches
+      ? selectedServices
+      : directCurrentMatches.length
+        ? directCurrentMatches
+        : currentCategoryMatches.length
+          ? currentCategoryMatches
+          : selectedServices;
   const matchingCategory = !directCurrentMatches.length && currentCategoryMatches.length > 0;
   if (
     pendingServiceSelection &&
@@ -552,6 +685,8 @@ module.exports = {
   findDirectMatches,
   findCategoryMatches,
   isCategoryOnlyInquiry,
+  buildServiceSelectionReply,
+  resolveServiceFollowup,
   resolveServiceInquiry,
   resolvePriceInquiry,
 };

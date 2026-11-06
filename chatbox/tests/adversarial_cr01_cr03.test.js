@@ -322,7 +322,7 @@ describe('Adversarial Stress Test Suite: CR-01, CR-02, CR-03', () => {
     // Specification: status 410, code 'HOLD_EXPIRED', with preservedData
     assert.equal(confirmRes.status, 410, 'Expired hold confirmation must return 410 Gone');
     assert.equal(confirmRes.body.code, 'HOLD_EXPIRED');
-    assert.equal(confirmRes.body.error, 'Holding period of 5 minutes has expired. Please select a time slot again.');
+    assert.equal(confirmRes.body.error, 'The temporary hold has expired. Please select a time slot again.');
     assert.ok(confirmRes.body.preservedData, 'preservedData must be returned');
     assert.equal(confirmRes.body.preservedData.customerPhone, '0905555666');
 
@@ -624,7 +624,7 @@ describe('Adversarial Stress Test Suite: CR-01, CR-02, CR-03', () => {
   // 5. HOLDING MESSAGE SPECIFICATION VERIFICATION (CR-02, CR-03c)
   // =========================================================================
 
-  test('5.1 CR-02 / CR-03c String Verification: Holding slot response message states 5 minutes', async () => {
+  test('5.1 Holding slot response does not disclose internal hold duration', async () => {
     const availableSlots = await appointmentService.checkAvailableSlots(stressDate4, 30);
     assert.ok(availableSlots.slots.length, 'Test date should have an available slot');
     const res = await apiRequest('/api/appointments/hold', {
@@ -637,17 +637,6 @@ describe('Adversarial Stress Test Suite: CR-01, CR-02, CR-03', () => {
     });
 
     assert.equal(res.status, 201);
-    const has10min = res.body.message && res.body.message.includes('10 phút');
-    const has5min = res.body.message && res.body.message.includes('5 phút');
-
-    assert.ok(
-      has5min,
-      `Observed message: "${res.body.message}". Expected message to state 5 minutes.`
-    );
-    assert.equal(
-      has10min,
-      false,
-      `Message must not contain 10 minutes: "${res.body.message}"`
-    );
+    assert.doesNotMatch(res.body.message, /\b(?:5|10)\s*phút\b/iu);
   });
 });

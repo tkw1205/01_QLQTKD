@@ -2,13 +2,17 @@
 
 const productRepository = require('../repositories/productRepository');
 const conversationRepository = require('../repositories/conversationRepository');
-const { extractDateFromText, extractTimeFromText } = require('./tools');
+const {
+  extractDateFromText,
+  isInvalidCalendarDateText,
+  extractTimeFromText,
+  detectAvailableSlotsQuery,
+} = require('./tools');
 const {
   isPriceQuestion,
   parseHairSize,
   findDirectMatches,
   findCategoryMatches,
-  isCategoryOnlyInquiry,
 } = require('./servicePricing');
 
 function normalizeText(value) {
@@ -32,6 +36,47 @@ function hasBookingLanguage(value) {
     .test(normalizeText(value));
 }
 
+function getSelectedServiceDetails(services, selectedIds, hairSize) {
+  const selectedServices = selectedIds
+    .map(id => services.find(service => service.id === id))
+    .filter(Boolean);
+  if (!selectedServices.length || selectedServices.length !== selectedIds.length) {
+    return { price: null, duration: null, staffCount: null };
+  }
+
+  const requirements = selectedServices.map(service => {
+    const sizeTiers = service.prices_by_size &&
+      typeof service.prices_by_size === 'object'
+      ? service.prices_by_size
+      : null;
+    const hasSizeTiers = sizeTiers && Object.keys(sizeTiers).length > 0;
+    const tier = hasSizeTiers && hairSize ? sizeTiers[hairSize] : null;
+    if (hasSizeTiers && !tier) return null;
+    return {
+      price: Number(tier?.price ?? service.price),
+      duration: Number(tier?.duration ?? service.duration_minutes ?? service.duration),
+      staffCount: Number(tier?.staff_count ?? service.staff_count),
+    };
+  });
+  if (requirements.some(item =>
+    !item ||
+    !Number.isFinite(item.price) ||
+    item.price < 0 ||
+    !Number.isFinite(item.duration) ||
+    item.duration <= 0 ||
+    !Number.isInteger(item.staffCount) ||
+    item.staffCount <= 0
+  )) {
+    return { price: null, duration: null, staffCount: null };
+  }
+
+  return {
+    price: requirements.reduce((total, item) => total + item.price, 0),
+    duration: requirements.reduce((total, item) => total + item.duration, 0),
+    staffCount: Math.max(...requirements.map(item => item.staffCount)),
+  };
+}
+
 async function updateConversationContext(conversationId, conversation, userMessage, history) {
   const context = { ...(conversation.chat_context || {}) };
   const message = String(userMessage || '');
@@ -42,17 +87,31 @@ async function updateConversationContext(conversationId, conversation, userMessa
   const bookingServiceWasConfirmed = context.booking_service_confirmed === true;
   const identifiedServiceWasForConsultation =
     context.selected_service_source === 'service_consultation';
+  const availabilityQueryActive = context.availability_query_pending === true ||
+    (Array.isArray(context.availability_query_service_ids) &&
+      context.availability_query_service_ids.length > 0);
+  const isAvailabilityRequest = detectAvailableSlotsQuery(message);
+  const isServiceFollowup = /(?:tìm hiểu thêm|tư vấn thêm|nói rõ hơn|chi tiết hơn|cho tôi biết thêm|dịch vụ này như thế nào|làm như thế nào|có gì đặc biệt|phù hợp với tóc nào|nên chọn loại nào|tôi muốn biết thêm|giải thích thêm|mất bao lâu|bao lâu|giá sao|bao nhiêu tiền|có những loại nào)/iu
+    .test(message);
   context.booking_service_just_selected = false;
 
   if (isPriceRequest) {
     context.pricing_inquiry_active = true;
     context.hair_size_clarification_attempts = 0;
+    context.current_intent = 'ASK_PRICE';
   } else if (
     hasBookingLanguage(message) ||
     /(?:muốn|cần|định|tư vấn)\s+(?:đi\s*)?(?:đặt lịch|cắt|uốn|nhuộm|làm tóc|thay đổi kiểu tóc|kiểu tóc)/iu
       .test(message)
   ) {
     context.pricing_inquiry_active = false;
+    context.current_intent = hasBookingLanguage(message)
+      ? 'BOOK_APPOINTMENT'
+      : 'CONSULT_SERVICE';
+  } else if (isAvailabilityRequest || availabilityQueryActive) {
+    context.current_intent = 'CHECK_AVAILABILITY';
+  } else if (isServiceFollowup && context.selected_service_ids?.length) {
+    context.current_intent = 'CONSULT_SERVICE';
   }
 
   const { rows: services } = await productRepository.findAll({ status: 'active', page: 1, limit: 1000 });
@@ -65,8 +124,7 @@ async function updateConversationContext(conversationId, conversation, userMessa
   const preservesSelectedCategoryService =
     selectedService &&
     categoryMatches.length &&
-    categoryMatches[0].category_name === selectedService.category_name &&
-    !isCategoryOnlyInquiry(message, selectedService.category_name);
+    categoryMatches.some(service => service.id === selectedService.id);
   const pendingCategoryMatches = context.booking_requested_category
     ? findCategoryMatches(context.booking_requested_category, services)
     : [];
@@ -76,35 +134,82 @@ async function updateConversationContext(conversationId, conversation, userMessa
     ? requestedCategoryMatches[0]
     : null;
   if (currentServiceMatches.length) {
-    context.selected_service_ids = currentServiceMatches.map(service => service.id);
+    const matchedIds = currentServiceMatches.map(service => service.id);
+    const selectionChanged = selectedIds.length > 0 &&
+      (selectedIds.length !== matchedIds.length ||
+        selectedIds.some(id => !matchedIds.includes(id)));
+    if (selectionChanged) {
+      context.hair_size = null;
+      context.hair_length_text = null;
+      context.booking_service_notes = null;
+    }
+    context.selected_service_ids = matchedIds;
     context.service_interest_category = currentServiceMatches[0].category_name;
+    context.consultation_topic = currentServiceMatches.length === 1
+      ? currentServiceMatches[0].name
+      : currentServiceMatches[0].category_name;
     context.booking_requested_category = null;
     context.selected_service_source = serviceWasForPricing
       ? 'price_inquiry'
-      : hasBookingLanguage(message) || bookingServiceWasRequested
+      : hasBookingLanguage(message) || bookingServiceWasRequested || availabilityQueryActive
         ? 'booking_request'
         : 'service_consultation';
-    if (!context.booking_started && !hasBookingLanguage(message)) {
+    if (!isPriceRequest) {
+      context.pricing_inquiry_active = false;
+      context.current_intent = hasBookingLanguage(message) || bookingServiceWasRequested
+        ? 'BOOK_APPOINTMENT'
+        : availabilityQueryActive
+          ? 'CHECK_AVAILABILITY'
+          : 'CONSULT_SERVICE';
+    }
+    if (!context.booking_started && !hasBookingLanguage(message) && !availabilityQueryActive) {
       context.booking_service_confirmed = false;
     }
   } else if (categoryService) {
+    const selectionChanged = selectedIds.length > 0 &&
+      (selectedIds.length !== 1 || selectedIds[0] !== categoryService.id);
+    if (selectionChanged) {
+      context.hair_size = null;
+      context.hair_length_text = null;
+      context.booking_service_notes = null;
+    }
     context.selected_service_ids = [categoryService.id];
     context.service_interest_category = categoryService.category_name;
+    context.consultation_topic = categoryService.name;
     context.booking_requested_category = null;
     context.selected_service_source = serviceWasForPricing
       ? 'price_inquiry'
-      : hasBookingLanguage(message) || bookingServiceWasRequested
+      : hasBookingLanguage(message) || bookingServiceWasRequested || availabilityQueryActive
         ? 'booking_request'
         : 'service_consultation';
-    if (!context.booking_started && !hasBookingLanguage(message)) {
+    if (!isPriceRequest) {
+      context.pricing_inquiry_active = false;
+      context.current_intent = hasBookingLanguage(message) || bookingServiceWasRequested
+        ? 'BOOK_APPOINTMENT'
+        : availabilityQueryActive
+          ? 'CHECK_AVAILABILITY'
+          : 'CONSULT_SERVICE';
+    }
+    if (!context.booking_started && !hasBookingLanguage(message) && !availabilityQueryActive) {
       context.booking_service_confirmed = false;
     }
   } else if (categoryMatches.length && !preservesSelectedCategoryService) {
     context.service_interest_category = categoryName;
     context.selected_service_ids = [];
+    context.service_id = null;
+    context.service_name = null;
+    context.consultation_topic = categoryName;
     context.selected_service_source = null;
     context.booking_service_confirmed = false;
-    if (hasBookingLanguage(message) || bookingServiceWasRequested || context.booking_started) {
+    context.hair_size = null;
+    context.hair_length_text = null;
+    context.booking_service_notes = null;
+    if (
+      hasBookingLanguage(message) ||
+      bookingServiceWasRequested ||
+      context.booking_started ||
+      availabilityQueryActive
+    ) {
       context.booking_requested_category = categoryName;
     }
   }
@@ -141,16 +246,58 @@ async function updateConversationContext(conversationId, conversation, userMessa
   }
 
   const date = extractDateFromText(message);
+  const invalidDate = isInvalidCalendarDateText(message);
   const timeMentioned = mentionsTime(message);
   const time = extractTimeFromText(message);
-  if (date) context.appointment_date = date;
+  const dateChanged = Boolean(date && date !== context.appointment_date);
+  const timeChanged = Boolean(time && time !== context.appointment_time);
+  if (date) {
+    context.appointment_date = date;
+    context.invalid_appointment_date = false;
+  } else if (invalidDate) {
+    context.invalid_appointment_date = true;
+  }
   if (timeMentioned) {
     context.appointment_time = time;
     context.invalid_appointment_time = !time;
   }
+  if (dateChanged || timeChanged) {
+    context.booking_confirmation_pending = false;
+    if (context.booking_started) {
+      context.booking_status = 'COLLECTING_BOOKING_DETAILS';
+    }
+    if (context.availability_query_pending && date) {
+      context.availability_query_date = date;
+    }
+  }
 
   const hasSelectedService = Array.isArray(context.selected_service_ids) &&
     context.selected_service_ids.length > 0;
+  if (hasSelectedService) {
+    const selectedServiceNames = context.selected_service_ids
+      .map(id => services.find(service => service.id === id)?.name)
+      .filter(Boolean);
+    context.service_id = context.selected_service_ids.length === 1
+      ? context.selected_service_ids[0]
+      : null;
+    context.service_name = selectedServiceNames.length === 1
+      ? selectedServiceNames[0]
+      : selectedServiceNames.join(' + ') || null;
+    const details = getSelectedServiceDetails(
+      services,
+      context.selected_service_ids,
+      context.hair_size,
+    );
+    context.service_price = details.price;
+    context.service_duration = details.duration;
+    context.service_staff_count = details.staffCount;
+  } else {
+    context.service_id = null;
+    context.service_name = null;
+    context.service_price = null;
+    context.service_duration = null;
+    context.service_staff_count = null;
+  }
   const serviceWasMentioned = currentServiceMatches.length > 0 || Boolean(categoryService);
   const bookingServiceWasMentioned = serviceWasMentioned && !isPriceRequest;
   const mentionsContact = /(?:\+?84|0)\d(?:[\s().-]?\d){8,10}|[^\s@]+@[^\s@]+\.[^\s@]+/u.test(message);
@@ -188,24 +335,24 @@ async function updateConversationContext(conversationId, conversation, userMessa
     context.booking_service_confirmation_pending = false;
   }
   if (hasBookingLanguage(message)) {
-    if (bookingServiceWasMentioned || (
-      identifiedServiceWasForConsultation &&
-      Array.isArray(context.selected_service_ids) &&
-      context.selected_service_ids.length > 0
-    )) {
+    if (bookingServiceWasMentioned || hasSelectedService) {
       context.booking_service_confirmed = true;
       context.selected_service_source = 'booking_request';
     }
     if (
-      bookingServiceWasMentioned ||
+      bookingServiceWasMentioned || hasSelectedService ||
       (bookingServiceWasConfirmed && hasSelectedService) ||
       (identifiedServiceWasForConsultation && hasSelectedService)
     ) {
       context.booking_started = true;
       context.booking_intent_pending = false;
+      context.booking_status = 'COLLECTING_BOOKING_DETAILS';
+      context.current_intent = 'BOOK_APPOINTMENT';
     } else {
       context.booking_started = false;
       context.booking_intent_pending = true;
+      context.booking_status = 'SELECTING_SERVICE';
+      context.current_intent = 'BOOK_APPOINTMENT';
     }
   }
   const priorAssistantAskedBookingDetails = [...history]
@@ -219,6 +366,17 @@ async function updateConversationContext(conversationId, conversation, userMessa
     (assistantAskedBookingDetails && (date || timeMentioned))
   )) {
     context.booking_started = true;
+    context.pricing_inquiry_active = false;
+  }
+  if (
+    context.current_intent === 'BOOK_APPOINTMENT' &&
+    hasSelectedService &&
+    (date || timeMentioned)
+  ) {
+    context.booking_started = true;
+    context.booking_intent_pending = false;
+    context.booking_service_confirmed = true;
+    context.selected_service_source = 'booking_request';
     context.pricing_inquiry_active = false;
   }
 

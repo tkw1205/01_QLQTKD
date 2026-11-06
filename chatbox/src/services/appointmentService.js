@@ -6,6 +6,45 @@ const settingsRepo = require('../repositories/settingsRepository');
 const PHONE_REGEX = /^0[35789][0-9]{8}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+function formatMinutes(minutes) {
+  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+function getFreeIntervals(slots, durationMinutes) {
+  const starts = slots
+    .map(slot => {
+      const [hours, minutes] = slot.split(':').map(Number);
+      return hours * 60 + minutes;
+    })
+    .sort((a, b) => a - b);
+  if (!starts.length) return [];
+
+  const intervals = [];
+  let firstStart = starts[0];
+  let lastStart = starts[0];
+  for (const start of starts.slice(1)) {
+    if (start === lastStart + 1) {
+      lastStart = start;
+      continue;
+    }
+    intervals.push({
+      start: formatMinutes(firstStart),
+      end: formatMinutes(lastStart + durationMinutes),
+      first_available_start: formatMinutes(firstStart),
+      last_available_start: formatMinutes(lastStart),
+    });
+    firstStart = start;
+    lastStart = start;
+  }
+  intervals.push({
+    start: formatMinutes(firstStart),
+    end: formatMinutes(lastStart + durationMinutes),
+    first_available_start: formatMinutes(firstStart),
+    last_available_start: formatMinutes(lastStart),
+  });
+  return intervals;
+}
+
 function cleanPhoneNumber(phone) {
   if (!phone) return '';
   let p = phone.trim().replace(/[\s().-]/g, '');
@@ -78,7 +117,12 @@ async function checkAvailableSlots(date, requestedDuration, {
   }
 
   const slots = await appointmentRepo.findAvailableSlots(date, duration, { requiredStaff });
-  return { date, slots, duration };
+  return {
+    date,
+    slots,
+    duration,
+    freeIntervals: getFreeIntervals(slots, duration),
+  };
 }
 
 async function holdSlot({

@@ -71,7 +71,7 @@ router.post('/hold', optionalAuthenticate, asyncHandler(async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Khung giờ đã được giữ chỗ tạm thời trong 5 phút.',
+      message: 'Khung giờ đã được ghi nhận tạm thời.',
       data: held,
     });
   } catch (err) {

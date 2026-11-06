@@ -69,7 +69,7 @@ describe('Session Lifecycle & Inactivity Timeout Suite (CR-04, CR-05, CR-06)', (
     const msgs = await messageRepo.findByConversation(conv.id);
     const lastMsg = msgs[msgs.length - 1];
     assert.equal(lastMsg.sender_type, 'assistant');
-    assert.match(lastMsg.content, /5 phút/i, 'Nội dung tin nhắn cảnh báo phải nhắc nhở kết thúc sau 5 phút');
+    assert.doesNotMatch(lastMsg.content, /\b\d+\s*phút\b/iu, 'Cảnh báo khách không được tiết lộ thời gian chờ nội bộ');
     assert.match(lastMsg.content, /bận|tương tác|hỗ trợ/i);
   });
 

@@ -243,6 +243,14 @@ function resolveDateWithoutYear(day, month) {
 
 function isInvalidCalendarDateText(text) {
   if (!text || typeof text !== 'string') return false;
+  const isoDate = text.match(/(?:^|\D)(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?!\d)/u);
+  if (isoDate) {
+    return !formatCalendarDate(
+      Number(isoDate[1]),
+      Number(isoDate[2]),
+      Number(isoDate[3]),
+    );
+  }
   const numericDate = text.match(/(?:^|\D)(\d{1,2})[-/.](\d{1,2})(?:[-/.](\d{4}))?(?!\d)/u);
   const textualDate = text.toLocaleLowerCase('vi-VN')
     .match(/ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})(?:\s+năm\s+(\d{4}))?/u);

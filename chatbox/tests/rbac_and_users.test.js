@@ -77,6 +77,13 @@ describe('RBAC & User Management Test Suite', () => {
 
   test('2. Khách hàng đã đăng nhập đặt lịch và liên kết tài khoản (user_id)', async () => {
     assert.ok(userToken);
+    const service = jsonStore.getCollection('products').find(product =>
+      product.status === 'active' &&
+      product.prices_by_size &&
+      product.prices_by_size.M
+    );
+    assert.ok(service, 'An active service with an M price tier is required');
+
     const res = await apiRequest('/api/appointments', {
       method: 'POST',
       headers: { Authorization: `Bearer ${userToken}` },
@@ -84,8 +91,11 @@ describe('RBAC & User Management Test Suite', () => {
         customerName: userObj.name,
         customerPhone: userObj.phone,
         customerEmail: userObj.email,
+        productIds: [service.id],
+        productSizes: { [service.id]: 'M' },
         appointmentDate: futureDate,
         appointmentTime: '10:00',
+        confirmedBySystem: true,
         notes: 'Khách hàng đặt lịch tư vấn trực tiếp từ web',
       },
     });

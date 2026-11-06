@@ -433,6 +433,7 @@ describe('Schedule Management & Staff Drag-and-Drop Reassignment Test Suite', ()
   test('12. Tạo lịch hẹn trực tiếp trên Schedule (Multi-service): Tính tổng thời lượng, tổng giá, lưu thợ & confirmed', async () => {
     const p1 = getActiveService('cat-tao-kieu');
     const p2 = getActiveService('goi-dau');
+    const productSizes = { [p1.id]: 'M', [p2.id]: 'M' };
 
     const res = await apiRequest('/api/appointments', {
       method: 'POST',
@@ -442,6 +443,7 @@ describe('Schedule Management & Staff Drag-and-Drop Reassignment Test Suite', ()
         customerPhone: '0933112233',
         customerEmail: 'minh.tran@example.com',
         productIds: [p1.id, p2.id],
+        productSizes,
         appointmentDate: testDate,
         appointmentTime: '13:00',
         staffId: staff1.id,
@@ -459,8 +461,9 @@ describe('Schedule Management & Staff Drag-and-Drop Reassignment Test Suite', ()
     assert.equal(data.status, 'confirmed');
 
     const expectedDuration = [p1, p2].reduce((total, service) =>
-      total + (Number(service.prices_by_size?.S?.duration ?? service.duration_minutes ?? service.duration) || 30), 0);
-    const expectedPrice = (Number(p1.price) || 0) + (Number(p2.price) || 0);
+      total + (Number(service.prices_by_size?.[productSizes[service.id]]?.duration ?? service.duration_minutes ?? service.duration) || 30), 0);
+    const expectedPrice = [p1, p2].reduce((total, service) =>
+      total + (Number(service.prices_by_size?.[productSizes[service.id]]?.price ?? service.price) || 0), 0);
     assert.equal(data.duration_minutes, expectedDuration);
     assert.equal(data.price, expectedPrice);
     assert.ok(data.product_name.includes(p1.name) && data.product_name.includes(p2.name));
@@ -480,9 +483,9 @@ describe('Schedule Management & Staff Drag-and-Drop Reassignment Test Suite', ()
         customerName: 'Lê Văn Trễ',
         customerPhone: '0977889900',
         productIds: [p1.id],
+        productSizes: { [p1.id]: 'M' },
         appointmentDate: testDate,
-        appointmentTime: '20:15', // kéo dài 30-60p sẽ kết thúc sau 20:30
-        durationMinutes: 60,
+        appointmentTime: '20:15', // Size M cần 45 phút, vượt quá giờ đóng cửa 20:30.
         staffId: staff2.id
       }
     });
@@ -503,6 +506,7 @@ describe('Schedule Management & Staff Drag-and-Drop Reassignment Test Suite', ()
         customerName: 'Khách Trùng Lịch',
         customerPhone: '0911223344',
         productIds: [p1.id],
+        productSizes: { [p1.id]: 'M' },
         appointmentDate: testDate,
         appointmentTime: '13:15',
         staffId: staff1.id

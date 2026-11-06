@@ -17,10 +17,11 @@ const jsonStore = require('../src/config/jsonStore');
 function getMockAssistantResponse(messages) {
   const prompt = messages.find(message => message.role === 'system')?.content || '';
   const userMessage = [...messages].reverse().find(message => message.role === 'user')?.content || '';
-  const readState = label => prompt.match(new RegExp(`^- ${label}: (.+)$`, 'm'))?.[1] || '';
-  const date = readState('Ngày khách chọn');
-  const time = readState('Giờ khách chọn');
-  const service = readState('Dịch vụ đã chọn').replace(/ \(ID:.*$/, '');
+  const readState = (label, fallback) =>
+    prompt.match(new RegExp(`^- ${label}: (.+)$`, 'm'))?.[1] || fallback;
+  const date = readState('Ngày khách chọn', 'chưa cung cấp');
+  const time = readState('Giờ khách chọn', 'chưa cung cấp');
+  const service = readState('Dịch vụ đã chọn', 'chưa chọn dịch vụ').replace(/ \(ID:.*$/, '');
   const contact = prompt.match(/^- Thông tin liên hệ đã lưu: họ tên (.*), số điện thoại (.*), email (.*)$/m);
   const name = contact?.[1] || '';
   const phone = contact?.[2] || '';
@@ -57,7 +58,7 @@ function getMockAssistantResponse(messages) {
     }
     return 'Dạ, anh/chị thích bob ngắn hay bob ngang vai ạ?';
   }
-  if (/bạn biết.*dịch vụ/u.test(userMessage)) {
+  if (/bạn biết.*dịch vụ/iu.test(userMessage)) {
     return 'Dạ, em chưa nhận được thông tin về dịch vụ anh/chị muốn sử dụng ạ.';
   }
   if (/muốn nhuộm tóc/u.test(userMessage)) {
@@ -218,12 +219,20 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     assert.notEqual(secondServiceId, firstServiceId);
     assert.equal(conversation.chat_context.hair_size, 'M');
 
+    const switchedService = (await productRepository.findAll({
+      status: 'active',
+      page: 1,
+      limit: 1000,
+    })).rows.find(service => service.id === secondServiceId);
+    assert.ok(switchedService);
     const switchedPrice = await servicePricing.resolvePriceInquiry({
-      userMessage: 'Phồng chân uốn tóc ngang vai',
+      userMessage: `Giá ${switchedService.name} tóc ngang vai bao nhiêu?`,
       conversation,
     });
-    assert.match(switchedPrice.content, /Phồng chân/u);
-    assert.match(switchedPrice.content, /200\.000 VNĐ/u);
+    assert.match(switchedPrice.content, new RegExp(switchedService.name));
+    assert.ok(switchedPrice.content.includes(
+      new Intl.NumberFormat('vi-VN').format(switchedService.prices_by_size.M.price)
+    ));
 
     await processTurn('Tôi muốn đặt lịch phồng chân uốn tóc ngang vai vào lúc 24h');
     assert.equal(conversation.chat_context.booking_started, true);
@@ -253,7 +262,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       conversationId: conversation.id,
       userMessage: 'Mai làm',
     });
-    assert.match(dateReply.content, /khung giờ nào/u);
+    assert.match(dateReply.content, /khung giờ nào|giờ bắt đầu nào/u);
 
     const newConversation = await conversationRepository.create({
       guestSessionId: `context-test-new-${Date.now()}`,
@@ -301,6 +310,13 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     const guestSessionId = `context-test-service-priority-${Date.now()}`;
     const bookingConversation = await conversationRepository.create({ guestSessionId });
     testSessionIds.push(guestSessionId);
+    const dyeServices = (await productRepository.findAll({
+      status: 'active',
+      page: 1,
+      limit: 1000,
+    })).rows.filter(service => service.category_name === 'Nhuộm tóc');
+    assert.ok(dyeServices.length > 0);
+    const dyeService = dyeServices[0];
 
     const timeFirstReply = await orchestrator.chat({
       conversationId: bookingConversation.id,
@@ -329,14 +345,15 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId,
       userMessage: 'Tôi muốn nhuộm tóc',
     });
-    assert.match(dyeReply.content, /Nhuộm \(sản phẩm ART\)/u);
-    assert.match(dyeReply.content, /Chấm chân/u);
+    for (const service of dyeServices) {
+      assert.ok(dyeReply.content.includes(service.name));
+    }
     assert.doesNotMatch(dyeReply.content, /họ tên|số điện thoại/u);
 
     const serviceSelectionReply = await orchestrator.chat({
       conversationId: bookingConversation.id,
       guestSessionId,
-      userMessage: 'Nhuộm (sản phẩm ART), tóc ngang vai',
+      userMessage: `${dyeService.name}, tóc ngang vai`,
     });
     assert.match(serviceSelectionReply.content, /màu nào/u);
 
@@ -611,7 +628,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     );
     assert.ok(oldService);
     const newService = services.find(service =>
-      service.category_name === 'Uốn tóc' && /uốn \(sản phẩm art\)/iu.test(service.name)
+      service.category_name === 'Uốn tóc' && /uốn kiểu|uốn \(sản phẩm art\)/iu.test(service.name)
     );
     assert.ok(newService);
     const appointmentDate = '2027-05-20';
@@ -687,9 +704,9 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     const detailedPermReply = await orchestrator.chat({
       conversationId: bookingConversation.id,
       guestSessionId,
-      userMessage: 'Uốn (sản phẩm ART), tóc ngang vai, kiểu xoăn sóng',
+      userMessage: `${newService.name}, tóc ngang vai, kiểu xoăn sóng`,
     });
-    assert.match(detailedPermReply.content, /Uốn \(sản phẩm ART\)/u);
+    assert.ok(detailedPermReply.content.includes(newService.name));
     assert.match(detailedPermReply.content, new RegExp(`${appointmentTime} ngày ${appointmentDate}`));
     assert.match(detailedPermReply.content, /họ tên và số điện thoại/u);
 
@@ -825,6 +842,12 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId: `context-test-coloring-${Date.now()}`,
     });
     testSessionIds.push(bookingConversation.guest_session_id);
+    const dyeServices = (await productRepository.findAll({
+      status: 'active',
+      page: 1,
+      limit: 1000,
+    })).rows.filter(service => service.category_name === 'Nhuộm tóc');
+    assert.ok(dyeServices.length > 0);
 
     await orchestrator.chat({
       conversationId: bookingConversation.id,
@@ -836,8 +859,9 @@ describe('Conversation context across pricing and booking turns', { concurrency:
       guestSessionId: bookingConversation.guest_session_id,
       userMessage: 'Tôi muốn nhuộm tóc',
     });
-    assert.match(serviceReply.content, /Nhuộm \(sản phẩm ART\)/u);
-    assert.match(serviceReply.content, /Chấm chân/u);
+    for (const service of dyeServices) {
+      assert.ok(serviceReply.content.includes(service.name));
+    }
     let updated = await conversationRepository.findById(bookingConversation.id);
     assert.deepEqual(updated.chat_context.selected_service_ids, []);
     assert.equal(updated.chat_context.service_interest_category, 'Nhuộm tóc');
@@ -845,7 +869,7 @@ describe('Conversation context across pricing and booking turns', { concurrency:
     const detailsReply = await orchestrator.chat({
       conversationId: bookingConversation.id,
       guestSessionId: bookingConversation.guest_session_id,
-      userMessage: 'Nhuộm (sản phẩm ART)',
+      userMessage: dyeServices[0].name,
     });
     assert.match(detailsReply.content, /độ dài tóc/u);
     updated = await conversationRepository.findById(bookingConversation.id);
@@ -893,6 +917,20 @@ describe('Conversation context across pricing and booking turns', { concurrency:
   });
 
   test('recovers from an invalid time and accepts a valid time with a morning qualifier', async () => {
+    const serviceId = conversation.chat_context.selected_service_ids[0];
+    assert.ok(serviceId);
+    const updated = await conversationRepository.updateChatContext(conversation.id, {
+      current_intent: 'BOOK_APPOINTMENT',
+      booking_started: true,
+      booking_intent_pending: false,
+      booking_service_confirmed: true,
+      selected_service_ids: [serviceId],
+      hair_size: conversation.chat_context.hair_size || 'M',
+      appointment_date: null,
+      appointment_time: null,
+      invalid_appointment_time: false,
+    });
+    conversation.chat_context = updated.chat_context;
     const outOfHoursReply = await orchestrator.chat({
       conversationId: conversation.id,
       userMessage: '07:00',

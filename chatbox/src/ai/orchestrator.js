@@ -329,7 +329,7 @@ function formatSlotsReply(date, slots, nextDate, freeIntervals = []) {
   }
   const intervals = Array.isArray(freeIntervals) ? freeIntervals : [];
   if (!intervals.length) {
-    return `Dạ, ngày ${date} các giờ bắt đầu còn phù hợp là: ${slots.slice(0, 8).join(', ')}${slots.length > 8 ? ', ...' : ''}. Mình muốn chọn giờ nào để em kiểm tra và hỗ trợ đặt lịch ạ?`;
+    return `Dạ, ngày ${date} các khung giờ trống còn phù hợp là: ${slots.slice(0, 8).join(', ')}${slots.length > 8 ? ', ...' : ''}. Mình muốn chọn giờ nào để em kiểm tra và hỗ trợ đặt lịch ạ?`;
   }
   const intervalText = intervals.map(interval => {
     const startRange = interval.first_available_start === interval.last_available_start
@@ -337,7 +337,7 @@ function formatSlotsReply(date, slots, nextDate, freeIntervals = []) {
       : `có thể bắt đầu từ ${interval.first_available_start} đến ${interval.last_available_start}`;
     return `${interval.start}–${interval.end} (${startRange})`;
   }).join('; ');
-  return `Dạ, ngày ${date}, salon còn các khoảng trống đủ thời lượng dịch vụ: ${intervalText}. Mình muốn chọn giờ bắt đầu nào để em hỗ trợ đặt lịch ạ?`;
+  return `Dạ, ngày ${date}, salon còn các khung giờ trống đủ thời lượng dịch vụ: ${intervalText}. Mình muốn chọn giờ bắt đầu nào để em hỗ trợ đặt lịch ạ?`;
 }
 
 function formatBookingDate(date) {
@@ -1319,10 +1319,7 @@ async function chat({ conversationId, guestSessionId, userMessage, io }) {
   if (
     dateBookingStateActive &&
     (messageDate || messageTime) &&
-    (
-      !selectedServicesForDatePrompt.length ||
-      (messageTime && !updatedConversation.chat_context.appointment_date)
-    )
+    !selectedServicesForDatePrompt.length
   ) {
     return {
       content: buildBookingServiceQuestion(

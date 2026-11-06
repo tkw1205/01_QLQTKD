@@ -1513,6 +1513,7 @@
       // Submit Create Appointment Form
       formCreateAppt.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (btnSubmitCreateAppt.disabled) return;
 
         const customerName = inputCustName.value.trim();
         const customerPhone = inputCustPhone.value.trim();

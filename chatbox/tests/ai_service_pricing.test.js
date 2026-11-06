@@ -119,39 +119,57 @@ describe('Deterministic salon service pricing', () => {
   });
 
   test('recognizes short service names and equivalent intent phrases from active catalog data', async () => {
+    const services = await getActiveServices();
+    const byCategory = categoryName =>
+      services.filter(service => service.category_name === categoryName);
+    const normalizeName = value => String(value || '')
+      .toLocaleLowerCase('vi-VN')
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .replace(/đ/g, 'd');
+    const volumeServices = services.filter(service =>
+      service.category_name === 'Uốn tóc' &&
+      [service.name, ...(service.aliases || [])].some(name => normalizeName(name).includes('phong'))
+    );
     const cases = [
-      { input: 'Uốn tóc', expected: ['Uốn mái / phồng mái', 'Phồng chân', 'Uốn (sản phẩm ART)'] },
-      { input: 'Có làm uốn không?', expected: ['Uốn mái / phồng mái', 'Phồng chân', 'Uốn (sản phẩm ART)'] },
-      { input: 'Cắt tóc', expected: ['Cắt tạo kiểu'] },
-      { input: 'Nhuộm tóc', expected: ['Nhuộm (sản phẩm ART)', 'Chấm chân'] },
-      { input: 'Tôi muốn làm tóc xoăn', expected: ['Uốn mái / phồng mái', 'Phồng chân', 'Uốn (sản phẩm ART)'] },
-      { input: 'Làm tóc cho phồng lên', expected: ['Uốn mái / phồng mái', 'Phồng chân'] },
-      { input: 'Làm phồng chân tóc', expected: ['Phồng chân'] },
-      { input: 'Uốn phồng', expected: ['Uốn mái / phồng mái', 'Phồng chân'] },
-      { input: 'Gội đầu', expected: ['Gội đầu'] },
-      { input: 'Duỗi tóc', expected: ['Duỗi mái', 'Duỗi gốc', 'Duỗi (sản phẩm ART)'] },
-      { input: 'Phục hồi tóc', expected: ['Hấp dầu', 'Phục hồi theo tóc', 'Phục hồi Biotin', 'Phục hồi chuyên sâu'] },
+      { input: 'Uốn tóc', expected: byCategory('Uốn tóc') },
+      { input: 'Có làm uốn không?', expected: byCategory('Uốn tóc') },
+      { input: 'Cắt tóc', expected: [services.find(service =>
+        service.aliases.some(alias => normalizeName(alias) === 'cat toc')
+      )].filter(Boolean) },
+      { input: 'Nhuộm tóc', expected: byCategory('Nhuộm tóc') },
+      { input: 'Tôi muốn làm tóc xoăn', expected: byCategory('Uốn tóc') },
+      { input: 'Làm tóc cho phồng lên', expected: volumeServices },
+      { input: 'Làm phồng chân tóc', expected: [services.find(service => service.aliases.some(alias => normalizeName(alias) === 'phong chan'))].filter(Boolean) },
+      { input: 'Uốn phồng', expected: volumeServices },
+      { input: 'Gội đầu', expected: [services.find(service => service.aliases.some(alias => normalizeName(alias) === 'goi dau'))].filter(Boolean) },
+      { input: 'Duỗi tóc', expected: byCategory('Duỗi tóc') },
+      { input: 'Phục hồi tóc', expected: byCategory('Phục hồi và dưỡng tóc') },
     ];
 
     for (const { input, expected } of cases) {
       const result = await servicePricing.resolveServiceInquiry({ userMessage: input });
       assert.equal(result?.handled, true, input);
-      for (const name of expected) assert.ok(result.content.includes(name), `${input} includes ${name}`);
+      assert.ok(expected.length > 0, `Active catalog has expected services for "${input}"`);
+      for (const service of expected) {
+        assert.ok(result.content.includes(service.name), `${input} includes ${service.name}`);
+      }
     }
 
-    const catalogNames = new Set((await getActiveServices()).map(service => service.name));
-    for (const { expected } of cases) {
-      for (const name of expected) assert.ok(catalogNames.has(name), `${name} exists in active catalog`);
-    }
-
-    for (const input of ['Uốn tóc', 'Tôi muốn làm tóc xoăn', 'Nhuộm tóc']) {
+    const bookingCases = [
+      { input: 'Uốn tóc', expected: byCategory('Uốn tóc') },
+      { input: 'Tôi muốn làm tóc xoăn', expected: byCategory('Uốn tóc') },
+      { input: 'Nhuộm tóc', expected: byCategory('Nhuộm tóc') },
+    ];
+    for (const { input, expected } of bookingCases) {
       const bookingResult = await servicePricing.resolveServiceInquiry({
         userMessage: input,
         conversation: { chat_context: { booking_intent_pending: true } },
       });
       assert.equal(bookingResult?.handled, true, `${input} is recognized during booking`);
-      assert.ok(bookingResult.content.includes('Uốn mái / phồng mái') ||
-        bookingResult.content.includes('Nhuộm (sản phẩm ART)'));
+      for (const service of expected) {
+        assert.ok(bookingResult.content.includes(service.name), `${input} during booking includes ${service.name}`);
+      }
     }
   });
 
@@ -275,6 +293,13 @@ describe('Deterministic salon service pricing', () => {
     const services = await getActiveServices();
     const permService = services.find(service => service.name === 'Uốn mái / phồng mái');
     const haircutService = services.find(service => service.name === 'Cắt tạo kiểu');
+    const artPermService = services.find(service =>
+      service.category_name === 'Uốn tóc' &&
+      service.aliases.some(alias => alias.toLocaleLowerCase('vi-VN').includes('sản phẩm art'))
+    );
+    assert.ok(permService, 'The active catalog includes the fringe-perm service');
+    assert.ok(haircutService, 'The active catalog includes the haircut service');
+    assert.ok(artPermService, 'The active catalog includes an ART perm service');
     let chatContext = {};
 
     t.after(() => {
@@ -348,8 +373,8 @@ describe('Deterministic salon service pricing', () => {
     assert.deepEqual(state.selected_service_ids, []);
     assert.equal(state.booking_service_confirmed, false);
     assert.equal(state.booking_requested_category, 'Uốn tóc');
-    state = await update('Uốn (sản phẩm ART)');
-    assert.deepEqual(state.selected_service_ids, [services.find(service => service.name === 'Uốn (sản phẩm ART)').id]);
+    state = await update(artPermService.name);
+    assert.deepEqual(state.selected_service_ids, [artPermService.id]);
     assert.equal(state.booking_service_confirmed, true);
     assert.equal(state.booking_requested_category, null);
     assert.equal(state.appointment_date, '2027-05-20');

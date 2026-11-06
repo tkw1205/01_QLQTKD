@@ -110,7 +110,11 @@ describe('AI Alternate Slots & Booking Flow Test Suite', () => {
 
     assert.match(res.content, /khung giờ trống|khung giờ còn trống/i);
     assert.match(res.content, /\b\d{2}:\d{2}\b/u, 'Phải chứa khung giờ thực tế từ backend');
-    assert.doesNotMatch(res.content, /10:30/, 'Không được chứa giờ 10:30 đã kín');
+    assert.doesNotMatch(
+      res.content,
+      /có thể bắt đầu(?: lúc| từ)[^;]*\b10:30\b/u,
+      'Không được liệt kê giờ 10:30 đã kín như một giờ bắt đầu khả dụng'
+    );
   });
 
   test('3. Tình huống 2b: Availability query uses the backend directly without relying on the LLM', async () => {

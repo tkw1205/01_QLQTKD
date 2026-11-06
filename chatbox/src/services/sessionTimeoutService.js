@@ -11,8 +11,31 @@ const WARNING_MESSAGE = 'Dạ em vẫn sẵn sàng hỗ trợ; mình cứ nhắn
 const SYSTEM_CLOSED_MESSAGE_AI = 'Phiên tư vấn tự động tạm đóng do hết thời gian chờ phản hồi. Salon sẽ liên hệ lại nếu có thông tin.';
 const SYSTEM_CLOSED_MESSAGE_HUMAN = 'Cuộc trò chuyện với nhân viên đã tự động kết thúc do không có tương tác trong 60 phút.';
 
+const AI_STAGE_WARNINGS = {
+  first_response: WARNING_MESSAGE,
+  consultation: 'Dạ, mình còn cần em tư vấn thêm về dịch vụ, giá hoặc thời gian thực hiện không ạ? Em sẵn sàng hỗ trợ mình.',
+  booking: 'Dạ, mình cho em biết dịch vụ muốn đặt để em hỗ trợ tiếp nhé ạ.',
+  slot_selection: 'Dạ, mình chọn giúp em một khung giờ phù hợp trong các khung giờ em vừa gửi nhé ạ.',
+  customer_details: 'Dạ, em đang chờ thông tin để tiếp tục đặt lịch. Mình gửi giúp em họ tên và số điện thoại (nếu chưa gửi) nhé ạ.',
+  booking_confirmation: 'Dạ, mình kiểm tra lại thông tin đặt lịch và xác nhận giúp em khi sẵn sàng nhé ạ.',
+};
+
 let intervalHandle = null;
 let currentIo = null;
+
+function getAiTimeoutStage(conv, convMsgs) {
+  const context = conv.chat_context || {};
+  if (context.booking_status === 'COLLECTING_CUSTOMER') return 'customer_details';
+  if (context.booking_status === 'AWAITING_CONFIRMATION' || context.booking_confirmation_pending) {
+    return 'booking_confirmation';
+  }
+  if (context.availability_query_pending) return 'slot_selection';
+  if (context.booking_status === 'COLLECTING_BOOKING_DETAILS') return 'slot_selection';
+  if (context.booking_intent_pending || context.booking_started) return 'booking';
+  return convMsgs.some(message => message.sender_type === 'user')
+    ? 'consultation'
+    : 'first_response';
+}
 
 /**
  * Release any active holding appointments associated with a conversation
@@ -74,7 +97,20 @@ async function checkTimeouts(io = null, options = {}) {
     // 1. AI MODE: 2-stage timeout (CR-04)
     // ──────────────────────────────────────────────────────────────────────────
     if (conv.mode === 'ai') {
-      const isWarningSent = Boolean(conv.warning_sent || conv.stage1_warning_sent);
+      const timeoutStage = getAiTimeoutStage(conv, convMsgs);
+      const stageChanged = conv.timeout_stage && conv.timeout_stage !== timeoutStage;
+      if (stageChanged) {
+        conv.warning_sent = false;
+        conv.stage1_warning_sent = false;
+        conv.warning_sent_at = null;
+        convModified = true;
+      }
+      if (conv.timeout_stage !== timeoutStage) {
+        conv.timeout_stage = timeoutStage;
+        convModified = true;
+      }
+      const isWarningSent = !stageChanged &&
+        Boolean(conv.warning_sent || conv.stage1_warning_sent);
 
       // Check if customer spoke AFTER the warning was dispatched
       if (isWarningSent && lastCustomerMsg && conv.warning_sent_at) {
@@ -101,8 +137,8 @@ async function checkTimeouts(io = null, options = {}) {
           const warningMsg = await messageRepo.create({
             conversationId: conv.id,
             senderType: 'assistant',
-            content: WARNING_MESSAGE,
-            metadata: { kind: 'session_timeout_warning' },
+            content: AI_STAGE_WARNINGS[timeoutStage],
+            metadata: { kind: 'session_timeout_warning', phase: timeoutStage },
           });
 
           conv.warning_sent = true;
@@ -273,10 +309,16 @@ function resetInactivityWarning(conversationId) {
   if (!conversationId) return;
   const conversations = jsonStore.getCollection('conversations');
   const conv = conversations.find(c => c.id === conversationId);
-  if (conv && (conv.warning_sent || conv.stage1_warning_sent)) {
+  if (conv && (
+    conv.warning_sent ||
+    conv.stage1_warning_sent ||
+    conv.warning_sent_at ||
+    conv.timeout_stage
+  )) {
     conv.warning_sent = false;
     conv.stage1_warning_sent = false;
     conv.warning_sent_at = null;
+    conv.timeout_stage = null;
     conv.updated_at = new Date().toISOString();
     jsonStore.saveCollection('conversations', conversations);
   }

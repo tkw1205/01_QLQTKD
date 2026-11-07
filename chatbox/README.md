@@ -162,7 +162,7 @@ ADMIN_NAME=Administrator
 AI_PROVIDER=gemini
 
 # Cấu hình Google Gemini (Cloud AI)
-GEMINI_API_KEY=AIzaSyCv3XnnYCHPofQ233x1JUxzqsCzqYfs-mw
+GEMINI_API_KEY=...
 GEMINI_MODEL=gemini-3.1-flash-lite
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 

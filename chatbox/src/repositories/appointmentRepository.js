@@ -81,6 +81,12 @@ function appointmentOverlapsWindow(appointment, targetStart, targetEnd, closingT
 function getServiceRequirements(product, hairSize) {
   const tiers = product.prices_by_size;
   const hasSizeTiers = tiers && Object.keys(tiers).length > 0;
+  if (!hasSizeTiers && hairSize) {
+    throw Object.assign(new Error(`Dịch vụ ${product.name} không hỗ trợ size ${hairSize}.`), {
+      status: 400,
+      code: 'SERVICE_SIZE_UNAVAILABLE',
+    });
+  }
   if (hasSizeTiers && !hairSize) {
     throw Object.assign(new Error(`Cần xác định size tóc cho dịch vụ ${product.name}.`), {
       status: 400,
@@ -111,7 +117,7 @@ function getServiceRequirements(product, hairSize) {
       code: 'SERVICE_STAFF_COUNT_MISSING',
     });
   }
-  if (!Number.isFinite(price) || price < 0) {
+  if (!Number.isFinite(price) || price <= 0) {
     throw Object.assign(new Error(`Danh mục thiếu giá hợp lệ cho dịch vụ ${product.name}.`), {
       status: 503,
       code: 'SERVICE_PRICE_MISSING',
@@ -842,6 +848,20 @@ async function create({
     product_sizes: Object.fromEntries(selectedProducts
       .filter(product => getServiceSize(product, productSizes, hairSize))
       .map(product => [product.id, getServiceSize(product, productSizes, hairSize)])),
+    service_snapshots: selectedProducts.map((product, index) => {
+      const category = jsonStore.getCollection('categories')
+        .find(item => item.id === product.category_id);
+      const size = getServiceSize(product, productSizes, hairSize);
+      return {
+        product_id: product.id,
+        name: product.name,
+        category_id: product.category_id || null,
+        category_name: category?.name || null,
+        size,
+        price: serviceRequirements[index].price,
+        duration_minutes: serviceRequirements[index].durationMinutes,
+      };
+    }),
     hair_size: hairSize || null,
     product_name: finalProductName,
     price: finalPrice,

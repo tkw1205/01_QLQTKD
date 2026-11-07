@@ -2036,7 +2036,7 @@
     "appointment_date": "2026-11-16",
     "appointment_time": "08:30",
     "duration_minutes": 30,
-    "status": "pending",
+    "status": "confirmed",
     "notes": null,
     "history": [
       {
@@ -2047,7 +2047,7 @@
       }
     ],
     "created_at": "2026-11-02T11:39:53.084Z",
-    "updated_at": "2026-11-02T11:39:53.084Z"
+    "updated_at": "2026-11-06T10:55:47.230Z"
   },
   {
     "id": "e9af3094-5a24-426c-baa3-1973182b475f",
@@ -2149,5 +2149,68 @@
     "created_at": "2026-11-06T05:19:32.093Z",
     "updated_at": "2026-11-06T05:19:55.903Z",
     "confirmed_at": "2026-11-06T05:19:55.903Z"
+  },
+  {
+    "id": "5ae67936-6585-4b39-856c-d7cbcf2defba",
+    "user_id": null,
+    "conversation_id": "2b34c83f-549c-4a9d-89e9-6e43a75216ca",
+    "guest_session_id": "cf5a941e-1dc6-4b6d-9ea6-187341e7f523",
+    "holding_token": "090f2c5c-cf0f-4e0b-8e01-d32951498c06",
+    "confirmation_token": "6c06d118-430f-48be-a6ec-a3e9bfcebbf6",
+    "booking_code": null,
+    "customer_name": null,
+    "customer_phone": null,
+    "customer_email": null,
+    "product_id": "22222222-2222-2222-2222-222222223001",
+    "product_ids": [
+      "22222222-2222-2222-2222-222222223001"
+    ],
+    "product_sizes": {
+      "22222222-2222-2222-2222-222222223001": "S"
+    },
+    "hair_size": "S",
+    "product_name": "Cắt tạo kiểu",
+    "price": 130000,
+    "appointment_date": "2026-11-07",
+    "appointment_time": "09:00",
+    "duration_minutes": 45,
+    "staff_count": 1,
+    "status": "cancelled",
+    "hold_expires_at": "2026-11-06T10:19:36.410Z",
+    "notes": "cắt tóc | size s nhé | size s nhé | Holding slot expired (TTL 5m)",
+    "created_at": "2026-11-06T10:14:36.411Z",
+    "updated_at": "2026-11-06T10:21:39.262Z"
+  },
+  {
+    "id": "c049c057-cce1-4a6c-b56f-f27b8d0908c1",
+    "user_id": null,
+    "conversation_id": "2b34c83f-549c-4a9d-89e9-6e43a75216ca",
+    "guest_session_id": "cf5a941e-1dc6-4b6d-9ea6-187341e7f523",
+    "holding_token": "fef46ac8-6e6a-47ca-8151-6eab16a660cf",
+    "confirmation_token": "3d5688bf-d41b-44e8-b8b5-6c66a70d1ab5",
+    "booking_code": "BK-20261107-9NF1",
+    "customer_name": "trang",
+    "customer_phone": "0905609381",
+    "customer_email": null,
+    "product_id": "22222222-2222-2222-2222-222222223001",
+    "product_ids": [
+      "22222222-2222-2222-2222-222222223001"
+    ],
+    "product_sizes": {
+      "22222222-2222-2222-2222-222222223001": "S"
+    },
+    "hair_size": "S",
+    "product_name": "Cắt tạo kiểu",
+    "price": 130000,
+    "appointment_date": "2026-11-07",
+    "appointment_time": "09:00",
+    "duration_minutes": 45,
+    "staff_count": 1,
+    "status": "completed",
+    "hold_expires_at": "2026-11-06T10:26:39.411Z",
+    "notes": "cắt tóc | size s nhé | dạ tên trang sđt 077659190 | size s nhé",
+    "created_at": "2026-11-06T10:21:39.411Z",
+    "updated_at": "2026-11-06T10:55:39.651Z",
+    "confirmed_at": "2026-11-06T10:21:52.961Z"
   }
 ]

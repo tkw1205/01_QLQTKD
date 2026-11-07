@@ -387,6 +387,8 @@
   </div>
 
   <script src="/admin/admin.js"></script>
+  <script src="/admin/schedule-date.js"></script>
+  <script src="/admin/appointment-services.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       if ('scrollRestoration' in history) {
@@ -493,18 +495,13 @@
       const scheduleThead = document.getElementById('schedule-thead');
       const scheduleTbody = document.getElementById('schedule-tbody');
 
-      // Initialize with today (or Vietnam date 2026-10-30)
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      // Initialize with the current local date.
+      const todayStr = ScheduleDate.localDateString();
       scheduleDateInput.value = todayStr;
 
       function formatDayLabel(dateStr) {
         if (!dateStr) return '';
-        const d = new Date(dateStr + 'T00:00:00');
-        const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-        const dayName = days[d.getDay()] || '';
-        const [y, m, day] = dateStr.split('-');
-        return `${dayName}, ${day}/${m}/${y}`;
+        return ScheduleDate.formatDayLabel(dateStr);
       }
 
       function updateDateLabel() {
@@ -513,23 +510,19 @@
 
       // Date navigation events
       document.getElementById('btn-prev-day').addEventListener('click', () => {
-        const cur = new Date(scheduleDateInput.value + 'T00:00:00');
-        cur.setDate(cur.getDate() - 1);
-        scheduleDateInput.value = cur.toISOString().slice(0, 10);
+        scheduleDateInput.value = ScheduleDate.shiftDate(scheduleDateInput.value, -1);
         updateDateLabel();
         loadScheduleData();
       });
 
       document.getElementById('btn-next-day').addEventListener('click', () => {
-        const cur = new Date(scheduleDateInput.value + 'T00:00:00');
-        cur.setDate(cur.getDate() + 1);
-        scheduleDateInput.value = cur.toISOString().slice(0, 10);
+        scheduleDateInput.value = ScheduleDate.shiftDate(scheduleDateInput.value, 1);
         updateDateLabel();
         loadScheduleData();
       });
 
       document.getElementById('btn-today').addEventListener('click', () => {
-        scheduleDateInput.value = todayStr;
+        scheduleDateInput.value = ScheduleDate.localDateString();
         updateDateLabel();
         loadScheduleData();
       });
@@ -685,9 +678,12 @@
       }
 
       // ─── LOAD SCHEDULE DATA (Active Staff & Appointments) ───
+      let scheduleLoadRequest = 0;
       async function loadScheduleData(options = {}) {
         const { preserveScroll = true, silent = false } = options;
         const scrollState = preserveScroll ? getScheduleScrollState() : null;
+        const requestId = ++scheduleLoadRequest;
+        const date = scheduleDateInput.value;
 
         updateDateLabel();
 
@@ -705,14 +701,14 @@
           `;
         }
 
-        const date = scheduleDateInput.value;
-
         try {
           // Fetch active staff and appointments in parallel
           const [staffRes, apptsRes] = await Promise.all([
             Admin.api('/api/appointments/active-staff'),
             Admin.api(`/api/appointments?date=${date}&limit=100`)
           ]);
+
+          if (requestId !== scheduleLoadRequest || date !== scheduleDateInput.value) return;
 
           if (staffRes.success) {
             activeStaffList = staffRes.data || [];
@@ -733,6 +729,7 @@
             strictRestoreScroll(scrollState);
           }
         } catch (err) {
+          if (requestId !== scheduleLoadRequest || date !== scheduleDateInput.value) return;
           if (!hasExistingRows && !silent) {
             scheduleTbody.innerHTML = `
               <tr>
@@ -1368,14 +1365,8 @@
         const tier = getSelectedServiceTier(service);
         return Number(
           tier?.duration ??
-          service.duration_minutes ??
           service.duration
-        ) || 30;
-      }
-
-      function getServicePrice(service) {
-        const tier = getSelectedServiceTier(service);
-        return Number(tier?.price) || 0;
+        ) || 0;
       }
 
       function formatServicePrice(service) {
@@ -1394,11 +1385,7 @@
 
       async function loadAvailableServices() {
         try {
-          const res = await Admin.api('/api/products');
-          if (!res.success || !Array.isArray(res.data)) {
-            throw new Error('Phản hồi danh sách dịch vụ không hợp lệ.');
-          }
-          availableServices = res.data;
+          availableServices = await AppointmentServices.loadCatalog(url => Admin.api(url));
         } catch (err) {
           availableServices = [];
           console.error('Không thể tải danh sách dịch vụ:', err);
@@ -1409,24 +1396,23 @@
 
       function updateCreateApptSummary() {
         const checkedBoxes = servicesListContainer.querySelectorAll('input[type="checkbox"]:checked');
-        let totalDuration = 0;
-        let totalPrice = 0;
-
-        checkedBoxes.forEach(cb => {
-          const serviceId = cb.value;
-          const service = availableServices.find(s => s.id === serviceId);
-          if (service) {
-            totalDuration += getServiceDuration(service);
-            totalPrice += getServicePrice(service);
+        const selectedIds = Array.from(checkedBoxes).map(checkbox => checkbox.value);
+        const sizes = Object.fromEntries(
+          Array.from(servicesListContainer.querySelectorAll('[data-service-size-for]'))
+            .map(select => [select.dataset.serviceSizeFor, select.value])
+        );
+        const totals = AppointmentServices.calculateTotals(availableServices, selectedIds, sizes);
+        summaryTotalPriceLabel.textContent = 'Tạm tính theo size đã chọn';
+        summaryTotalDuration.textContent = `${totals.duration} phút`;
+        summaryTotalPrice.textContent = `${totals.price.toLocaleString('vi-VN')} đ`;
+        servicesListContainer.querySelectorAll('[data-service-duration-for]').forEach(durationLabel => {
+          const service = availableServices.find(item =>
+            item.id === durationLabel.dataset.serviceDurationFor
+          );
+          if (service && durationLabel) {
+            durationLabel.textContent = `${getServiceDuration(service)} phút`;
           }
         });
-
-        const selectedServices = Array.from(checkedBoxes)
-          .map(checkbox => availableServices.find(service => service.id === checkbox.value))
-          .filter(Boolean);
-        summaryTotalPriceLabel.textContent = 'Tạm tính theo size đã chọn';
-        summaryTotalDuration.textContent = `${totalDuration} phút`;
-        summaryTotalPrice.textContent = `${totalPrice.toLocaleString('vi-VN')} đ`;
       }
 
       async function openCreateApptModal({ staffId = '', date = '', time = '' } = {}) {
@@ -1440,26 +1426,28 @@
 
         // 1. Populate services list
         if (availableServices.length === 0) {
-          servicesListContainer.innerHTML = '<div style="color: var(--mut); font-size: .82rem;">Không có dịch vụ nào trong hệ thống.</div>';
+          servicesListContainer.innerHTML = `<div style="color: var(--mut); font-size: .82rem;">${escapeHtml(AppointmentServices.emptyMessage(availableServices))}</div>`;
         } else {
           let hasInitialSelection = false;
           servicesListContainer.innerHTML = availableServices.map((svc, idx) => {
             const priceStr = formatServicePrice(svc);
-            const firstTier = Object.values(svc.prices_by_size || {})
-              .find(tier => tier?.price != null);
-            const durationStr = `${Number(firstTier?.duration ?? svc.duration) || 30} phút`;
-            const canBook = Boolean(firstTier);
+            const tiers = Object.entries(svc.prices_by_size || {})
+              .filter(([, tier]) => Number(tier?.price) > 0);
+            const firstTier = tiers[0]?.[1];
+            const canBook = tiers.length > 0 && Number(firstTier?.duration ?? svc.duration) > 0;
             const isChecked = canBook && !hasInitialSelection ? 'checked' : '';
             if (isChecked) hasInitialSelection = true;
-            const sizeOptions = Object.entries(svc.prices_by_size || {})
-              .filter(([, tier]) => tier?.price != null)
+            const sizeOptions = tiers
               .map(([size, tier]) => `<option value="${escapeHtml(size)}">${escapeHtml(size)} — ${Number(tier.price).toLocaleString('vi-VN')} đ</option>`)
               .join('');
+            const categoryLabel = svc.category_name
+              ? ` <span style="font-weight: 400; color: var(--mut);">(${escapeHtml(svc.category_name)})</span>`
+              : '';
             return `
-              <div style="display: flex; align-items: center; gap: 8px; font-size: .82rem; padding: 3px 0;">
+              <div style="display: flex; align-items: center; gap: 8px; font-size: .82rem; padding: 5px 0; flex-wrap: wrap;">
                 <input id="create-appt-service-${idx}" type="checkbox" name="services" value="${escapeHtml(svc.id)}" ${isChecked} ${canBook ? '' : 'disabled'} style="accent-color: var(--pri); width: 16px; height: 16px;">
-                <label for="create-appt-service-${idx}" style="font-weight: 600; color: var(--ink); flex: 1; cursor: pointer;">${escapeHtml(svc.name)}</label>
-                <span style="color: var(--mut); font-size: .78rem;">(${durationStr})</span>
+                <label for="create-appt-service-${idx}" style="font-weight: 600; color: var(--ink); flex: 1; cursor: pointer;">${escapeHtml(svc.name)}${categoryLabel}</label>
+                <span data-service-duration-for="${escapeHtml(svc.id)}" style="color: var(--mut); font-size: .78rem;">${Number(firstTier?.duration ?? svc.duration) || 0} phút</span>
                 ${sizeOptions ? `<select data-service-size-for="${escapeHtml(svc.id)}" class="form-control" aria-label="Chọn size cho ${escapeHtml(svc.name)}" style="width: auto; max-width: 150px; padding: 3px 6px;">${sizeOptions}</select>` : ''}
                 <span style="color: var(--pri); font-weight: 600; font-size: .8rem;">${priceStr}</span>
               </div>
@@ -1561,19 +1549,20 @@
         }
 
         // Calculate combined duration & price
-        let totalDuration = 0;
-        let totalPrice = 0;
-        const productSizes = {};
-        selectedProductIds.forEach(id => {
-          const s = availableServices.find(item => item.id === id);
-          if (s) {
-            totalDuration += getServiceDuration(s);
-            totalPrice += getServicePrice(s);
-            const tierSelect = Array.from(servicesListContainer.querySelectorAll('[data-service-size-for]'))
-              .find(select => select.dataset.serviceSizeFor === s.id);
-            if (tierSelect) productSizes[s.id] = tierSelect.value;
-          }
-        });
+        let totalDuration;
+        const selectedSizes = Object.fromEntries(
+          Array.from(servicesListContainer.querySelectorAll('[data-service-size-for]'))
+            .map(select => [select.dataset.serviceSizeFor, select.value])
+        );
+        let productSizes;
+        try {
+          const totals = AppointmentServices.calculateTotals(availableServices, selectedProductIds, selectedSizes);
+          totalDuration = totals.duration;
+          productSizes = totals.productSizes;
+        } catch (err) {
+          Admin.toast(err.message, 'warning');
+          return;
+        }
 
         // Capture scroll state before submission
         const scrollState = getScheduleScrollState();

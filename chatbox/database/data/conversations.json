@@ -10870,7 +10870,8 @@
     "lead_notes": "Phiên đóng tự động do không có tương tác sau 60 phút hỗ trợ nhân viên",
     "created_at": "2026-11-05T20:15:21.755Z",
     "updated_at": "2026-11-06T06:52:49.064Z",
-    "closed_at": "2026-11-06T06:52:49.064Z"
+    "closed_at": "2026-11-06T06:52:49.064Z",
+    "agent_last_read_at": "2026-11-06T10:51:04.348Z"
   },
   {
     "id": "22a1cfa0-ebce-42e4-acb5-bf158bf7cf07",
@@ -11157,7 +11158,8 @@
     "warning_sent": true,
     "stage1_warning_sent": true,
     "warning_sent_at": "2026-11-06T05:55:09.517Z",
-    "closed_at": "2026-11-06T06:00:10.650Z"
+    "closed_at": "2026-11-06T06:00:10.650Z",
+    "agent_last_read_at": "2026-11-06T10:51:16.205Z"
   },
   {
     "id": "016ab48d-66d9-452a-92cf-218d6609e0e5",
@@ -11398,7 +11400,8 @@
     "warning_sent": true,
     "stage1_warning_sent": true,
     "warning_sent_at": "2026-11-06T06:17:47.491Z",
-    "closed_at": "2026-11-06T06:22:48.116Z"
+    "closed_at": "2026-11-06T06:22:48.116Z",
+    "agent_last_read_at": "2026-11-06T10:51:18.417Z"
   },
   {
     "id": "6c3e5683-6c38-4f32-a3c9-d4b048b5f6aa",
@@ -11446,7 +11449,8 @@
     "warning_sent": true,
     "stage1_warning_sent": true,
     "warning_sent_at": "2026-11-06T06:48:05.364Z",
-    "closed_at": "2026-11-06T06:53:19.072Z"
+    "closed_at": "2026-11-06T06:53:19.072Z",
+    "agent_last_read_at": "2026-11-06T10:50:04.356Z"
   },
   {
     "id": "2b3a7eae-df96-45c3-a1b2-8cbc51396864",
@@ -11484,5 +11488,151 @@
     "stage1_warning_sent": true,
     "warning_sent_at": "2026-11-06T06:44:20.431Z",
     "closed_at": "2026-11-06T06:49:30.847Z"
+  },
+  {
+    "id": "2b34c83f-549c-4a9d-89e9-6e43a75216ca",
+    "guest_session_id": "cf5a941e-1dc6-4b6d-9ea6-187341e7f523",
+    "mode": "closed",
+    "assigned_to": "00000000-0000-0000-0000-000000000001",
+    "product_context_id": null,
+    "chat_context": {
+      "booking_service_just_selected": false,
+      "pricing_inquiry_active": true,
+      "current_intent": "CHECK_AVAILABILITY",
+      "service_id": "22222222-2222-2222-2222-222222223001",
+      "service_name": "Cắt tạo kiểu",
+      "service_price": null,
+      "service_duration": null,
+      "service_staff_count": null,
+      "booking_started": false,
+      "booking_intent_pending": false,
+      "booking_status": "BOOKED",
+      "selected_service_ids": [
+        "22222222-2222-2222-2222-222222223001"
+      ],
+      "selected_service_source": "price_inquiry",
+      "booking_service_confirmed": true,
+      "booking_confirmation_pending": false,
+      "service_interest_category": "Cắt tóc",
+      "consultation_topic": "Cắt tạo kiểu",
+      "booking_requested_category": null,
+      "service_selection_clarification_attempts": 0,
+      "booking_service_notes": "cắt tóc | size s nhé | dạ tên trang sđt 077659190",
+      "booking_service_confirmation_pending": false,
+      "hair_size": null,
+      "hair_length_text": "làm nail",
+      "hair_size_clarification_attempts": 2,
+      "appointment_date": "2026-11-07",
+      "invalid_appointment_date": false,
+      "availability_query_pending": false,
+      "availability_query_date": null,
+      "availability_query_service_ids": [
+        "22222222-2222-2222-2222-222222223001"
+      ],
+      "appointment_time": "09:00",
+      "invalid_appointment_time": false,
+      "booking_completed": true,
+      "appointment_id": "c049c057-cce1-4a6c-b56f-f27b8d0908c1",
+      "booking_code": "BK-20261107-9NF1"
+    },
+    "customer_name": "trang",
+    "customer_phone": "0905609381",
+    "customer_email": null,
+    "is_lead": false,
+    "lead_notes": null,
+    "created_at": "2026-11-06T10:13:53.137Z",
+    "updated_at": "2026-11-06T10:51:36.097Z",
+    "warning_sent": false,
+    "stage1_warning_sent": false,
+    "warning_sent_at": null,
+    "agent_last_read_at": "2026-11-06T10:51:36.257Z"
+  },
+  {
+    "id": "63cf6517-26f9-4823-84a9-3d8708111480",
+    "guest_session_id": "cf5a941e-1dc6-4b6d-9ea6-187341e7f523",
+    "mode": "closed",
+    "assigned_to": "00000000-0000-0000-0000-000000000001",
+    "product_context_id": null,
+    "chat_context": {
+      "booking_service_just_selected": false,
+      "current_intent": "CHECK_AVAILABILITY",
+      "appointment_date": "2026-11-07",
+      "invalid_appointment_date": false,
+      "booking_confirmation_pending": false,
+      "service_id": "22222222-2222-2222-2222-222222223006",
+      "service_name": "Phồng chân",
+      "service_price": 200000,
+      "service_duration": 90,
+      "service_staff_count": 1,
+      "availability_query_pending": false,
+      "availability_query_date": null,
+      "availability_query_service_ids": [],
+      "selected_service_ids": [
+        "22222222-2222-2222-2222-222222223006"
+      ],
+      "service_interest_category": "Uốn tóc",
+      "consultation_topic": "Phồng chân",
+      "booking_requested_category": null,
+      "selected_service_source": "booking_request",
+      "pricing_inquiry_active": false,
+      "service_selection_clarification_attempts": 0,
+      "booking_service_confirmed": false,
+      "hair_size": "M",
+      "hair_length_text": "size M",
+      "booking_service_notes": null,
+      "hair_size_clarification_attempts": 0,
+      "appointment_time": "09:00",
+      "invalid_appointment_time": false
+    },
+    "customer_name": "trang",
+    "customer_phone": "0905609381",
+    "customer_email": null,
+    "is_lead": true,
+    "lead_notes": "Phiên đóng tự động do không có tương tác sau 60 phút hỗ trợ nhân viên",
+    "created_at": "2026-11-06T10:51:57.587Z",
+    "updated_at": "2026-11-06T13:39:00.360Z",
+    "agent_last_read_at": "2026-11-06T10:54:46.349Z",
+    "closed_at": "2026-11-06T13:39:00.360Z"
+  },
+  {
+    "id": "212962f7-c682-4ac6-b89d-5c967a47aa41",
+    "guest_session_id": "b88184a6-169f-46c3-a81b-f7bc7f2f7374",
+    "mode": "closed",
+    "assigned_to": null,
+    "product_context_id": null,
+    "chat_context": {
+      "booking_service_just_selected": false,
+      "service_id": "22222222-2222-2222-2222-222222223001",
+      "service_name": "Cắt tạo kiểu",
+      "service_price": null,
+      "service_duration": null,
+      "service_staff_count": null,
+      "hair_size_clarification_attempts": 0,
+      "service_selection_clarification_attempts": 0,
+      "pricing_inquiry_active": false,
+      "current_intent": "CONSULT_SERVICE",
+      "service_interest_category": "Cắt tóc",
+      "selected_service_ids": [
+        "22222222-2222-2222-2222-222222223001"
+      ],
+      "consultation_topic": "Cắt tạo kiểu",
+      "selected_service_source": "service_consultation",
+      "booking_service_confirmed": false,
+      "hair_size": null,
+      "hair_length_text": null,
+      "booking_service_notes": null,
+      "booking_requested_category": null
+    },
+    "customer_name": null,
+    "customer_phone": null,
+    "customer_email": null,
+    "is_lead": true,
+    "lead_notes": "Phiên đóng do khách hết thời gian phản hồi (BPMN Timeout - Lead Saved)",
+    "created_at": "2026-11-06T14:10:07.374Z",
+    "updated_at": "2026-11-06T14:24:12.705Z",
+    "warning_sent": true,
+    "stage1_warning_sent": true,
+    "warning_sent_at": "2026-11-06T14:19:12.561Z",
+    "closed_at": "2026-11-06T14:24:12.705Z"
   }
 ]

@@ -55,6 +55,9 @@
 - Hỗ trợ chọn size, tính giá và thời lượng theo size; dịch vụ không còn hoạt động bị từ chối khi đặt lịch.
 - Luồng giữ chỗ và xác nhận được cập nhật để dùng thông tin dịch vụ mới nhất.
 - Phần tư vấn giá tự động đọc danh mục hiện tại và chỉ báo giá của size đã cấu hình.
+- Form thêm lịch hẹn trực tiếp trên lịch nhân viên tải danh mục dịch vụ đang hoạt động từ API quản lý dịch vụ mỗi lần mở, phân trang để nhận đủ dịch vụ và hiển thị nhóm, tên, giá các size cùng size được chọn.
+- Tổng giá/thời lượng được tính theo những dịch vụ đang chọn và size tương ứng; Backend kiểm tra lại ID, trạng thái, size, giá và thời lượng từ dữ liệu hiện hành, không tin các tổng do trình duyệt gửi.
+- Lịch mới lưu ID dịch vụ và snapshot tên, nhóm, size, giá, thời lượng từng dịch vụ; thay đổi danh mục sau đó không làm đổi thông tin lịch đã tạo.
 
 ## 7. Chuyển đổi dữ liệu giá cũ
 
@@ -72,6 +75,8 @@
 - Năm bộ test liên quan dịch vụ và đặt lịch đạt **43/43**: `products.test.js`, `ai_service_pricing.test.js`, `appointments.test.js`, `booking_process_salons.test.js` và `ai_booking_flow.test.js`.
 - Kiểm tra cú pháp JavaScript, các script nội tuyến trong form Admin, đủ giá S/M/L cho 42 dịch vụ và `git diff --check` đều đạt.
 - Browser smoke xác nhận API chỉ trả dịch vụ đang bán, phản hồi `no-store`, ảnh local được phục vụ và bảng size hiển thị dữ liệu từ API.
+- Bộ test `schedule-date-navigation.test.js` đạt **15/15**, bao gồm lùi/tới ngày, ranh giới tháng/năm, năm nhuận, ngày không hợp lệ, date picker, nút Hôm nay và bỏ qua phản hồi tải lịch cũ.
+- Bộ test `appointment-service-sync.test.js` đạt **14/14**, kiểm tra form/API danh mục, phân trang, thay đổi dịch vụ, chọn nhiều/bỏ chọn, giá và thời lượng theo size, kiểm tra trạng thái/ID và bảo toàn snapshot lịch cũ.
 
 ## 9. Danh sách file đã thay đổi
 
@@ -91,7 +96,8 @@
 ### Quản lý và đồng bộ dịch vụ
 
 - `public/admin/products.html`: form thêm/sửa chỉ có size S/M/L, validation và giá gợi ý theo size, bảng sáu cột và chi tiết mở rộng.
-- `public/admin/staff.html`: dịch vụ và size được tải từ nguồn chung trong các thao tác của Staff.
+- `public/admin/staff.html`: dịch vụ và size được tải từ nguồn chung trong các thao tác của Staff; form tạo lịch tải mới danh mục, hiển thị nhóm/giá/thời lượng theo size và tính tổng từ lựa chọn.
+- `public/admin/appointment-services.js`: tải toàn bộ danh mục qua API phân trang, tính tổng giá/thời lượng và cung cấp trạng thái danh mục rỗng cho form tạo lịch.
 - `public/js/api.js`: phương thức gọi API dùng ở giao diện khách hàng.
 - `public/js/product-catalog.js`: thẻ dịch vụ gọn; modal chi tiết lấy dữ liệu dịch vụ và giá từ API.
 - `public/css/main.css`: bố cục card gọn, tỷ lệ ảnh/placeholder và modal/bảng giá size responsive.
@@ -104,7 +110,7 @@
 
 ### Đặt lịch và tư vấn giá
 
-- `src/repositories/appointmentRepository.js`: tra giá, size và thời lượng hiện hành của dịch vụ khi đặt lịch.
+- `src/repositories/appointmentRepository.js`: tra giá, size và thời lượng hiện hành; xác thực dịch vụ/size khi tạo lịch và lưu snapshot dịch vụ tại thời điểm đặt lịch.
 - `src/ai/orchestrator.js`: yêu cầu/kiểm tra size và truyền lựa chọn size xuyên suốt luồng đặt lịch AI.
 - `src/routes/appointments.js`: kiểm tra dịch vụ khi tạo/cập nhật lịch hẹn.
 - `src/services/appointmentService.js`: xử lý dịch vụ trong luồng đặt lịch.
@@ -116,7 +122,15 @@
 - `tests/products.test.js`: kiểm tra quyền, đồng bộ, mã dịch vụ, mô tả size UTF-8, giá mẫu S/M/L, card Customer gọn, modal chi tiết lấy API, validation và đặt lịch.
 - `tests/ai_service_pricing.test.js`: kiểm tra tư vấn giá theo catalog.
 - `tests/ai_booking_flow.test.js`: kiểm tra luồng hỏi size, giữ chỗ và xác nhận dịch vụ tính theo size.
+- `tests/appointment-service-sync.test.js`: kiểm tra đồng bộ form lịch hẹn với repository dịch vụ và snapshot lịch.
+- `tests/schedule-date-navigation.test.js`: kiểm tra chuyển ngày trong lịch nhân viên, xử lý ngày hợp lệ/ranh giới lịch và đồng bộ giao diện khi đổi ngày.
 - `docs/TONG-HOP-THAY-DOI.md`: tài liệu tổng hợp thay đổi và danh sách file.
+
+### Điều hướng lịch nhân viên theo ngày
+
+- `public/admin/staff.html`: dùng ngày địa phương cho ngày mặc định và nút Hôm nay; nút lùi/tới và bộ chọn ngày cập nhật nhãn, tải lịch theo ngày đã chọn, đồng thời bỏ qua phản hồi của yêu cầu cũ khi người dùng chuyển ngày liên tục.
+- `public/admin/schedule-date.js`: xử lý chuyển ngày và định dạng nhãn theo UTC để tránh lệch ngày do múi giờ; từ chối ngày không hợp lệ.
+- `tests/schedule-date-navigation.test.js`: bổ sung 15 kiểm thử cho logic ngày và hành vi điều hướng lịch.
 
 ### Dữ liệu JSON và bộ đếm mã
 

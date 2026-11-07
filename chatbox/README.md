@@ -655,8 +655,8 @@ function renderMessage(content, sender) {
 ---
 
 ### 11.5. Tổng kết quy trình triển khai thực tế
-
-1. **Chạy Local AI:** Cài đặt Ollama -> Lệnh `ollama run qwen2.5:7b` -> Cấu hình `.env` trỏ vào `http://localhost:11434/v1`.
-2. **Cập nhật tri thức:** Tinh chỉnh quy tắc trong [src/ai/orchestrator.js](file:///d:/projects/chatbox/src/ai/orchestrator.js), bổ sung sản phẩm trong `database/data/products.json`.
-3. **Khởi động hệ thống:** `npm run dev` hoặc `npm start`.
-4. **Nhúng Widget vào website:** Đưa đoạn mã HTML/JS ở mục 11.4 vào các trang cần hỗ trợ để khách hàng tương tác trực tiếp với AI.
+1. Hệ thống được dựng bằng hình thức videcoding nhờ promt trong file **promt_master.md**
+2. **Chạy Local AI:** Cài đặt Ollama -> Lệnh `ollama run qwen2.5:7b` -> Cấu hình `.env` trỏ vào `http://localhost:11434/v1`.
+3. **Cập nhật tri thức:** Tinh chỉnh quy tắc trong [src/ai/orchestrator.js](file:///d:/projects/chatbox/src/ai/orchestrator.js), bổ sung sản phẩm trong `database/data/products.json`.
+4. **Khởi động hệ thống:** `npm run dev` hoặc `npm start`.
+5. **Nhúng Widget vào website:** Đưa đoạn mã HTML/JS ở mục 11.4 vào các trang cần hỗ trợ để khách hàng tương tác trực tiếp với AI.

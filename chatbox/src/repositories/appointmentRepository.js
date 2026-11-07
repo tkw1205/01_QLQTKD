@@ -78,22 +78,58 @@ function appointmentOverlapsWindow(appointment, targetStart, targetEnd, closingT
   return existingStart < targetEnd && existingEnd > targetStart;
 }
 
-function getServiceRequirements(product, hairSize) {
+function getServiceRequirements(product, hairSize, { requirePrice = true } = {}) {
   const tiers = product.prices_by_size;
   const hasSizeTiers = tiers && Object.keys(tiers).length > 0;
-  if (hasSizeTiers && !hairSize) {
+  if (hasSizeTiers && !hairSize && requirePrice) {
     throw Object.assign(new Error(`Cần xác định size tóc cho dịch vụ ${product.name}.`), {
       status: 400,
       code: 'HAIR_SIZE_REQUIRED',
     });
   }
 
-  const tier = hasSizeTiers ? tiers[hairSize] : null;
-  if (hasSizeTiers && !tier) {
+  const tier = hasSizeTiers
+    ? hairSize
+      ? tiers[hairSize]
+      : Object.values(tiers)[0]
+    : null;
+  if (hasSizeTiers && hairSize && !tier) {
     throw Object.assign(new Error(`Dịch vụ ${product.name} không hỗ trợ size ${hairSize}.`), {
       status: 400,
       code: 'SERVICE_SIZE_UNAVAILABLE',
     });
+  }
+
+  if (hasSizeTiers && !hairSize && !requirePrice) {
+    const scheduleRequirements = Object.values(tiers).map(sizeTier => ({
+      durationMinutes: Number(sizeTier.duration ?? product.duration_minutes ?? product.duration),
+      staffCount: Number(sizeTier.staff_count ?? product.staff_count),
+    }));
+    if (scheduleRequirements.some(requirement =>
+      !Number.isFinite(requirement.durationMinutes) || requirement.durationMinutes <= 0
+    )) {
+      throw Object.assign(new Error(`Danh mục thiếu thời lượng hợp lệ cho dịch vụ ${product.name}.`), {
+        status: 503,
+        code: 'SERVICE_DURATION_MISSING',
+      });
+    }
+    if (scheduleRequirements.some(requirement =>
+      !Number.isInteger(requirement.staffCount) || requirement.staffCount <= 0
+    )) {
+      throw Object.assign(new Error(`Danh mục thiếu số nhân viên hợp lệ cho dịch vụ ${product.name}.`), {
+        status: 503,
+        code: 'SERVICE_STAFF_COUNT_MISSING',
+      });
+    }
+    if (scheduleRequirements.some(requirement =>
+      requirement.durationMinutes !== scheduleRequirements[0].durationMinutes ||
+      requirement.staffCount !== scheduleRequirements[0].staffCount
+    )) {
+      throw Object.assign(new Error(`Cần xác định size tóc để tính thời lượng dịch vụ ${product.name}.`), {
+        status: 400,
+        code: 'HAIR_SIZE_REQUIRED',
+      });
+    }
   }
 
   const durationMinutes = Number(tier?.duration ?? product.duration_minutes ?? product.duration);
@@ -111,7 +147,7 @@ function getServiceRequirements(product, hairSize) {
       code: 'SERVICE_STAFF_COUNT_MISSING',
     });
   }
-  if (!Number.isFinite(price) || price < 0) {
+  if (requirePrice && (!Number.isFinite(price) || price < 0)) {
     throw Object.assign(new Error(`Danh mục thiếu giá hợp lệ cho dịch vụ ${product.name}.`), {
       status: 503,
       code: 'SERVICE_PRICE_MISSING',

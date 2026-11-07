@@ -460,46 +460,61 @@ async function getAvailableSlotsReply(context, date) {
 
   if (!result) {
     await conversationRepo.updateChatContext(context.conversationId, {
+      current_intent: 'CHECK_AVAILABILITY',
       availability_query_pending: false,
       availability_query_date: null,
       availability_query_service_ids: [],
+      awaiting_field: null,
     });
     return 'Dạ, hiện hệ thống chưa thể kiểm tra lịch trống. Mình vui lòng thử lại sau hoặc chat với nhân viên để được hỗ trợ ạ.';
   }
   if (!result.success) {
     if (result.code === 'HAIR_SIZE_REQUIRED') {
       const updated = await conversationRepo.updateChatContext(context.conversationId, {
+        current_intent: 'CHECK_AVAILABILITY',
         availability_query_pending: true,
         availability_query_date: date,
         availability_query_service_ids: serviceIds,
+        awaiting_field: 'hair_size',
       });
       context.chatContext = updated.chat_context;
       context.conversation.chat_context = updated.chat_context;
       const services = await Promise.all(serviceIds.map(id => productRepo.findById(id)));
-      return servicePricing.buildSizeQuestion(
-        services.filter(Boolean).map(service => service.name)
+      const validServices = services.filter(Boolean);
+      const sizeChoices = validServices.flatMap(service =>
+        Object.entries(service.prices_by_size || {})
+          .map(([size, tier]) => tier.description ? `${size} (${tier.description})` : size)
       );
+      const serviceLabel = validServices.map(service => service.name).join(', ');
+      return `Dạ, để em kiểm tra chính xác thời lượng và lịch trống${date ? ` ngày ${formatBookingDate(date)}` : ''} cho dịch vụ ${serviceLabel}, mình cho em biết tóc thuộc ${sizeChoices.join(', ')} ạ?`;
     }
     if (result.code === 'INSUFFICIENT_STAFF') {
       await conversationRepo.updateChatContext(context.conversationId, {
+        current_intent: 'CHECK_AVAILABILITY',
         availability_query_pending: false,
         availability_query_date: null,
         availability_query_service_ids: [],
+        awaiting_field: null,
       });
       return 'Dạ, hiện salon chưa đủ nhân viên phù hợp để nhận dịch vụ này vào thời điểm cần kiểm tra. Mình vui lòng chọn ngày khác hoặc chat với nhân viên để được hỗ trợ ạ.';
     }
     logBookingStepFailure('availability_check', result, context);
     await conversationRepo.updateChatContext(context.conversationId, {
+      current_intent: 'CHECK_AVAILABILITY',
       availability_query_pending: false,
       availability_query_date: null,
       availability_query_service_ids: [],
+      awaiting_field: null,
     });
     return 'Dạ, hiện hệ thống chưa thể xác nhận lịch trống. Mình vui lòng thử lại sau hoặc chat với nhân viên để được hỗ trợ ạ.';
   }
   const updated = await conversationRepo.updateChatContext(context.conversationId, {
+    current_intent: 'CHECK_AVAILABILITY',
     availability_query_pending: result.slots.length > 0,
     availability_query_date: result.slots.length > 0 ? date : null,
     availability_query_service_ids: result.slots.length > 0 ? serviceIds : [],
+    service_duration: result.duration,
+    awaiting_field: result.slots.length > 0 ? 'appointment_time' : null,
   });
   context.chatContext = updated.chat_context;
   context.conversation.chat_context = updated.chat_context;
@@ -1024,6 +1039,7 @@ async function chat({ conversationId, guestSessionId, userMessage, io }) {
       availability_query_pending: false,
       availability_query_date: null,
       availability_query_service_ids: [],
+      awaiting_field: null,
     });
     conversation.chat_context = updated.chat_context;
   }
@@ -1346,6 +1362,7 @@ async function chat({ conversationId, guestSessionId, userMessage, io }) {
       availability_query_pending: false,
       availability_query_date: null,
       availability_query_service_ids: [],
+      awaiting_field: null,
     });
     context.chatContext = updated.chat_context;
     conversation.chat_context = updated.chat_context;
@@ -1376,12 +1393,14 @@ async function chat({ conversationId, guestSessionId, userMessage, io }) {
         history,
       });
       const updated = await conversationRepo.updateChatContext(conversationId, {
+        current_intent: 'CHECK_AVAILABILITY',
         availability_query_pending: true,
         availability_query_date: extractDateFromText(userMessage) ||
           context.chatContext.appointment_date ||
           context.chatContext.availability_query_date ||
           null,
         availability_query_service_ids: serviceIds,
+        awaiting_field: 'service_id',
       });
       context.chatContext = updated.chat_context;
       conversation.chat_context = updated.chat_context;
@@ -1391,8 +1410,10 @@ async function chat({ conversationId, guestSessionId, userMessage, io }) {
           aiConfigured: provider.isConfigured(),
         };
       }
+      const requestedDate = updated.chat_context.availability_query_date;
+      const dateLabel = requestedDate ? ` ngày ${formatBookingDate(requestedDate)}` : '';
       return {
-        content: 'Dạ, mình muốn kiểm tra giờ trống cho dịch vụ nào ạ?',
+        content: `Dạ, mình muốn kiểm tra lịch trống${dateLabel} cho dịch vụ nào ạ?`,
         aiConfigured: provider.isConfigured(),
       };
     }
@@ -1404,9 +1425,11 @@ async function chat({ conversationId, guestSessionId, userMessage, io }) {
     );
     if (!hasRequestedDate) {
       const updated = await conversationRepo.updateChatContext(conversationId, {
+        current_intent: 'CHECK_AVAILABILITY',
         availability_query_pending: true,
         availability_query_date: null,
         availability_query_service_ids: serviceIds,
+        awaiting_field: 'requested_date',
       });
       context.chatContext = updated.chat_context;
       conversation.chat_context = updated.chat_context;
@@ -1437,6 +1460,7 @@ async function chat({ conversationId, guestSessionId, userMessage, io }) {
     const selectedTime = extractTimeFromText(userMessage);
     if (selectedTime && selectedServiceIds.length && date) {
       const updated = await conversationRepo.updateChatContext(conversationId, {
+        current_intent: 'BOOK_APPOINTMENT',
         booking_intent_pending: false,
         booking_started: true,
         booking_service_confirmed: true,
@@ -1446,6 +1470,7 @@ async function chat({ conversationId, guestSessionId, userMessage, io }) {
         invalid_appointment_time: false,
         availability_query_pending: false,
         availability_query_date: null,
+        awaiting_field: null,
       });
       context.chatContext = updated.chat_context;
       conversation.chat_context = updated.chat_context;
@@ -1456,6 +1481,15 @@ async function chat({ conversationId, guestSessionId, userMessage, io }) {
           : { ...bookingReply, aiConfigured: provider.isConfigured() };
       }
     } else if (selectedServiceIds.length && !date) {
+      const updated = await conversationRepo.updateChatContext(conversationId, {
+        current_intent: 'CHECK_AVAILABILITY',
+        availability_query_pending: true,
+        availability_query_date: null,
+        availability_query_service_ids: selectedServiceIds,
+        awaiting_field: 'requested_date',
+      });
+      context.chatContext = updated.chat_context;
+      context.conversation.chat_context = updated.chat_context;
       return {
         content: 'Dạ, mình muốn kiểm tra giờ trống vào ngày nào ạ?',
         aiConfigured: provider.isConfigured(),
@@ -1493,9 +1527,11 @@ async function chat({ conversationId, guestSessionId, userMessage, io }) {
       };
     } else {
       const updated = await conversationRepo.updateChatContext(conversationId, {
+        current_intent: 'CHECK_AVAILABILITY',
         availability_query_pending: false,
         availability_query_date: null,
         availability_query_service_ids: [],
+        awaiting_field: null,
       });
       context.chatContext = updated.chat_context;
       conversation.chat_context = updated.chat_context;

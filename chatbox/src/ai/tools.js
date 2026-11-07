@@ -262,6 +262,10 @@ function extractDateFromText(text) {
   if (!text || typeof text !== 'string') return null;
   const str = text.trim();
   const lower = str.toLowerCase();
+  const normalized = lower
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/đ/g, 'd');
 
   // 1. ISO YYYY-MM-DD
   const isoMatch = str.match(/\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b/);
@@ -325,13 +329,13 @@ function extractDateFromText(text) {
   }
 
   // 6. Relative keywords in Vietnamese
-  if (/(?:ngày\s+kia|ngày\s+mốt|hôm\s+mốt|ngày\s+kìa|\bmốt\b)/i.test(lower)) {
+  if (/(?:ngay\s+kia|ngay\s+mot|hom\s+mot)/u.test(normalized) || /\bmốt\b/u.test(lower)) {
     return getVietnamDate(2);
   }
-  if (/(?:ngày\s+mai|sáng\s+mai|chiều\s+mai|tối\s+mai|\bmai\b)/i.test(lower)) {
+  if (/(?:ngay\s+mai|sang\s+mai|chieu\s+mai|toi\s+mai|\bmai\b)/u.test(normalized)) {
     return getVietnamDate(1);
   }
-  if (/(?:hôm\s+nay|sáng\s+nay|chiều\s+nay|tối\s+nay|\bnay\b)/i.test(lower)) {
+  if (/(?:hom\s+nay|sang\s+nay|chieu\s+nay|toi\s+nay|\bnay\b)/u.test(normalized)) {
     return getVietnamDate(0);
   }
 
@@ -390,6 +394,20 @@ function extractDateFromUserAndHistory(userMessage, history = [], fallbackOffset
 function detectAvailableSlotsQuery(userMessage) {
   if (!userMessage || typeof userMessage !== 'string') return false;
   const lower = userMessage.toLowerCase().trim();
+  const normalized = lower
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/đ/g, 'd');
+
+  if (
+    /\blic?h\s+trong\b/u.test(normalized) &&
+    (
+      /\blịch\s+trông\b/iu.test(lower) ||
+      /\b(?:ngay mai|mai|hom nay|hom kia|ngay kia|xem|con|gio|rang)\b/u.test(normalized)
+    )
+  ) {
+    return true;
+  }
 
   const slotPhrases = [
     'khung giờ khác',

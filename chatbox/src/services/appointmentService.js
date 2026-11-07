@@ -88,7 +88,8 @@ async function checkAvailableSlots(date, requestedDuration, {
     const requirements = products.map(product =>
       appointmentRepo.getServiceRequirements(
         product,
-        productSizes[product.id] || hairSize
+        productSizes[product.id] || hairSize,
+        { requirePrice: false }
       )
     );
     duration = requirements.reduce((total, item) => total + item.durationMinutes, 0);

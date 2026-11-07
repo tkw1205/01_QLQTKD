@@ -31410,5 +31410,136 @@
     "is_read": true,
     "read_at": "2026-11-06T06:53:19.072Z",
     "created_at": "2026-11-06T06:53:19.072Z"
+  },
+  {
+    "id": "aa40a098-e40e-4b48-9f6e-73b6ab8ae2ce",
+    "conversation_id": "f1fa1764-81fa-48fb-bbbf-8a2ac814be1c",
+    "sender_type": "assistant",
+    "sender_id": null,
+    "content": "Xin chào quý khách! Em là AI tư vấn của Mây Hair Studio. Em có thể hỗ trợ mình tìm hiểu dịch vụ, tham khảo giá và thời gian thực hiện hoặc hướng dẫn đặt lịch trực tuyến. Mình cần tư vấn nội dung nào ạ?",
+    "metadata": null,
+    "is_read": false,
+    "read_at": null,
+    "created_at": "2026-11-06T07:04:05.188Z"
+  },
+  {
+    "id": "531ca90e-f96a-4c2c-8c66-696f5c6ab10d",
+    "conversation_id": "f1fa1764-81fa-48fb-bbbf-8a2ac814be1c",
+    "sender_type": "user",
+    "sender_id": null,
+    "content": "hello",
+    "metadata": {
+      "clientMessageId": "cmsg_1793948645132_keaie60"
+    },
+    "is_read": false,
+    "read_at": null,
+    "created_at": "2026-11-06T07:04:05.203Z"
+  },
+  {
+    "id": "31b71ee7-d237-476e-82fe-14f542f41557",
+    "conversation_id": "f1fa1764-81fa-48fb-bbbf-8a2ac814be1c",
+    "sender_type": "assistant",
+    "sender_id": null,
+    "content": "Dạ, em sẵn sàng hỗ trợ mình ạ. Mình cần tư vấn dịch vụ, giá hay đặt lịch ạ?",
+    "metadata": null,
+    "is_read": false,
+    "read_at": null,
+    "created_at": "2026-11-06T07:04:05.220Z"
+  },
+  {
+    "id": "109c0ba0-9a2b-481d-abab-24cecb10963d",
+    "conversation_id": "f1fa1764-81fa-48fb-bbbf-8a2ac814be1c",
+    "sender_type": "user",
+    "sender_id": null,
+    "content": "tôi muốn được tư vấn",
+    "metadata": {
+      "clientMessageId": "cmsg_1793948660021_35omajt"
+    },
+    "is_read": false,
+    "read_at": null,
+    "created_at": "2026-11-06T07:04:20.031Z"
+  },
+  {
+    "id": "97be17b9-a94f-4129-83fb-92ba94297ffe",
+    "conversation_id": "f1fa1764-81fa-48fb-bbbf-8a2ac814be1c",
+    "sender_type": "assistant",
+    "sender_id": null,
+    "content": "Dạ, salon hiện có các dịch vụ:\n- Cắt tóc: Cắt tạo kiểu; Tỉa mái bay / mái thưa & sấy bồng bềnh\n- Duỗi tóc: Duỗi mái; Duỗi gốc; Duỗi kiểu\n- Gội đầu và tạo kiểu: Gội đầu; Tạo kiểu; Xả phồng; Cắt & tạo kiểu Layer hiện đại; Cắt tóc Bob / Pixie thời thượng\n- Nhuộm tóc: Nhuộm kiểu; Chấm chân\n- Nối tóc: Nối hoàn vũ; Nối light; Baby light\n- Phục hồi và dưỡng tóc: Hấp dầu; Phục hồi theo tóc; Phục hồi Biotin; Phục hồi chuyên sâu\n- Tẩy tóc: Tẩy 1 lần; Bóc đen / đỏ; Tẩy Balay; Hidden; Tẩy ombre; Tẩy nền; Nâng nền\n- Uốn tóc: Uốn mái / phồng mái; Phồng chân; Uốn kiểu\nMình đang quan tâm nhóm dịch vụ nào để em tư vấn chi tiết hơn ạ?",
+    "metadata": null,
+    "is_read": false,
+    "read_at": null,
+    "created_at": "2026-11-06T07:04:20.147Z"
+  },
+  {
+    "id": "705ad0db-5c48-453d-9014-983eebff705b",
+    "conversation_id": "f1fa1764-81fa-48fb-bbbf-8a2ac814be1c",
+    "sender_type": "user",
+    "sender_id": null,
+    "content": "nhuộm kiểu",
+    "metadata": {
+      "clientMessageId": "cmsg_1793948667104_annjz5j"
+    },
+    "is_read": false,
+    "read_at": null,
+    "created_at": "2026-11-06T07:04:27.112Z"
+  },
+  {
+    "id": "723bd275-1071-4c44-a6f6-953f39c2bf8a",
+    "conversation_id": "f1fa1764-81fa-48fb-bbbf-8a2ac814be1c",
+    "sender_type": "assistant",
+    "sender_id": null,
+    "content": "Dạ, salon hiện có dịch vụ Nhuộm kiểu. Mình muốn tìm hiểu thêm hay đặt lịch dịch vụ này ạ?",
+    "metadata": null,
+    "is_read": false,
+    "read_at": null,
+    "created_at": "2026-11-06T07:04:27.176Z"
+  },
+  {
+    "id": "3c8fa2c7-ca76-47e6-bc69-280b220877eb",
+    "conversation_id": "f1fa1764-81fa-48fb-bbbf-8a2ac814be1c",
+    "sender_type": "user",
+    "sender_id": null,
+    "content": "mô tả chi tiết",
+    "metadata": {
+      "clientMessageId": "cmsg_1793948675416_m68osmh"
+    },
+    "is_read": false,
+    "read_at": null,
+    "created_at": "2026-11-06T07:04:35.423Z"
+  },
+  {
+    "id": "a74a42cf-cd65-4594-a464-e7aef34adf60",
+    "conversation_id": "f1fa1764-81fa-48fb-bbbf-8a2ac814be1c",
+    "sender_type": "assistant",
+    "sender_id": null,
+    "content": "Dạ em vẫn sẵn sàng hỗ trợ; mình cứ nhắn lại khi tiện nhé ạ!",
+    "metadata": {
+      "kind": "session_timeout_warning"
+    },
+    "is_read": false,
+    "read_at": null,
+    "created_at": "2026-11-06T14:13:26.264Z"
+  },
+  {
+    "id": "201b1cb5-2783-46b1-89c7-e991a733708d",
+    "conversation_id": "f1fa1764-81fa-48fb-bbbf-8a2ac814be1c",
+    "sender_type": "system",
+    "sender_id": null,
+    "content": "Phiên tư vấn tự động tạm đóng do hết thời gian chờ phản hồi. Salon sẽ liên hệ lại nếu có thông tin.",
+    "metadata": null,
+    "is_read": true,
+    "read_at": "2026-11-06T14:18:40.976Z",
+    "created_at": "2026-11-06T14:18:40.976Z"
+  },
+  {
+    "id": "dab2b62e-7d20-431d-8a33-4b2b7859d255",
+    "conversation_id": "02c18c46-c132-4fed-9312-24a48018f263",
+    "sender_type": "system",
+    "sender_id": null,
+    "content": "Phiên tư vấn tự động tạm đóng do hết thời gian chờ phản hồi. Salon sẽ liên hệ lại nếu có thông tin.",
+    "metadata": null,
+    "is_read": true,
+    "read_at": "2026-11-07T12:49:03.616Z",
+    "created_at": "2026-11-07T12:49:03.616Z"
   }
 ]

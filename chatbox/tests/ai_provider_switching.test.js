@@ -6,7 +6,7 @@ const OllamaProvider = require('../src/ai/providers/OllamaProvider');
 const AIService = require('../src/ai/AIService');
 
 describe('AI Provider Switching & Resilience Test Suite', () => {
-  const geminiApiKey = process.env.GEMINI_API_KEY || 'AIzaSyCv3XnnYCHPofQ233x1JUxzqsCzqYfs-mw';
+  const geminiApiKey = process.env.GEMINI_API_KEY || '...';
   const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
   const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
   const ollamaModel = process.env.OLLAMA_MODEL || 'llama3.2';
